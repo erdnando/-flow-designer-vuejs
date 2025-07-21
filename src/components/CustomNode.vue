@@ -3,8 +3,71 @@
 		class="custom-node"
 		tabindex="0"
 		style="pointer-events: auto"
-		@contextmenu="onNodeContextMenu"
+		@mouseenter="onMouseEnter"
+		@mouseleave="onMouseLeave"
 	>
+		<!-- Toolbar flotante -->
+		<div 
+			v-if="showToolbar" 
+			class="node-toolbar-inline"
+			@click.stop
+			@mousedown.stop
+		>
+			<!-- Botón de copiar -->
+			<button
+				class="toolbar-btn copy-btn"
+				@click="handleCopy"
+				title="Copiar nodo"
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+					<rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+					<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" fill="none"/>
+				</svg>
+			</button>
+
+			<!-- Botón de duplicar -->
+			<button
+				class="toolbar-btn duplicate-btn"
+				@click="handleDuplicate"
+				title="Duplicar nodo"
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+					<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" stroke-width="2" fill="none"/>
+					<rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="2" fill="none"/>
+				</svg>
+			</button>
+
+			<!-- Botón de eliminar -->
+			<button
+				class="toolbar-btn delete-btn"
+				@click="handleDelete"
+				title="Eliminar nodo"
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+					<path
+						d="M18 6L6 18M6 6l12 12"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+				</svg>
+			</button>
+
+			<!-- Botón de menú -->
+			<button
+				class="toolbar-btn menu-btn"
+				@click="handleMenu"
+				title="Más opciones"
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+					<circle cx="12" cy="12" r="1.5" fill="currentColor" />
+					<circle cx="12" cy="5" r="1.5" fill="currentColor" />
+					<circle cx="12" cy="19" r="1.5" fill="currentColor" />
+				</svg>
+			</button>
+		</div>
+
 		<!-- Indicador de selección visible -->
 		<div v-if="isNodeSelected" class="selection-indicator">
 			<div :class="['selection-border', { error: hasError }]" />
@@ -47,6 +110,18 @@ import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{ data: { label?: string; type?: string; subtitle?: string } }>();
 const nodeInstance = useNode ? useNode() : undefined;
+
+// Estado para la toolbar
+const showToolbar = ref(false);
+const isHovered = ref(false);
+
+// Emits para comunicar con el parent
+const emit = defineEmits<{
+	'node-copy': [node: any]
+	'node-duplicate': [node: any]
+	'node-delete': [nodeId: string]
+	'node-menu': [event: MouseEvent, node: any]
+}>();
 
 // Separar las fuentes de datos para evitar ciclos reactivos
 const rawData = computed(() => {
@@ -239,11 +314,58 @@ watch(
 	},
 );
 
-// Función para manejar el menú contextual en el nodo
-function onNodeContextMenu(event: MouseEvent) {
-	// Evitar el menú contextual del navegador pero mantener el bubbling
-	event.preventDefault();
+// Funciones para manejar eventos de mouse
+function onMouseEnter() {
+	isHovered.value = true;
+	showToolbar.value = true;
 }
+
+function onMouseLeave() {
+	isHovered.value = false;
+	// Solo ocultar si no está seleccionado
+	if (!isNodeSelected.value) {
+		showToolbar.value = false;
+	}
+}
+
+// Funciones para manejar la toolbar
+function handleCopy() {
+	const nodeData = {
+		type: nodeType.value,
+		label: nodeLabel.value,
+		data: props.data
+	};
+	emit('node-copy', nodeData);
+}
+
+function handleDuplicate() {
+	const nodeData = {
+		type: nodeType.value,
+		label: nodeLabel.value,
+		data: props.data,
+		position: nodeInstance?.node?.position
+	};
+	emit('node-duplicate', nodeData);
+}
+
+function handleDelete() {
+	if (nodeInstance?.node?.id) {
+		emit('node-delete', nodeInstance.node.id);
+	}
+}
+
+function handleMenu(event: MouseEvent) {
+	emit('node-menu', event, nodeInstance?.node);
+}
+
+// Observar selección para mostrar/ocultar toolbar
+watch(isNodeSelected, (selected) => {
+	if (selected) {
+		showToolbar.value = true;
+	} else if (!isHovered.value) {
+		showToolbar.value = false;
+	}
+});
 </script>
 
 <style scoped>
@@ -491,5 +613,98 @@ function onNodeContextMenu(event: MouseEvent) {
 		background-color: #363a40;
 		transform: scale(1);
 	}
+}
+
+/* Estilos para la toolbar inline */
+.node-toolbar-inline {
+	position: absolute;
+	top: -45px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 10000;
+	display: flex;
+	gap: 4px;
+	background: rgba(0, 0, 0, 0.9);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: 8px;
+	padding: 6px;
+	box-shadow: 
+		0 4px 20px rgba(0, 0, 0, 0.6),
+		0 2px 8px rgba(0, 0, 0, 0.4);
+	backdrop-filter: blur(8px);
+	pointer-events: auto;
+	animation: toolbar-appear 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	will-change: transform, opacity;
+}
+
+@keyframes toolbar-appear {
+	from {
+		opacity: 0;
+		transform: translateX(-50%) scale(0.9) translateY(6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(-50%) scale(1) translateY(0);
+	}
+}
+
+.toolbar-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border: none;
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.1);
+	color: rgba(255, 255, 255, 0.95);
+	cursor: pointer;
+	transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+	position: relative;
+	font-size: 14px;
+}
+
+.toolbar-btn:hover {
+	background: rgba(255, 255, 255, 0.15);
+	transform: scale(1.05);
+	color: rgba(255, 255, 255, 1);
+}
+
+.toolbar-btn:active {
+	transform: scale(0.95);
+	transition-duration: 0.05s;
+}
+
+.copy-btn:hover {
+	background: rgba(34, 197, 94, 0.15);
+	color: #22c55e;
+	box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
+}
+
+.duplicate-btn:hover {
+	background: rgba(168, 85, 247, 0.15);
+	color: #a855f7;
+	box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.2);
+}
+
+.delete-btn:hover {
+	background: rgba(239, 68, 68, 0.15);
+	color: #ef4444;
+	box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+}
+
+.menu-btn:hover {
+	background: rgba(59, 130, 246, 0.15);
+	color: #3b82f6;
+	box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+.toolbar-btn svg {
+	pointer-events: none;
+	transition: transform 0.15s ease;
+}
+
+.toolbar-btn:hover svg {
+	transform: scale(1.1);
 }
 </style>

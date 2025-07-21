@@ -355,30 +355,9 @@ function closeContextMenu() {
 }
 
 function onVueFlowContextMenu(e: MouseEvent) {
-	// Solo mostrar menú de fondo si NO se hizo clic sobre un nodo
-	const target = e.target as HTMLElement;
-	// Vue Flow pone la clase 'vue-flow__node' en los nodos
-	const nodeElement = target.closest('.vue-flow__node');
-	if (nodeElement) {
-		// Manejar el evento para nodos directamente aquí
-		e.preventDefault();
-		// Buscar el nodo correspondiente al elemento DOM
-		const nodeId = nodeElement.getAttribute('data-id');
-		const node = nodes.value.find((n) => n.id === nodeId);
-		if (node) {
-			// Llamamos directamente a onNodeContextMenu con un objeto simulado
-			onNodeContextMenu({ event: e, node });
-			return;
-		}
-	}
-	// Si no es nodo, mostrar propiedades del proyecto
+	// Deshabilitar menú contextual completamente
 	e.preventDefault();
-	selectedNodeId.value = null;
-	showingProjectProps.value = true;
-	if (panelCollapsed.value) {
-		panelCollapsed.value = false;
-	}
-	contextMenu.visible = false;
+	return;
 }
 
 // Reemplazar computed selectedNode por ref y watchers
@@ -601,67 +580,12 @@ function updateNodeProperty({ key, value }: { key: string; value: string }) {
 }
 
 function onNodeContextMenu({ event, node }: { event: MouseEvent; node: Node }) {
-	// Es crucial prevenir el comportamiento por defecto
+	// Deshabilitar el menú contextual - ahora usamos toolbar en cada nodo
 	event.preventDefault();
 	event.stopPropagation();
-
-	// Posicionar el menú contextual
-	contextMenu.x = event.clientX;
-	contextMenu.y = event.clientY;
-
-	// Asegurar que label es string
-	const label = typeof node.label === 'string' ? node.label : '';
-
-	contextMenu.items = [
-		{
-			label: 'Abrir...',
-			action: () => {
-				// Aquí podrías abrir un panel/modal de edición
-				alert('Abrir nodo: ' + label);
-			},
-		},
-		{
-			label: 'Renombrar',
-			action: () => {
-				const nuevo = prompt('Nuevo nombre:', label);
-				if (nuevo !== null && nuevo.trim() !== '') {
-					node.label = nuevo;
-				}
-			},
-		},
-		{
-			label: 'Copiar',
-			action: () => {
-				const text = typeof node.label === 'string' ? node.label : String(node.id);
-				try {
-					navigator.clipboard.writeText(text);
-				} catch {}
-			},
-		},
-		{
-			label: 'Duplicar',
-			action: () => {
-				const newId = (nodes.value.length + 1).toString();
-				nodes.value.push({
-					...JSON.parse(JSON.stringify(node)),
-					id: newId,
-					position: { x: (node.position?.x || 0) + 40, y: (node.position?.y || 0) + 40 },
-				});
-			},
-		},
-		{
-			label: 'Eliminar',
-			action: () => {
-				const idx = nodes.value.findIndex((n) => n.id === node.id);
-				if (idx !== -1) {
-					nodes.value.splice(idx, 1);
-					console.log('Nodo eliminado, guardando...');
-					triggerAutoSave();
-				}
-			},
-		},
-	];
-	contextMenu.visible = true;
+	
+	// No mostrar el menú contextual
+	return;
 }
 
 // Exportar flujo a JSON
