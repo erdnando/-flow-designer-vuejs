@@ -11,40 +11,48 @@
 				@click="handleCopy"
 				title="Copiar nodo"
 			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-					<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-				</svg>
+				<img 
+					src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB4PSI5IiB5PSI5IiB3aWR0aD0iMTMiIGhlaWdodD0iMTMiIHJ4PSIyIiByeT0iMiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTUgMTVINGEyIDIgMCAwIDEtMi0yVjRhMiAyIDAgMCAxIDItMmg5YTIgMiAwIDAgMSAyIDJ2MSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+"
+					width="16"
+					height="16" 
+					alt="Copiar"
+				/>
 			</button>
 			<button 
 				class="toolbar-btn duplicate-btn" 
 				@click="handleDuplicate"
 				title="Duplicar nodo"
 			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667-2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1-2.667 2.667H9.667A2.667 2.667 0 0 1 7 18.333z"/>
-					<path d="M4.012 16.737A2.005 2.005 0 0 1 3 15V5c0-1.1.9-2 2-2h10c.75 0 1.158.385 1.5 1"/>
-				</svg>
+				<img 
+					src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNyA3bTAgMi42NjdhMi42NjcgMi42NjcgMCAwIDEgMi42NjctMi42NjdoOC42NjZhMi42NjcgMi42NjcgMCAwIDEgMi42NjcgMi42Njd2OC42NjZhMi42NjcgMi42NjcgMCAwIDEtMi42NjcgMi42NjdIOS42NjdBMi42NjcgMi42NjcgMCAwIDEgNyAxOC4zMzN6IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNNC4wMTIgMTYuNzM3QTIuMDA1IDIuMDA1IDAgMCAxIDMgMTVWNWMwLTEuMS45LTIgMi0yaDEwYy43NSAwIDEuMTU4LjM4NSAxLjUgMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+"
+					width="16"
+					height="16" 
+					alt="Duplicar"
+				/>
 			</button>
 			<button 
 				class="toolbar-btn delete-btn" 
 				@click="handleDelete"
 				title="Eliminar nodo"
 			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M18 6L6 18M6 6l12 12"/>
-				</svg>
+				<img 
+					src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTggNkw2IDE4TTYgNmwxMiAxMiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg=="
+					width="16"
+					height="16" 
+					alt="Eliminar"
+				/>
 			</button>
 			<button 
 				class="toolbar-btn menu-btn" 
 				@click="handleMenu"
 				title="Más opciones"
 			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<circle cx="12" cy="12" r="1"/>
-					<circle cx="19" cy="12" r="1"/>
-					<circle cx="5" cy="12" r="1"/>
-				</svg>
+				<img 
+					src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxLjUiIGZpbGw9IndoaXRlIiAvPjxjaXJjbGUgY3g9IjEyIiBjeT0iNSIgcj0iMS41IiBmaWxsPSJ3aGl0ZSIgLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjE5IiByPSIxLjUiIGZpbGw9IndoaXRlIiAvPjwvc3ZnPg=="
+					width="16"
+					height="16" 
+					alt="Menú"
+				/>
 			</button>
 		</div>
 
@@ -86,10 +94,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Emits para comunicar acciones al componente padre
 const emit = defineEmits<{
-	copyNode: [nodeId: string];
-	duplicateNode: [nodeId: string];
-	deleteNode: [nodeId: string];
-	showMenu: [nodeId: string];
+	'node-copy': [nodeData: any];
+	'node-duplicate': [nodeData: any];
+	'node-delete': [nodeId: string];
+	'node-menu': [event: MouseEvent, node: any];
 }>();
 
 // Hook para obtener información del nodo
@@ -111,22 +119,33 @@ const onMouseLeave = () => {
 
 // Handlers para las acciones de la toolbar
 const handleCopy = () => {
-	emit('copyNode', node.id);
+	const nodeData = {
+		type: 'end',
+		label: 'END',
+		data: props.data
+	};
+	emit('node-copy', nodeData);
 	console.log('Copiar nodo:', node.id);
 };
 
 const handleDuplicate = () => {
-	emit('duplicateNode', node.id);
+	const nodeData = {
+		type: 'end',
+		label: 'END',
+		data: props.data,
+		position: node.position
+	};
+	emit('node-duplicate', nodeData);
 	console.log('Duplicar nodo:', node.id);
 };
 
 const handleDelete = () => {
-	emit('deleteNode', node.id);
+	emit('node-delete', node.id);
 	console.log('Eliminar nodo:', node.id);
 };
 
-const handleMenu = () => {
-	emit('showMenu', node.id);
+const handleMenu = (event: MouseEvent) => {
+	emit('node-menu', event, node);
 	console.log('Mostrar menú para nodo:', node.id);
 };
 </script>
@@ -248,35 +267,35 @@ const handleMenu = () => {
 }
 
 .copy-btn:hover {
-	background: rgba(34, 197, 94, 0.15);
-	color: #22c55e;
-	box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
+	background: rgba(34, 197, 94, 0.9);
+	color: white;
+	box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
 }
 
 .duplicate-btn:hover {
-	background: rgba(168, 85, 247, 0.15);
-	color: #a855f7;
-	box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.2);
+	background: rgba(168, 85, 247, 0.9);
+	color: white;
+	box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.4);
 }
 
 .delete-btn:hover {
-	background: rgba(239, 68, 68, 0.15);
-	color: #ef4444;
-	box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+	background: rgba(239, 68, 68, 0.9);
+	color: white;
+	box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4);
 }
 
 .menu-btn:hover {
-	background: rgba(59, 130, 246, 0.15);
-	color: #3b82f6;
-	box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+	background: rgba(59, 130, 246, 0.9);
+	color: white;
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
-.toolbar-btn svg {
+.toolbar-btn img {
 	pointer-events: none;
 	transition: transform 0.15s ease;
 }
 
-.toolbar-btn:hover svg {
+.toolbar-btn:hover img {
 	transform: scale(1.1);
 }
 </style>

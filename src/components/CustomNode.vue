@@ -19,10 +19,12 @@
 				@click="handleCopy"
 				title="Copiar nodo"
 			>
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-					<rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
-					<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" fill="none"/>
-				</svg>
+				<img 
+					src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB4PSI5IiB5PSI5IiB3aWR0aD0iMTMiIGhlaWdodD0iMTMiIHJ4PSIyIiByeT0iMiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTUgMTVINGEyIDIgMCAwIDEtMi0yVjRhMiAyIDAgMCAxIDItMmg5YTIgMiAwIDAgMSAyIDJ2MSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9zdmc+"
+					width="18"
+					height="18"
+					alt="Copiar"
+				/>
 			</button>
 
 			<!-- Botón de duplicar -->
@@ -31,10 +33,12 @@
 				@click="handleDuplicate"
 				title="Duplicar nodo"
 			>
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-					<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" stroke-width="2" fill="none"/>
-					<rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="2" fill="none"/>
-				</svg>
+				<img 
+					src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTYgNGgyYTIgMiAwIDAgMSAyIDJ2MTRhMiAyIDAgMCAxLTIgMkg2YTIgMiAwIDAgMS0yLTJWNmEyIDIgMCAwIDEgMi0yaDIiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPjxyZWN0IHg9IjgiIHk9IjIiIHdpZHRoPSI4IiBoZWlnaHQ9IjQiIHJ4PSIxIiByeT0iMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9zdmc+"
+					width="18"
+					height="18"
+					alt="Duplicar"
+				/>
 			</button>
 
 			<!-- Botón de eliminar -->
@@ -43,15 +47,12 @@
 				@click="handleDelete"
 				title="Eliminar nodo"
 			>
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-					<path
-						d="M18 6L6 18M6 6l12 12"
-						stroke="currentColor"
-						stroke-width="2.5"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-				</svg>
+				<img 
+					src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTggNkw2IDE4TTYgNmwxMiAxMiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4="
+					width="18"
+					height="18"
+					alt="Eliminar"
+				/>
 			</button>
 
 			<!-- Botón de menú -->
@@ -60,11 +61,12 @@
 				@click="handleMenu"
 				title="Más opciones"
 			>
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-					<circle cx="12" cy="12" r="1.5" fill="currentColor" />
-					<circle cx="12" cy="5" r="1.5" fill="currentColor" />
-					<circle cx="12" cy="19" r="1.5" fill="currentColor" />
-				</svg>
+				<img 
+					src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjYiIHI9IjIiIHN0cm9rZT0id2hpdGUiIGZpbGw9IndoaXRlIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMiIgc3Ryb2tlPSJ3aGl0ZSIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjE4IiByPSIyIiBzdHJva2U9IndoaXRlIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg=="
+					width="18"
+					height="18"
+					alt="Menú"
+				/>
 			</button>
 		</div>
 
@@ -652,22 +654,23 @@ watch(isNodeSelected, (selected) => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 30px;
-	height: 30px;
+	width: 34px;
+	height: 34px;
 	border: none;
-	border-radius: 6px;
-	background: rgba(255, 255, 255, 0.1);
-	color: rgba(255, 255, 255, 0.95);
+	border-radius: 8px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.8);
 	cursor: pointer;
 	transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
 	font-size: 14px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .toolbar-btn:hover {
-	background: rgba(255, 255, 255, 0.15);
+	background: rgba(255, 255, 255, 1);
 	transform: scale(1.05);
-	color: rgba(255, 255, 255, 1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .toolbar-btn:active {
@@ -676,35 +679,55 @@ watch(isNodeSelected, (selected) => {
 }
 
 .copy-btn:hover {
-	background: rgba(34, 197, 94, 0.15);
-	color: #22c55e;
-	box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
+	background: rgba(34, 197, 94, 0.9);
+	box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
 }
+
+.copy-btn:hover img {
+	filter: brightness(0.2); /* Oscurecer la imagen para que sea visible en el fondo claro */
+}
+
+/* Ya no necesitamos estos estilos para SVG */
 
 .duplicate-btn:hover {
-	background: rgba(168, 85, 247, 0.15);
-	color: #a855f7;
-	box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.2);
+	background: rgba(168, 85, 247, 0.9);
+	box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.4);
 }
+
+.duplicate-btn:hover img {
+	filter: brightness(0.2); /* Oscurecer la imagen para que sea visible en el fondo claro */
+}
+
+/* Ya no necesitamos estos estilos para SVG */
 
 .delete-btn:hover {
-	background: rgba(239, 68, 68, 0.15);
-	color: #ef4444;
-	box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+	background: rgba(239, 68, 68, 0.9);
+	box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4);
 }
+
+.delete-btn:hover img {
+	filter: brightness(0.2); /* Oscurecer la imagen para que sea visible en el fondo claro */
+}
+
+/* Ya no necesitamos estos estilos para SVG */
 
 .menu-btn:hover {
-	background: rgba(59, 130, 246, 0.15);
-	color: #3b82f6;
-	box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+	background: rgba(59, 130, 246, 0.9);
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
-.toolbar-btn svg {
+.menu-btn:hover img {
+	filter: brightness(0.2); /* Oscurecer la imagen para que sea visible en el fondo claro */
+}
+
+/* Ya no necesitamos estos estilos para SVG */
+
+.toolbar-btn img {
 	pointer-events: none;
 	transition: transform 0.15s ease;
 }
 
-.toolbar-btn:hover svg {
+.toolbar-btn:hover img {
 	transform: scale(1.1);
 }
 </style>

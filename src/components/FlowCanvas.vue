@@ -69,6 +69,10 @@
 			@contextmenu="onVueFlowContextMenu"
 			@node-click="onNodeClick"
 			@node-drag-stop="onNodeDragStop"
+			@node-delete="onNodeDelete"
+			@node-copy="onNodeCopy"
+			@node-duplicate="onNodeDuplicate"
+			@node-menu="onNodeMenu"
 		>
 			<Background :pattern-color="'#222'" :gap="20" />
 			<MiniMap :class="['minimap-absolute', { 'minimap-shifted': !panelCollapsed }]" />
@@ -586,6 +590,55 @@ function onNodeContextMenu({ event, node }: { event: MouseEvent; node: Node }) {
 	
 	// No mostrar el menú contextual
 	return;
+}
+
+// Funciones para manejar eventos de la toolbar
+function onNodeDelete(nodeId: string) {
+	console.log('Eliminando nodo:', nodeId);
+	const nodeIndex = nodes.value.findIndex((n) => n.id === nodeId);
+	if (nodeIndex !== -1) {
+		nodes.value.splice(nodeIndex, 1);
+		// Si el nodo eliminado era el seleccionado, limpiar selección
+		if (selectedNodeId.value === nodeId) {
+			selectedNodeId.value = null;
+			selectedNode.value = null;
+		}
+		triggerAutoSave();
+	}
+}
+
+function onNodeCopy(nodeData: any) {
+	console.log('Copiando nodo:', nodeData);
+	// Implementar funcionalidad de copiar al clipboard si es necesario
+	try {
+		const text = nodeData.label || nodeData.type || 'nodo';
+		navigator.clipboard.writeText(text);
+	} catch (error) {
+		console.log('No se pudo copiar al clipboard');
+	}
+}
+
+function onNodeDuplicate(nodeData: any) {
+	console.log('Duplicando nodo:', nodeData);
+	const newId = (nodes.value.length + 1).toString();
+	const newNode = {
+		id: newId,
+		type: nodeData.type,
+		label: nodeData.label,
+		data: { ...nodeData.data },
+		position: { 
+			x: (nodeData.position?.x || 0) + 50, 
+			y: (nodeData.position?.y || 0) + 50 
+		},
+	};
+	nodes.value.push(newNode);
+	triggerAutoSave();
+}
+
+function onNodeMenu(event: MouseEvent, node: any) {
+	console.log('Menú del nodo:', node);
+	// Por ahora solo prevenir el comportamiento por defecto
+	// La funcionalidad del menú se puede implementar después
 }
 
 // Exportar flujo a JSON
