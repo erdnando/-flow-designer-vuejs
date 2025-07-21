@@ -5,11 +5,6 @@ import type { RouteRecordRaw } from 'vue-router';
 const routes: Array<RouteRecordRaw> = [
 	{
 		path: '/',
-		name: 'Home',
-		component: () => import('./views/HomeView.vue'),
-	},
-	{
-		path: '/designer',
 		name: 'FlowDesigner',
 		component: () => import('./views/FlowDesignerView.vue'),
 	},

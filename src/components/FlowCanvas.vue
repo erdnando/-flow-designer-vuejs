@@ -68,6 +68,7 @@
 			@node-contextmenu="onNodeContextMenu"
 			@contextmenu="onVueFlowContextMenu"
 			@node-click="onNodeClick"
+			@node-drag-stop="onNodeDragStop"
 		>
 			<Background :pattern-color="'#222'" :gap="20" />
 			<MiniMap :class="['minimap-absolute', { 'minimap-shifted': !panelCollapsed }]" />
@@ -125,16 +126,11 @@ const AUTOSAVE_KEY = 'n8n_standalone_flow_data';
 const AUTOSAVE_DELAY_MS = 1000; // 1 segundo
 let autoSaveTimer: number | null = null;
 
-// Implementación simplificada del auto-guardado para evitar ciclos recursivos
+// Implementación directa del auto-guardado
 function setupAutoSave() {
-	// Solo guardamos cuando cambia la referencia a los arrays, no su contenido
-	watch(nodes, () => triggerAutoSave(), { deep: false });
-	watch(edges, () => triggerAutoSave(), { deep: false });
-
-	// Para las propiedades del proyecto, usamos un enfoque diferente
-	watch(() => projectProperties.value.name, triggerAutoSave);
-	watch(() => projectProperties.value.description, triggerAutoSave);
-	watch(() => projectProperties.value.status, triggerAutoSave);
+	// Removemos todos los watchers automáticos para evitar conflictos
+	// El guardado se hará manualmente en eventos específicos
+	console.log('Auto-guardado configurado para eventos manuales');
 }
 
 // Función auxiliar para programar el guardado con debounce
@@ -155,6 +151,8 @@ function saveToLocalStorage() {
 	try {
 		localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(dataToSave));
 		console.log('Estado del flujo guardado automáticamente');
+		console.log('Nodos guardados:', dataToSave.nodes.length);
+		console.log('Posiciones guardadas:', dataToSave.nodes.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })));
 	} catch (err) {
 		console.error('Error al guardar el estado en localStorage:', err);
 	}
@@ -166,10 +164,17 @@ function loadFromLocalStorage() {
 		const savedData = localStorage.getItem(AUTOSAVE_KEY);
 		if (savedData) {
 			const data = JSON.parse(savedData);
-			if (data.nodes) nodes.value = sanitizeNodesOnLoad(data.nodes as ExtendedNode[]);
+			console.log('Cargando datos desde localStorage:', data);
+			if (data.nodes) {
+				console.log('Nodos a cargar:', data.nodes.length);
+				console.log('Posiciones a cargar:', data.nodes.map((n: any) => ({ id: n.id, x: n.position?.x, y: n.position?.y })));
+				nodes.value = sanitizeNodesOnLoad(data.nodes as ExtendedNode[]);
+			}
 			if (data.edges) edges.value = data.edges;
 			if (data.flowProps)
 				projectProperties.value = { ...projectProperties.value, ...data.flowProps };
+		} else {
+			console.log('No hay datos guardados en localStorage');
 		}
 	} catch (err) {
 		console.error('Error al cargar el estado desde localStorage:', err);
@@ -256,6 +261,8 @@ function clearFlow() {
 
 function onConnect(params: Connection) {
 	flowStore.addEdge(params);
+	console.log('Nueva conexión creada, guardando...');
+	triggerAutoSave();
 }
 
 function onDrop(e: DragEvent) {
@@ -295,6 +302,9 @@ function onDrop(e: DragEvent) {
 			if (panelCollapsed.value) {
 				panelCollapsed.value = false;
 			}
+			// Guardar inmediatamente después de agregar nodo personalizado
+			console.log('Nodo personalizado agregado, guardando...');
+			triggerAutoSave();
 			return;
 		} catch (err) {
 			console.error('Error al parsear nodo personalizado:', err);
@@ -319,6 +329,9 @@ function onDrop(e: DragEvent) {
 		if (panelCollapsed.value) {
 			panelCollapsed.value = false;
 		}
+		// Guardar inmediatamente después de agregar nodo estándar
+		console.log('Nodo estándar agregado, guardando...');
+		triggerAutoSave();
 	}
 }
 
@@ -447,6 +460,13 @@ function onNodeClick({ node }: { node: Node }) {
 	if (panelCollapsed.value) {
 		panelCollapsed.value = false;
 	}
+}
+
+// Detectar cuando termina el arrastre de un nodo para guardar automáticamente
+function onNodeDragStop(event: any) {
+	console.log('Nodo movido, guardando posición...', event);
+	console.log('Posiciones actuales de todos los nodos:', nodes.value.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })));
+	triggerAutoSave();
 }
 
 // Click normal en el fondo del designer
@@ -626,7 +646,11 @@ function onNodeContextMenu({ event, node }: { event: MouseEvent; node: Node }) {
 			label: 'Eliminar',
 			action: () => {
 				const idx = nodes.value.findIndex((n) => n.id === node.id);
-				if (idx !== -1) nodes.value.splice(idx, 1);
+				if (idx !== -1) {
+					nodes.value.splice(idx, 1);
+					console.log('Nodo eliminado, guardando...');
+					triggerAutoSave();
+				}
 			},
 		},
 	];
