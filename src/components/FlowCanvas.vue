@@ -110,6 +110,8 @@ import type { Connection, Node, NodeTypesObject } from '@vue-flow/core';
 import CustomNode from './CustomNode.vue';
 import MinimalNode from './MinimalNode.vue';
 import ConditionNode from './ConditionNode.vue';
+import StartNode from './StartNode.vue';
+import EndNode from './EndNode.vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 import { ElMessageBox } from 'element-plus';
 
@@ -203,9 +205,14 @@ const nodeTypes = {
 	default: markRaw(CustomNode),
 	error: markRaw(CustomNode),
 	minimal: markRaw(MinimalNode),
+	start: markRaw(StartNode),
+	end: markRaw(EndNode),
 	// Primero el spread, luego sobrescribes condition:
 	...Object.fromEntries(Object.keys(nodeTypeMeta).map((type) => [type, markRaw(CustomNode)])),
 	condition: markRaw(ConditionNode), // Esto asegura que 'condition' SIEMPRE sea diamante
+	// Asegurar que start y end usen sus componentes específicos
+	start: markRaw(StartNode),
+	end: markRaw(EndNode),
 } as unknown as NodeTypesObject;
 
 // Usa useVueFlow para zoom seguro y tipado

@@ -130,6 +130,13 @@ function removeNodeType(id: string) {
 // Estructura de categorías (estática + custom)
 const nodeCategories = computed(() => [
 	{
+		name: 'Control de flujo',
+		nodes: [
+			{ type: 'start', label: 'START' },
+			{ type: 'end', label: 'END' },
+		],
+	},
+	{
 		name: 'Entrada',
 		nodes: [
 			{ type: 'webhook', label: 'Webhook' },

@@ -1,5 +1,13 @@
 // Mapa de tipos de nodo a icono SVG y subtítulo
 export const nodeTypeMeta: Record<string, { icon: string; subtitle: string }> = {
+	start: {
+		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><circle cx="19" cy="19" r="16" fill="#4CAF50" stroke="#2E7D32" stroke-width="3"/><polygon points="15,11 25,19 15,27" fill="white"/></svg>`,
+		subtitle: 'Inicio del flujo',
+	},
+	end: {
+		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><circle cx="19" cy="19" r="16" fill="#F44336" stroke="#C62828" stroke-width="3"/><rect x="13" y="13" width="12" height="12" fill="white" rx="2"/></svg>`,
+		subtitle: 'Fin del flujo',
+	},
 	gmail: {
 		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e" stroke="#e14d43" stroke-width="2.5"/><g><path d="M8 12 L19 21 L30 12" stroke="#4285F4" stroke-width="2.5" fill="none" /><path d="M8 12 V26 Q8 28 10 28 H28 Q30 28 30 26 V12" stroke="#34A853" stroke-width="2.5" fill="none" /><path d="M8 12 L19 21 L30 12" stroke="#FBBC05" stroke-width="2.5" fill="none" /><path d="M8 12 L19 21 L30 12" stroke="#EA4335" stroke-width="2.5" fill="none" /></g></svg>`,
 		subtitle: 'send: message',
