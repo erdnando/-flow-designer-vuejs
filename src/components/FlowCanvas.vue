@@ -535,11 +535,43 @@ function onDrop(e: DragEvent) {
 	const label = e.dataTransfer?.getData('text/plain');
 	const customNodeTypeRaw = e.dataTransfer?.getData('application/custom-node-type');
 
+	// Calcular posición antes de cualquier operación asíncrona
 	const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect();
 	const position = {
 		x: e.clientX - bounds.left,
 		y: e.clientY - bounds.top,
 	};
+
+	// Verificar si será el primer nodo
+	const isFirstNode = nodes.value.length === 0;
+	
+	// Si será el primer nodo y el canvas está descentrado, centrarlo
+	if (isFirstNode) {
+		const currentViewport = getViewport();
+		// Considerar que el canvas está descentrado si la posición está muy alejada del origen
+		const isOffCenter = Math.abs(currentViewport.x) > 200 || Math.abs(currentViewport.y) > 200;
+		
+		if (isOffCenter) {
+			console.log('Canvas descentrado detectado, centrando antes de agregar primer nodo');
+			// Centrar el canvas antes de agregar el nodo
+			setViewport({
+				x: 0,
+				y: 0,
+				zoom: currentViewport.zoom // Mantener el zoom actual
+			});
+			// Pequeño delay para que el viewport se actualice
+			setTimeout(() => {
+				processNodeDrop(position, type, label, customNodeTypeRaw);
+			}, 50);
+			return;
+		}
+	}
+	
+	// Procesar el nodo normalmente
+	processNodeDrop(position, type, label, customNodeTypeRaw);
+}
+
+function processNodeDrop(position: { x: number; y: number }, type: string | null, label: string | null, customNodeTypeRaw: string | null) {
 
 	if (customNodeTypeRaw) {
 		// Nodo personalizado: los datos vienen serializados en JSON
