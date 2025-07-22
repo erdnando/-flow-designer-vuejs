@@ -14,6 +14,13 @@
 					<path d="M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 				</svg>
 			</button>
+			<button @click.stop="centerNodes" title="Centrar nodos">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+					<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+					<circle cx="12" cy="12" r="3" fill="currentColor" />
+					<path d="M12 6v2M12 16v2M6 12h2M16 12h2" stroke="currentColor" stroke-width="1" />
+				</svg>
+			</button>
 			<button @click.stop="exportFlow" title="Exportar flujo">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
 					<path
@@ -132,11 +139,43 @@ const AUTOSAVE_KEY = 'n8n_standalone_flow_data';
 const AUTOSAVE_DELAY_MS = 1000; // 1 segundo
 let autoSaveTimer: number | null = null;
 
+// Control para centrado automático
+let autoCenterApplied = false;
+
+// Función para verificar si hay viewport guardado
+function hasSavedViewport(): boolean {
+	try {
+		const savedData = localStorage.getItem(AUTOSAVE_KEY);
+		if (savedData) {
+			const data = JSON.parse(savedData);
+			return !!(data.viewport);
+		}
+	} catch (err) {
+		console.error('Error al verificar viewport guardado:', err);
+	}
+	return false;
+}
+
 // Implementación directa del auto-guardado
 function setupAutoSave() {
-	// Removemos todos los watchers automáticos para evitar conflictos
-	// El guardado se hará manualmente en eventos específicos
-	console.log('Auto-guardado configurado para eventos manuales');
+	console.log('Auto-guardado configurado para eventos manuales y cambios de viewport');
+	
+	// Observar cambios en el viewport (zoom y posición) 
+	let lastViewport: any = null;
+	const checkViewportChanges = () => {
+		const currentViewport = getViewport();
+		if (lastViewport && 
+			(Math.abs(currentViewport.zoom - lastViewport.zoom) > 0.01 || 
+			 Math.abs(currentViewport.x - lastViewport.x) > 5 || 
+			 Math.abs(currentViewport.y - lastViewport.y) > 5)) {
+			console.log('Viewport cambió, guardando...');
+			triggerAutoSave();
+		}
+		lastViewport = { ...currentViewport };
+	};
+	
+	// Verificar cambios en el viewport cada 500ms
+	setInterval(checkViewportChanges, 500);
 }
 
 // Función auxiliar para programar el guardado con debounce
@@ -149,15 +188,20 @@ function triggerAutoSave() {
 
 // Función para guardar el estado actual en localStorage
 function saveToLocalStorage() {
+	// Obtener el estado actual del viewport (zoom y posición)
+	const viewport = getViewport();
+	
 	const dataToSave = {
 		nodes: sanitizeNodesForSave(nodes.value as ExtendedNode[]),
 		edges: edges.value,
 		flowProps: projectProperties.value,
+		viewport: viewport // Guardar zoom y posición del canvas
 	};
 	try {
 		localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(dataToSave));
 		console.log('Estado del flujo guardado automáticamente');
 		console.log('Nodos guardados:', dataToSave.nodes.length);
+		console.log('Zoom guardado:', viewport.zoom.toFixed(2));
 		console.log('Posiciones guardadas:', dataToSave.nodes.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })));
 	} catch (err) {
 		console.error('Error al guardar el estado en localStorage:', err);
@@ -179,6 +223,17 @@ function loadFromLocalStorage() {
 			if (data.edges) edges.value = data.edges;
 			if (data.flowProps)
 				projectProperties.value = { ...projectProperties.value, ...data.flowProps };
+			
+			// Restaurar viewport (zoom y posición) si existe
+			if (data.viewport) {
+				console.log('Restaurando zoom:', data.viewport.zoom.toFixed(2));
+				console.log('Restaurando posición del canvas:', data.viewport.x.toFixed(0), data.viewport.y.toFixed(0));
+				
+				// Aplicar el viewport después de un pequeño delay para asegurar que Vue Flow esté listo
+				setTimeout(() => {
+					setViewport(data.viewport);
+				}, 50);
+			}
 		} else {
 			console.log('No hay datos guardados en localStorage');
 		}
@@ -191,11 +246,56 @@ function loadFromLocalStorage() {
 onMounted(() => {
 	loadFromLocalStorage();
 	setupAutoSave();
-	// Aplicar zoom inicial menor (2 clics de alejar)
+	
+	// Esperar múltiples ciclos para asegurar que Vue Flow esté completamente inicializado
 	setTimeout(() => {
-		vueFlowZoomOut();
-		vueFlowZoomOut();
-	}, 100);
+		const hasViewport = hasSavedViewport();
+		
+		if (nodes.value.length > 0 && !autoCenterApplied) {
+			console.log(`Primera carga detectada, aplicando centrado automático para ${nodes.value.length} nodos...`);
+			autoCenterApplied = true;
+			
+			if (hasViewport) {
+				// Si hay viewport guardado, usar centrado manual preservando el zoom
+				const savedData = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || '{}');
+				const savedViewport = savedData.viewport;
+				
+				if (savedViewport && savedViewport.zoom) {
+					console.log(`Aplicando centrado automático con zoom guardado: ${savedViewport.zoom}`);
+					
+					// Aplicar el viewport guardado primero
+					setViewport(savedViewport);
+					
+					// Luego centrar manualmente manteniendo el zoom
+					setTimeout(() => {
+						centerNodes(true); // Esto ahora usará el zoom guardado
+					}, 100);
+				} else {
+					// Si no hay zoom guardado, centrar normalmente con fitView
+					fitView({ 
+						padding: 50,
+						includeHiddenNodes: true,
+						minZoom: 0.2,
+						maxZoom: 1.5,
+						duration: 600
+					});
+				}
+			} else {
+				// Si no hay viewport guardado, centrar normalmente con fitView
+				fitView({ 
+					padding: 50,
+					includeHiddenNodes: true,
+					minZoom: 0.2,
+					maxZoom: 1.5,
+					duration: 600
+				});
+			}
+		} else if (nodes.value.length === 0 && !hasViewport) {
+			// Si no hay nodos ni viewport guardado, aplicar zoom inicial menor
+			vueFlowZoomOut();
+			vueFlowZoomOut();
+		}
+	}, 250); // Aumentar el delay para dar más tiempo a Vue Flow y al viewport
 });
 
 onBeforeUnmount(() => {
@@ -220,13 +320,166 @@ const nodeTypes = {
 } as unknown as NodeTypesObject;
 
 // Usa useVueFlow para zoom seguro y tipado
-const { zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut } = useVueFlow();
+const { zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, fitView, getViewport, setViewport } = useVueFlow();
 
 function zoomIn() {
 	vueFlowZoomIn();
+	// Guardar el nuevo nivel de zoom después de un pequeño delay
+	setTimeout(() => triggerAutoSave(), 100);
 }
 function zoomOut() {
 	vueFlowZoomOut();
+	// Guardar el nuevo nivel de zoom después de un pequeño delay
+	setTimeout(() => triggerAutoSave(), 100);
+}
+
+function centerNodes(isAutomatic = false) {
+	if (nodes.value.length === 0) return;
+	
+	const currentViewport = getViewport();
+	const currentZoom = currentViewport.zoom;
+	
+	if (isAutomatic && currentZoom > 0.3) {
+		// Si es centrado automático y ya hay un zoom significativo (viewport restaurado),
+		// centrar manualmente manteniendo el zoom
+		console.log('Centrado automático con zoom existente:', currentZoom);
+		
+		// Calcular el bounding box de todos los nodos
+		let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+		
+		nodes.value.forEach(node => {
+			const x = node.position.x;
+			const y = node.position.y;
+			const nodeWidth = 200;
+			const nodeHeight = 80;
+			
+			minX = Math.min(minX, x);
+			minY = Math.min(minY, y);
+			maxX = Math.max(maxX, x + nodeWidth);
+			maxY = Math.max(maxY, y + nodeHeight);
+		});
+		
+		// Calcular el centro de los nodos
+		const centerX = (minX + maxX) / 2;
+		const centerY = (minY + maxY) / 2;
+		
+		// Obtener el tamaño del canvas
+		const canvasElement = document.querySelector('.custom-vue-flow') as HTMLElement;
+		if (!canvasElement) return;
+		
+		const canvasWidth = canvasElement.clientWidth;
+		const canvasHeight = canvasElement.clientHeight;
+		
+		// Calcular la posición del viewport para centrar los nodos
+		const viewportX = (canvasWidth / 2) - (centerX * currentZoom);
+		const viewportY = (canvasHeight / 2) - (centerY * currentZoom);
+		
+		// Aplicar la nueva posición manteniendo el zoom actual
+		setViewport({
+			x: viewportX,
+			y: viewportY,
+			zoom: currentZoom
+		});
+		
+		console.log('Centrado automático aplicado manteniendo zoom:', currentZoom);
+		
+	} else if (isAutomatic) {
+		// Para centrado automático sin zoom previo, usar fitView
+		console.log('Centrado automático con ajuste de zoom');
+		fitView({ 
+			padding: 50,
+			includeHiddenNodes: true,
+			minZoom: 0.2,
+			maxZoom: 1.5,
+			duration: 600
+		});
+	} else {
+		// Para centrado manual, detectar si el zoom es muy alto y ajustarlo si es necesario
+		console.log('Zoom actual antes del centrado:', currentZoom);
+		
+		// Si el zoom es muy alto (mayor a 1.2), usar fitView para ajustar automáticamente
+		if (currentZoom > 1.2) {
+			console.log('Zoom muy alto detectado, ajustando para mostrar todos los nodos');
+			fitView({ 
+				padding: 50,
+				includeHiddenNodes: true,
+				minZoom: 0.3,
+				maxZoom: 1.2, // Limitar el zoom máximo para que no sea excesivo
+				duration: 800
+			});
+		} else {
+			// Para zoom normal o bajo, mantener el zoom actual como antes
+			// Calcular el bounding box de todos los nodos
+			let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+			
+			nodes.value.forEach(node => {
+				const x = node.position.x;
+				const y = node.position.y;
+				const nodeWidth = 200;
+				const nodeHeight = 80;
+				
+				minX = Math.min(minX, x);
+				minY = Math.min(minY, y);
+				maxX = Math.max(maxX, x + nodeWidth);
+				maxY = Math.max(maxY, y + nodeHeight);
+			});
+			
+			// Calcular el centro de los nodos
+			const centerX = (minX + maxX) / 2;
+			const centerY = (minY + maxY) / 2;
+			
+			// Obtener el tamaño del canvas
+			const canvasElement = document.querySelector('.custom-vue-flow') as HTMLElement;
+			if (!canvasElement) {
+				console.log('No se encontró el elemento canvas');
+				return;
+			}
+			
+			const canvasWidth = canvasElement.clientWidth;
+			const canvasHeight = canvasElement.clientHeight;
+			
+			// Calcular la posición del viewport para centrar los nodos
+			const viewportX = (canvasWidth / 2) - (centerX * currentZoom);
+			const viewportY = (canvasHeight / 2) - (centerY * currentZoom);
+			
+			console.log('Aplicando centrado manual:');
+			console.log('- Centro de nodos:', centerX, centerY);
+			console.log('- Tamaño canvas:', canvasWidth, canvasHeight);
+			console.log('- Nueva posición viewport:', viewportX, viewportY);
+			console.log('- Zoom a mantener:', currentZoom);
+			
+			// Aplicar la nueva posición manteniendo el zoom actual
+			setViewport({
+				x: viewportX,
+				y: viewportY,
+				zoom: currentZoom
+			});
+			
+			// Verificar que el zoom se mantuvo
+			setTimeout(() => {
+				const newViewport = getViewport();
+				console.log('Zoom después del centrado:', newViewport.zoom);
+				if (Math.abs(newViewport.zoom - currentZoom) > 0.001) {
+					console.warn('El zoom cambió inesperadamente, forzando de vuelta al original');
+					setViewport({
+						x: newViewport.x,
+						y: newViewport.y,
+						zoom: currentZoom
+					});
+				}
+			}, 50);
+		}
+	}
+	
+	// Guardar el estado después de centrar
+	setTimeout(() => {
+		if (isAutomatic) {
+			console.log('Centrado automático aplicado y posiciones guardadas');
+		} else {
+			console.log('Centrado manual aplicado, guardando posiciones...');
+		}
+		triggerAutoSave();
+	}, isAutomatic ? 700 : 200);
 }
 
 // ---
