@@ -125,6 +125,8 @@ import StartNode from './StartNode.vue';
 import EndNode from './EndNode.vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 import { ElMessageBox } from 'element-plus';
+import { validateAllRules, getValidationErrors, isFlowValid, type ValidationResult } from '../utils/nodeValidationRules';
+import { useNotifications } from '../composables/useNotifications';
 
 // Extender el tipo Node para incluir la propiedad selected opcional
 interface ExtendedNode extends Node {
@@ -141,6 +143,103 @@ let autoSaveTimer: number | null = null;
 
 // Control para centrado automático
 let autoCenterApplied = false;
+
+// Estado para validaciones de nodos
+const validationErrors = ref<ValidationResult[]>([]);
+
+// Sistema de notificaciones
+const { showValidationError, showValidationWarning, showSuccess, showWarning, showDanger, showInfo } = useNotifications();
+
+// Función para ejecutar validaciones y mostrar notificaciones
+function runNodeValidations(showNotifications: boolean = true) {
+	const errors = getValidationErrors(nodes.value);
+	validationErrors.value = errors;
+	
+	if (showNotifications && errors.length > 0) {
+		// Agrupar errores por tipo para mostrar un resumen
+		const errorSummary = errors.reduce((acc, error) => {
+			acc[error.ruleId] = acc[error.ruleId] || [];
+			acc[error.ruleId].push(error.message!);
+			return acc;
+		}, {} as Record<string, string[]>);
+		
+		// Mostrar una notificación por cada tipo de error
+		Object.entries(errorSummary).forEach(([ruleId, messages]) => {
+			const isStartRule = ruleId === 'single-start-node';
+			const isEndRule = ruleId === 'single-end-node';
+			
+			showValidationError(
+				isStartRule ? 'Múltiples nodos START detectados' : 
+				isEndRule ? 'Múltiples nodos END detectados' : 
+				'Error de validación',
+				{
+					title: 'Regla de validación violada',
+					description: messages[0],
+					duration: 8000,
+					actions: [
+						{
+							label: 'Entendido',
+							action: () => {},
+							style: 'primary'
+						},
+						{
+							label: 'Ver detalles',
+							action: () => {
+								showInfo('Detalles de validación', {
+									title: 'Estado actual del flujo',
+									description: `Regla "${ruleId}": ${messages.join(', ')}`,
+									duration: 10000,
+									persistent: false
+								});
+							},
+							style: 'secondary'
+						}
+					]
+				}
+			);
+		});
+	}
+	
+	return errors.length === 0;
+}
+
+// Función para verificar si se puede agregar un nodo de un tipo específico
+function canAddNodeType(nodeType: string): boolean {
+	// Crear un nodo temporal para la validación
+	const tempNode = {
+		id: 'temp-validation',
+		type: nodeType,
+		position: { x: 0, y: 0 },
+		data: {}
+	};
+	
+	// Crear lista temporal con el nuevo nodo
+	const tempNodes = [...nodes.value, tempNode as any];
+	
+	// Validar reglas específicas para este tipo de nodo
+	const errors = getValidationErrors(tempNodes);
+	
+	// Si hay errores, mostrar notificaciones de validación
+	if (errors.length > 0) {
+		errors.forEach(error => {
+			showValidationError('No se puede agregar el nodo', {
+				title: 'Regla de validación violada',
+				description: error.message!,
+				duration: 6000,
+				actions: [
+					{
+						label: 'Entendido',
+						action: () => {},
+						style: 'primary'
+					}
+				]
+			});
+		});
+		return false;
+	}
+	
+	return true;
+}
 
 // Función para verificar si hay viewport guardado
 function hasSavedViewport(): boolean {
@@ -195,50 +294,85 @@ function saveToLocalStorage() {
 		nodes: sanitizeNodesForSave(nodes.value as ExtendedNode[]),
 		edges: edges.value,
 		flowProps: projectProperties.value,
-		viewport: viewport // Guardar zoom y posición del canvas
+		viewport
 	};
-	try {
-		localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(dataToSave));
-		console.log('Estado del flujo guardado automáticamente');
-		console.log('Nodos guardados:', dataToSave.nodes.length);
-		console.log('Zoom guardado:', viewport.zoom.toFixed(2));
-		console.log('Posiciones guardadas:', dataToSave.nodes.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })));
-	} catch (err) {
-		console.error('Error al guardar el estado en localStorage:', err);
-	}
+	
+	localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(dataToSave));
+	console.log('Flow guardado en localStorage con viewport:', viewport);
+	
+	// Ejecutar validaciones silenciosamente para actualizar estado
+	runNodeValidations(false);
 }
 
 // Función para cargar el estado desde localStorage
 function loadFromLocalStorage() {
 	try {
-		const savedData = localStorage.getItem(AUTOSAVE_KEY);
-		if (savedData) {
-			const data = JSON.parse(savedData);
-			console.log('Cargando datos desde localStorage:', data);
-			if (data.nodes) {
-				console.log('Nodos a cargar:', data.nodes.length);
-				console.log('Posiciones a cargar:', data.nodes.map((n: any) => ({ id: n.id, x: n.position?.x, y: n.position?.y })));
-				nodes.value = sanitizeNodesOnLoad(data.nodes as ExtendedNode[]);
-			}
-			if (data.edges) edges.value = data.edges;
-			if (data.flowProps)
-				projectProperties.value = { ...projectProperties.value, ...data.flowProps };
-			
-			// Restaurar viewport (zoom y posición) si existe
-			if (data.viewport) {
-				console.log('Restaurando zoom:', data.viewport.zoom.toFixed(2));
-				console.log('Restaurando posición del canvas:', data.viewport.x.toFixed(0), data.viewport.y.toFixed(0));
-				
-				// Aplicar el viewport después de un pequeño delay para asegurar que Vue Flow esté listo
-				setTimeout(() => {
-					setViewport(data.viewport);
-				}, 50);
-			}
-		} else {
-			console.log('No hay datos guardados en localStorage');
+		const savedDataString = localStorage.getItem(AUTOSAVE_KEY);
+		if (!savedDataString) return;
+		
+		const savedData = JSON.parse(savedDataString);
+		
+		if (savedData.nodes && Array.isArray(savedData.nodes)) {
+			nodes.value = sanitizeNodesOnLoad(savedData.nodes as ExtendedNode[]);
 		}
+		if (savedData.edges && Array.isArray(savedData.edges)) {
+			edges.value = savedData.edges;
+		}
+		if (savedData.flowProps) {
+			projectProperties.value = { ...projectProperties.value, ...savedData.flowProps };
+		}
+		if (savedData.viewport) {
+			// Restaurar el viewport después de un delay para asegurar que Vue Flow esté listo
+			setTimeout(() => {
+				setViewport(savedData.viewport);
+			}, 50);
+		}
+		
+		console.log('Flow cargado desde localStorage:', {
+			nodes: nodes.value.length,
+			edges: edges.value.length,
+			viewport: savedData.viewport || 'no viewport'
+		});
+		
+		// Después de cargar, verificar validaciones y mostrar resumen si hay errores
+		setTimeout(() => {
+			const errors = getValidationErrors(nodes.value);
+			if (errors.length > 0) {
+				// Mostrar notificación de resumen de validación
+				const startErrors = errors.filter(e => e.ruleId === 'single-start-node').length;
+				const endErrors = errors.filter(e => e.ruleId === 'single-end-node').length;
+				
+				let description = 'El flujo cargado tiene las siguientes violaciones de reglas:';
+				if (startErrors > 0) description += `\n• ${startErrors > 1 ? 'Múltiples' : 'Falta'} nodo START`;
+				if (endErrors > 0) description += `\n• ${endErrors > 1 ? 'Múltiples' : 'Falta'} nodo END`;
+				
+				showWarning('Validaciones pendientes en el flujo', {
+					title: 'Flujo cargado con advertencias',
+					description,
+					duration: 10000,
+					persistent: true,
+					actions: [
+						{
+							label: 'Ver detalles',
+							action: () => runNodeValidations(true),
+							style: 'primary'
+						},
+						{
+							label: 'Entendido',
+							action: () => {},
+							style: 'secondary'
+						}
+					]
+				});
+			}
+		}, 1000);
+		
 	} catch (err) {
-		console.error('Error al cargar el estado desde localStorage:', err);
+		console.error('Error al cargar el flow desde localStorage:', err);
+		showDanger('Error al cargar el flujo', {
+			description: 'No se pudo restaurar el estado guardado. Se iniciará con un flujo vacío.',
+			duration: 6000
+		});
 	}
 }
 
@@ -254,6 +388,9 @@ onMounted(() => {
 		if (nodes.value.length > 0 && !autoCenterApplied) {
 			console.log(`Primera carga detectada, aplicando centrado automático para ${nodes.value.length} nodos...`);
 			autoCenterApplied = true;
+			
+			// Ejecutar validaciones del flujo cargado
+			setTimeout(() => runNodeValidations(false), 500); // Sin notificaciones al cargar
 			
 			if (hasViewport) {
 				// Si hay viewport guardado, usar centrado manual preservando el zoom
@@ -578,6 +715,13 @@ function processNodeDrop(position: { x: number; y: number }, type: string | null
 		try {
 			const customType = JSON.parse(customNodeTypeRaw);
 			const nodeType = customType.type || customType.id || customType.name || 'custom';
+			
+			// Validar si se puede agregar este tipo de nodo
+			if (!canAddNodeType(nodeType)) {
+				console.log(`No se puede agregar nodo de tipo ${nodeType} debido a reglas de validación`);
+				return;
+			}
+			
 			const nodeLabel = customType.name || nodeType;
 			flowStore.addNode({
 				type: nodeType,
@@ -598,6 +742,16 @@ function processNodeDrop(position: { x: number; y: number }, type: string | null
 			if (panelCollapsed.value) {
 				panelCollapsed.value = false;
 			}
+			
+			// Ejecutar validaciones después de agregar el nodo
+			setTimeout(() => runNodeValidations(), 100);
+			
+			// Mostrar notificación de éxito
+			showSuccess('Nodo personalizado agregado', {
+				description: `Se agregó el nodo "${nodeLabel}" al flujo`,
+				duration: 3000
+			});
+			
 			// Guardar inmediatamente después de agregar nodo personalizado
 			console.log('Nodo personalizado agregado, guardando...');
 			triggerAutoSave();
@@ -607,6 +761,12 @@ function processNodeDrop(position: { x: number; y: number }, type: string | null
 		}
 	}
 	if (type) {
+		// Validar si se puede agregar este tipo de nodo
+		if (!canAddNodeType(type)) {
+			console.log(`No se puede agregar nodo de tipo ${type} debido a reglas de validación`);
+			return;
+		}
+		
 		// Si el tipo es 'default', usa el label del drag (nombre mostrado en el panel)
 		let nodeLabel = label || type;
 		flowStore.addNode({
@@ -625,6 +785,16 @@ function processNodeDrop(position: { x: number; y: number }, type: string | null
 		if (panelCollapsed.value) {
 			panelCollapsed.value = false;
 		}
+		
+		// Ejecutar validaciones después de agregar el nodo
+		setTimeout(() => runNodeValidations(), 100);
+		
+		// Mostrar notificación de éxito
+		showSuccess('Nodo agregado', {
+			description: `Se agregó el nodo "${nodeLabel}" al flujo`,
+			duration: 3000
+		});
+		
 		// Guardar inmediatamente después de agregar nodo estándar
 		console.log('Nodo estándar agregado, guardando...');
 		triggerAutoSave();
@@ -792,6 +962,50 @@ function updateNodeProperty({ key, value }: { key: string; value: string }) {
 	if (key === 'type') {
 		console.log(`Cambiando tipo de nodo de ${currentNode.type} a ${value}`);
 
+		// Validar si se puede cambiar a este tipo
+		// Crear una lista temporal sin el nodo actual
+		const tempNodesWithoutCurrent = nodes.value.filter(n => n.id !== nodeId);
+		// Crear nodo temporal con el nuevo tipo
+		const tempNode = {
+			id: 'temp-validation',
+			type: value,
+			position: { x: 0, y: 0 },
+			data: {}
+		};
+		const tempNodes = [...tempNodesWithoutCurrent, tempNode as any];
+		const errors = getValidationErrors(tempNodes);
+		
+		if (errors.length > 0) {
+			// Mostrar error y cancelar el cambio
+			errors.forEach(error => {
+				showValidationError('No se puede cambiar el tipo de nodo', {
+					title: 'Cambio de tipo bloqueado',
+					description: error.message!,
+					duration: 7000,
+					actions: [
+						{
+							label: 'Entendido',
+							action: () => {},
+							style: 'primary'
+						},
+						{
+							label: 'Ver reglas',
+							action: () => {
+								showInfo('Reglas de validación activas', {
+									title: 'Sistema de validación',
+									description: 'Las reglas actuales son: Solo un nodo START y solo un nodo END por flujo.',
+									duration: 8000,
+									persistent: false
+								});
+							},
+							style: 'secondary'
+						}
+					]
+				});
+			});
+			return;
+		}
+
 		// 1. Guardar toda la información del nodo actual
 		const savedPosition = { ...currentNode.position };
 		const savedId = currentNode.id;
@@ -832,6 +1046,9 @@ function updateNodeProperty({ key, value }: { key: string; value: string }) {
 				selectedNodeId.value = savedId;
 				updateSelectedNodeFromList();
 				console.log('Nodo recreado con nuevo tipo:', newNode);
+				
+				// 8. Ejecutar validaciones después del cambio
+				runNodeValidations();
 			}, 50);
 		}, 50);
 
@@ -882,12 +1099,41 @@ function onNodeDelete(nodeId: string) {
 	console.log('Eliminando nodo:', nodeId);
 	const nodeIndex = nodes.value.findIndex((n) => n.id === nodeId);
 	if (nodeIndex !== -1) {
+		const nodeToDelete = nodes.value[nodeIndex];
+		const nodeLabel = nodeToDelete.label || nodeToDelete.type || 'Nodo';
+		
 		nodes.value.splice(nodeIndex, 1);
+		
 		// Si el nodo eliminado era el seleccionado, limpiar selección
 		if (selectedNodeId.value === nodeId) {
 			selectedNodeId.value = null;
 			selectedNode.value = null;
 		}
+		
+		// Mostrar notificación de eliminación
+		showWarning('Nodo eliminado', {
+			description: `Se eliminó el nodo "${nodeLabel}" del flujo`,
+			duration: 4000,
+			actions: [
+				{
+					label: 'Deshacer',
+					action: () => {
+						// Restaurar el nodo eliminado
+						nodes.value.splice(nodeIndex, 0, nodeToDelete);
+						showSuccess('Nodo restaurado', {
+							description: `Se restauró el nodo "${nodeLabel}"`,
+							duration: 3000
+						});
+						triggerAutoSave();
+					},
+					style: 'primary'
+				}
+			]
+		});
+		
+		// Ejecutar validaciones después de eliminar el nodo
+		setTimeout(() => runNodeValidations(false), 100); // Sin notificaciones al eliminar
+		
 		triggerAutoSave();
 	}
 }
@@ -905,6 +1151,13 @@ function onNodeCopy(nodeData: any) {
 
 function onNodeDuplicate(nodeData: any) {
 	console.log('Duplicando nodo:', nodeData);
+	
+	// Validar si se puede duplicar este tipo de nodo
+	if (!canAddNodeType(nodeData.type)) {
+		console.log(`No se puede duplicar nodo de tipo ${nodeData.type} debido a reglas de validación`);
+		return;
+	}
+	
 	const newId = (nodes.value.length + 1).toString();
 	const newNode = {
 		id: newId,
@@ -917,6 +1170,13 @@ function onNodeDuplicate(nodeData: any) {
 		},
 	};
 	nodes.value.push(newNode);
+	
+	// Mostrar notificación de éxito
+	showSuccess('Nodo duplicado', {
+		description: `Se creó una copia del nodo "${nodeData.label || nodeData.type}"`,
+		duration: 3000
+	});
+	
 	triggerAutoSave();
 }
 
@@ -928,21 +1188,34 @@ function onNodeMenu(event: MouseEvent, node: any) {
 
 // Exportar flujo a JSON
 function exportFlow() {
-	const data = {
-		nodes: nodes.value,
-		edges: edges.value,
-		flowProps: projectProperties.value,
-	};
-	const json = JSON.stringify(data, null, 2);
-	const blob = new Blob([json], { type: 'application/json' });
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = (projectProperties.value.name || 'flujo') + '.json';
-	document.body.appendChild(a);
-	a.click();
-	document.body.removeChild(a);
-	URL.revokeObjectURL(url);
+	try {
+		const data = {
+			nodes: nodes.value,
+			edges: edges.value,
+			flowProps: projectProperties.value,
+		};
+		const json = JSON.stringify(data, null, 2);
+		const blob = new Blob([json], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = (projectProperties.value.name || 'flujo') + '.json';
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+		
+		showSuccess('Flujo exportado exitosamente', {
+			description: `Se descargó el archivo: ${(projectProperties.value.name || 'flujo')}.json`,
+			duration: 4000
+		});
+	} catch (error) {
+		showDanger('Error al exportar el flujo', {
+			description: 'No se pudo generar el archivo de exportación.',
+			duration: 6000
+		});
+		console.error('Error al exportar flujo:', error);
+	}
 }
 
 // Importar flujo desde JSON
@@ -957,6 +1230,14 @@ function importFlow(e: Event) {
 			if (data.nodes && data.edges) {
 				nodes.value = data.nodes;
 				edges.value = data.edges;
+				
+				showSuccess('Flujo importado exitosamente', {
+					description: `Se cargaron ${data.nodes.length} nodos y ${data.edges.length} conexiones`,
+					duration: 5000
+				});
+				
+				// Ejecutar validaciones del flujo importado
+				setTimeout(() => runNodeValidations(true), 500);
 			}
 			if (data.flowProps) {
 				if (data.flowProps.name) {
@@ -979,8 +1260,19 @@ function importFlow(e: Event) {
 				}
 			}
 		} catch (err) {
-			ElMessageBox.alert('Error al importar el flujo. Archivo inválido o dañado.', 'Error', {
-				type: 'error',
+			showDanger('Error al importar el flujo', {
+				description: 'El archivo seleccionado es inválido o está dañado.',
+				duration: 6000,
+				actions: [
+					{
+						label: 'Seleccionar otro archivo',
+						action: () => {
+							const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+							input?.click();
+						},
+						style: 'primary'
+					}
+				]
 			});
 			console.error('Error al importar flujo:', err);
 		}
@@ -1149,5 +1441,90 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .vue-flow__handle {
 	pointer-events: auto !important;
 	z-index: 1;
+}
+
+/* Estilos para conexiones animadas y más gruesas */
+.vue-flow__edge-path {
+	stroke: #5078ff !important;
+	stroke-width: 3px !important;
+	animation: dash 20s linear infinite;
+	stroke-dasharray: 15 10;
+	filter: drop-shadow(0 2px 4px rgba(80, 120, 255, 0.3));
+	transition: stroke-width 0.3s ease, stroke 0.3s ease;
+}
+
+.vue-flow__edge-path:hover {
+	stroke: #6b8aff !important;
+	stroke-width: 4px !important;
+	filter: drop-shadow(0 3px 6px rgba(80, 120, 255, 0.5));
+}
+
+.vue-flow__edge.selected .vue-flow__edge-path {
+	stroke: #7c9eff !important;
+	stroke-width: 4px !important;
+	stroke-dasharray: 12 8;
+	animation: dash 15s linear infinite;
+}
+
+/* Animación de las líneas punteadas */
+@keyframes dash {
+	to {
+		stroke-dashoffset: -200;
+	}
+}
+
+/* Estilos para las puntas de flecha */
+.vue-flow__arrowhead {
+	fill: #5078ff !important;
+	transition: fill 0.3s ease;
+}
+
+.vue-flow__edge:hover .vue-flow__arrowhead {
+	fill: #6b8aff !important;
+}
+
+.vue-flow__edge.selected .vue-flow__arrowhead {
+	fill: #7c9eff !important;
+}
+
+/* Estilos para conexiones en proceso de creación */
+.vue-flow__connection-path {
+	stroke: #5078ff !important;
+	stroke-width: 3px !important;
+	stroke-dasharray: 10 5;
+	animation: connection-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes connection-pulse {
+	0%, 100% {
+		opacity: 0.7;
+		stroke-width: 3px;
+	}
+	50% {
+		opacity: 1;
+		stroke-width: 4px;
+	}
+}
+
+/* Mejorar la visibilidad de los handles de conexión */
+.vue-flow__handle {
+	background: #5078ff !important;
+	border: 2px solid #ffffff !important;
+	width: 12px !important;
+	height: 12px !important;
+	transition: all 0.3s ease !important;
+}
+
+.vue-flow__handle:hover {
+	background: #6b8aff !important;
+	transform: scale(1.3) !important;
+	box-shadow: 0 0 10px rgba(80, 120, 255, 0.6) !important;
+}
+
+.vue-flow__handle.connectingfrom,
+.vue-flow__handle.connectingto {
+	background: #7c9eff !important;
+	transform: scale(1.4) !important;
+	box-shadow: 0 0 15px rgba(80, 120, 255, 0.8) !important;
 }
 </style>

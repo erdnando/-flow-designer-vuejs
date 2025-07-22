@@ -1,7 +1,10 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import NotificationContainer from './components/NotificationContainer.vue'
+</script>
 
 <template>
 	<router-view />
+	<NotificationContainer />
 </template>
 
 <style>
