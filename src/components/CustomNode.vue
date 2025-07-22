@@ -108,7 +108,7 @@
 <script setup lang="ts">
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 
 const props = defineProps<{ data: { label?: string; type?: string; subtitle?: string } }>();
 const nodeInstance = useNode ? useNode() : undefined;
@@ -116,6 +116,36 @@ const nodeInstance = useNode ? useNode() : undefined;
 // Estado para la toolbar
 const showToolbar = ref(false);
 const isHovered = ref(false);
+let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Funciones simplificadas para manejar eventos de mouse
+function onMouseEnter() {
+	// Limpiar cualquier timeout pendiente
+	if (hoverTimeout) {
+		clearTimeout(hoverTimeout);
+		hoverTimeout = null;
+	}
+	
+	isHovered.value = true;
+	showToolbar.value = true;
+}
+
+function onMouseLeave() {
+	// Usar un timeout generoso para evitar parpadeos
+	if (hoverTimeout) {
+		clearTimeout(hoverTimeout);
+	}
+	
+	hoverTimeout = setTimeout(() => {
+		isHovered.value = false;
+		
+		// Solo ocultar si no está seleccionado
+		if (!isNodeSelected.value) {
+			showToolbar.value = false;
+		}
+		hoverTimeout = null;
+	}, 200); // Timeout de 200ms para dar margen
+}
 
 // Emits para comunicar con el parent
 const emit = defineEmits<{
@@ -316,20 +346,6 @@ watch(
 	},
 );
 
-// Funciones para manejar eventos de mouse
-function onMouseEnter() {
-	isHovered.value = true;
-	showToolbar.value = true;
-}
-
-function onMouseLeave() {
-	isHovered.value = false;
-	// Solo ocultar si no está seleccionado
-	if (!isNodeSelected.value) {
-		showToolbar.value = false;
-	}
-}
-
 // Funciones para manejar la toolbar
 function handleCopy() {
 	const nodeData = {
@@ -366,6 +382,14 @@ watch(isNodeSelected, (selected) => {
 		showToolbar.value = true;
 	} else if (!isHovered.value) {
 		showToolbar.value = false;
+	}
+});
+
+// Cleanup al desmontar el componente
+onBeforeUnmount(() => {
+	if (hoverTimeout) {
+		clearTimeout(hoverTimeout);
+		hoverTimeout = null;
 	}
 });
 </script>

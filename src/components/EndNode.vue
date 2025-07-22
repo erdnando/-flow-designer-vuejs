@@ -79,7 +79,7 @@
 
 <script setup lang="ts">
 import { Handle, Position, useNode } from '@vue-flow/core';
-import { computed, ref } from 'vue';
+import { computed, ref, onBeforeUnmount } from 'vue';
 
 interface Props {
 	data?: {
@@ -105,16 +105,31 @@ const { node } = useNode();
 
 // Estado para mostrar/ocultar la toolbar
 const showToolbar = ref(false);
+let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const subtitle = computed(() => props.data?.subtitle || 'Fin del flujo');
 
-// Handlers para mostrar/ocultar toolbar
+// Handlers simplificados para mostrar/ocultar toolbar
 const onMouseEnter = () => {
+	// Limpiar timeout previo si existe
+	if (hoverTimeout) {
+		clearTimeout(hoverTimeout);
+		hoverTimeout = null;
+	}
+	
 	showToolbar.value = true;
 };
 
 const onMouseLeave = () => {
-	showToolbar.value = false;
+	// Usar un timeout para evitar parpadeos rápidos
+	if (hoverTimeout) {
+		clearTimeout(hoverTimeout);
+	}
+	
+	hoverTimeout = setTimeout(() => {
+		showToolbar.value = false;
+		hoverTimeout = null;
+	}, 200);
 };
 
 // Handlers para las acciones de la toolbar
@@ -148,6 +163,14 @@ const handleMenu = (event: MouseEvent) => {
 	emit('node-menu', event, node);
 	console.log('Mostrar menú para nodo:', node.id);
 };
+
+// Cleanup al desmontar el componente
+onBeforeUnmount(() => {
+	if (hoverTimeout) {
+		clearTimeout(hoverTimeout);
+		hoverTimeout = null;
+	}
+});
 </script>
 
 <style scoped>

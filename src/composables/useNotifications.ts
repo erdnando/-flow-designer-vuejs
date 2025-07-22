@@ -124,7 +124,7 @@ function showDefault(message: string, options?: Partial<Notification>): string {
 function showValidationError(message: string, options?: Partial<Notification>): string {
 	return showDanger(message, {
 		title: 'Error de validación',
-		duration: 6000,
+		duration: 7000, // Errores de validación necesitan más tiempo para leer
 		...options
 	})
 }
@@ -132,7 +132,7 @@ function showValidationError(message: string, options?: Partial<Notification>): 
 function showValidationWarning(message: string, options?: Partial<Notification>): string {
 	return showWarning(message, {
 		title: 'Advertencia de validación',
-		duration: 5000,
+		duration: 6000, // Mantener 6 segundos para advertencias
 		...options
 	})
 }

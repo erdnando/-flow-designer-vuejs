@@ -51,7 +51,8 @@
 						@click="removeNotification(notification.id)"
 						title="Cerrar"
 					>
-						<CloseIcon />
+						<!-- Siempre mostrar el símbolo × como principal -->
+						<span class="notification__close-text">×</span>
 					</button>
 				</div>
 			</TransitionGroup>
@@ -99,14 +100,6 @@ const DefaultIcon = {
 	template: `
 		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 			<path d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
-	`
-}
-
-const CloseIcon = {
-	template: `
-		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-			<path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 		</svg>
 	`
 }
@@ -295,12 +288,12 @@ function handleAction(action: any, notificationId: string) {
 /* Botón cerrar */
 .notification__close {
 	flex-shrink: 0;
-	width: 24px;
-	height: 24px;
-	border-radius: 50%;
+	width: 28px;
+	height: 28px;
+	border-radius: 6px;
 	border: none;
-	background: transparent;
-	color: #9ca3af;
+	background: rgba(0, 0, 0, 0.08);
+	color: #6b7280;
 	cursor: pointer;
 	display: flex;
 	align-items: center;
@@ -308,11 +301,30 @@ function handleAction(action: any, notificationId: string) {
 	transition: all 0.2s ease;
 	margin-top: -2px;
 	margin-right: -4px;
+	position: relative;
 }
 
 .notification__close:hover {
-	background: #f3f4f6;
+	background: rgba(0, 0, 0, 0.15);
+	color: #374151;
+}
+
+.notification__close:active {
+	background: rgba(0, 0, 0, 0.2);
+	transform: scale(0.95);
+}
+
+/* Texto del botón cerrar (símbolo ×) */
+.notification__close-text {
+	font-size: 18px;
+	font-weight: 300;
+	line-height: 1;
 	color: #6b7280;
+	user-select: none;
+}
+
+.notification__close:hover .notification__close-text {
+	color: #374151;
 }
 
 /* Animaciones */

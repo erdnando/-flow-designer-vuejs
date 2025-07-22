@@ -130,22 +130,28 @@ const singleStartNodeRule: ValidationRule = {
 - **Categoría**: `node`
 - **Severidad**: `error`
 
+### 3. **No Circular Connections** (`no-circular-connections`)
+- **Propósito**: Previene conexiones que formen ciclos infinitos
+- **Categoría**: `connection`
+- **Severidad**: `error`
+- **Algoritmo**: DFS (Depth-First Search) para detección de ciclos
+
 ### Reglas Futuras (Ejemplos):
 ```typescript
-// Ejemplo de regla de conexión
-const noCircularConnectionsRule: ValidationRule = {
-    id: 'no-circular-connections',
-    name: 'Sin conexiones circulares',
-    description: 'No se permiten conexiones que formen ciclos infinitos',
-    category: 'connection',
+// Ejemplo de regla de propiedades obligatorias
+const requiredPropertiesRule: ValidationRule = {
+    id: 'required-properties',
+    name: 'Propiedades obligatorias',
+    description: 'Ciertos tipos de nodos requieren propiedades específicas',
+    category: 'node',
     enabled: true,
-    validate: (nodes: Node[], edges: Edge[]) => {
-        // Lógica para detectar ciclos
+    validate: (nodes: Node[]) => {
+        // Lógica para verificar propiedades requeridas
         // ...
     }
 };
 
-// Ejemplo de regla de flujo
+// Ejemplo de regla de flujo conectado
 const connectedFlowRule: ValidationRule = {
     id: 'connected-flow',
     name: 'Flujo conectado',
@@ -155,6 +161,54 @@ const connectedFlowRule: ValidationRule = {
     validate: (nodes: Node[], edges: Edge[]) => {
         // Lógica para verificar conectividad
         // ...
+    }
+};
+```
+
+### Regla Implementada: No Circular Connections
+
+```typescript
+// Regla real implementada en el sistema
+const noCircularConnectionsRule: ValidationRule = {
+    id: 'no-circular-connections',
+    name: 'Sin conexiones circulares',
+    description: 'No se permiten conexiones que formen ciclos infinitos en el flujo',
+    severity: 'error',
+    category: 'connection',
+    validate: (nodes: Node[], edges: Edge[] = []): ValidationResult => {
+        if (edges.length === 0) {
+            return {
+                isValid: true,
+                severity: 'error',
+                ruleId: 'no-circular-connections'
+            };
+        }
+        
+        const cycleResult = hasCycle(nodes, edges);
+        
+        if (cycleResult.hasCycle) {
+            const cycleNodeNames = cycleResult.cycleNodes
+                .map(nodeId => {
+                    const node = nodes.find(n => n.id === nodeId);
+                    return node?.data?.label || nodeId;
+                })
+                .join(' → ');
+            
+            return {
+                isValid: false,
+                message: `Se detectó una conexión circular: ${cycleNodeNames}. Las conexiones circulares pueden causar bucles infinitos.`,
+                severity: 'error',
+                ruleId: 'no-circular-connections',
+                affectedNodes: cycleResult.cycleNodes,
+                affectedEdges: cycleResult.cycleEdges
+            };
+        }
+        
+        return {
+            isValid: true,
+            severity: 'error',
+            ruleId: 'no-circular-connections'
+        };
     }
 };
 ```
@@ -216,34 +270,143 @@ La regla se ejecutará automáticamente en estos momentos:
 
 ## Validación de Conexiones
 
-### Ejemplo de Regla de Conexión
+### Ejemplo de Regla de Conexión - Implementada
 ```typescript
-const maxConnectionsRule: ValidationRule = {
-    id: 'max-connections-per-node',
-    name: 'Límite de conexiones por nodo',
-    description: 'Cada nodo puede tener máximo 5 conexiones salientes',
+const noCircularConnectionsRule: ValidationRule = {
+    id: 'no-circular-connections',
+    name: 'Sin conexiones circulares',
+    description: 'No se permiten conexiones que formen ciclos infinitos en el flujo',
     category: 'connection',
-    enabled: true,
-    validate: (nodes: Node[], edges: Edge[] = []) => {
-        for (const node of nodes) {
-            const outgoingConnections = edges.filter(edge => edge.source === node.id);
-            
-            if (outgoingConnections.length > 5) {
-                return {
-                    isValid: false,
-                    ruleId: 'max-connections-per-node',
-                    message: `El nodo "${node.data.label}" tiene ${outgoingConnections.length} conexiones salientes. Máximo permitido: 5.`,
-                    affectedNodes: [node.id],
-                    affectedEdges: outgoingConnections.map(e => e.id),
-                    severity: 'warning'
-                };
-            }
+    severity: 'error',
+    validate: (nodes: Node[], edges: Edge[] = []): ValidationResult => {
+        // Usar función auxiliar para detectar ciclos
+        const cycleResult = hasCycle(nodes, edges);
+        
+        if (cycleResult.hasCycle) {
+            return {
+                isValid: false,
+                message: `Se detectó conexión circular en: ${cycleResult.cycleNodes.join(' → ')}`,
+                severity: 'error',
+                ruleId: 'no-circular-connections',
+                affectedNodes: cycleResult.cycleNodes,
+                affectedEdges: cycleResult.cycleEdges
+            };
         }
         
-        return { isValid: true, ruleId: 'max-connections-per-node', severity: 'info' };
+        return { isValid: true, ruleId: 'no-circular-connections', severity: 'error' };
     }
 };
 ```
+
+### Algoritmo de Detección de Ciclos
+```typescript
+function hasCycle(nodes: Node[], edges: Edge[]): { 
+    hasCycle: boolean; 
+    cycleNodes: string[]; 
+    cycleEdges: string[] 
+} {
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+    
+    // Construir grafo de adyacencia
+    const adjacencyMap = new Map<string, { nodeId: string; edgeId: string }[]>();
+    nodes.forEach(node => adjacencyMap.set(node.id, []));
+    edges.forEach(edge => {
+        if (adjacencyMap.has(edge.source)) {
+            adjacencyMap.get(edge.source)!.push({
+                nodeId: edge.target,
+                edgeId: edge.id
+            });
+        }
+    });
+    
+    // DFS para detectar ciclos
+    function dfs(nodeId: string, path: string[]): boolean {
+        if (recursionStack.has(nodeId)) {
+            // Ciclo detectado - extraer nodos y aristas del ciclo
+            return true;
+        }
+        
+        if (visited.has(nodeId)) return false;
+        
+        visited.add(nodeId);
+        recursionStack.add(nodeId);
+        
+        const neighbors = adjacencyMap.get(nodeId) || [];
+        for (const neighbor of neighbors) {
+            if (dfs(neighbor.nodeId, [...path, nodeId])) {
+                return true;
+            }
+        }
+        
+        recursionStack.delete(nodeId);
+        return false;
+    }
+    
+    // Verificar cada nodo como punto de inicio
+    for (const node of nodes) {
+        if (!visited.has(node.id)) {
+            if (dfs(node.id, [])) {
+                return { hasCycle: true, cycleNodes: [...], cycleEdges: [...] };
+            }
+        }
+    }
+    
+    return { hasCycle: false, cycleNodes: [], cycleEdges: [] };
+}
+```
+
+### Casos de Uso Validados
+1. **Ciclo simple**: A → B → A ❌
+2. **Ciclo complejo**: A → B → C → A ❌  
+3. **Auto-referencia**: A → A ❌
+4. **Flujo lineal**: A → B → C ✅
+5. **Flujo ramificado**: A → B, A → C ✅
+
+## 4. Regla de Conexiones de Handlers - IMPLEMENTADA
+
+### Descripción
+Valida que los nodos respeten los límites de conexiones de entrada y salida según su tipo.
+
+### Límites por Tipo de Nodo
+- **START**: 0 entradas, 1 salida máxima
+- **END**: 1 entrada máxima, 0 salidas  
+- **CONDITION (IF)**: 1 entrada, 2 salidas máximas (true/false)
+- **Otros nodos**: 1 entrada, 1 salida máximas
+
+### Implementación
+```typescript
+const validHandlerConnectionsRule: ValidationRule = {
+    id: 'valid-handler-connections',
+    name: 'Conexiones válidas de handlers',
+    description: 'Los handlers de salida solo pueden conectarse a handlers de entrada. Cada nodo tiene límites específicos de conexiones.',
+    category: 'connection',
+    severity: 'error',
+    validate: (nodes: Node[], edges: Edge[] = []): ValidationResult => {
+        // Definir límites por tipo de nodo
+        const getNodeLimits = (nodeType: string) => {
+            switch (nodeType) {
+                case 'start': return { maxIncoming: 0, maxOutgoing: 1 };
+                case 'end': return { maxIncoming: 1, maxOutgoing: 0 };
+                case 'condition': return { maxIncoming: 1, maxOutgoing: 2 };
+                default: return { maxIncoming: 1, maxOutgoing: 1 };
+            }
+        };
+        
+        // Validar límites para cada nodo...
+        // [Implementación completa en nodeValidationRules.ts]
+    }
+};
+```
+
+### Casos Validados
+1. **START con entrada**: START ← Action ❌
+2. **END con salida**: END → Action ❌  
+3. **Nodo regular múltiples entradas**: Action1 → Target, Action2 → Target ❌
+4. **Nodo regular múltiples salidas**: Action → Target1, Action → Target2 ❌
+5. **Condition con >2 salidas**: IF → T1, IF → T2, IF → T3 ❌
+6. **Auto-conexión**: Node → Node ❌
+7. **Flujo válido**: START → IF → Action1, IF → Action2, Action1 → END ✅
 
 ---
 

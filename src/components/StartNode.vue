@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
 import { Handle, Position, useNode } from '@vue-flow/core';
-import { computed, ref } from 'vue';
+import { computed, ref, onBeforeUnmount } from 'vue';
 
 interface Props {
 	data?: {
@@ -106,6 +106,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Estado para la toolbar
 const showToolbar = ref(false);
+let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
 const nodeInstance = useNode();
 
 // Emits para comunicar con el parent
@@ -118,13 +119,27 @@ const emit = defineEmits<{
 
 const subtitle = computed(() => props.data?.subtitle || 'Inicio del flujo');
 
-// Funciones para manejar eventos de mouse
+// Funciones simplificadas para manejar eventos de mouse
 function onMouseEnter() {
+	// Limpiar timeout previo si existe
+	if (hoverTimeout) {
+		clearTimeout(hoverTimeout);
+		hoverTimeout = null;
+	}
+	
 	showToolbar.value = true;
 }
 
 function onMouseLeave() {
-	showToolbar.value = false;
+	// Usar un timeout para evitar parpadeos rápidos
+	if (hoverTimeout) {
+		clearTimeout(hoverTimeout);
+	}
+	
+	hoverTimeout = setTimeout(() => {
+		showToolbar.value = false;
+		hoverTimeout = null;
+	}, 200);
 }
 
 // Funciones para manejar la toolbar
@@ -156,6 +171,14 @@ function handleDelete() {
 function handleMenu(event: MouseEvent) {
 	emit('node-menu', event, nodeInstance?.node);
 }
+
+// Cleanup al desmontar el componente
+onBeforeUnmount(() => {
+	if (hoverTimeout) {
+		clearTimeout(hoverTimeout);
+		hoverTimeout = null;
+	}
+});
 </script>
 
 <style scoped>

@@ -152,7 +152,7 @@ const { showValidationError, showValidationWarning, showSuccess, showWarning, sh
 
 // Función para ejecutar validaciones y mostrar notificaciones
 function runNodeValidations(showNotifications: boolean = true) {
-	const errors = getValidationErrors(nodes.value);
+	const errors = getValidationErrors(nodes.value, edges.value);
 	validationErrors.value = errors;
 	
 	if (showNotifications && errors.length > 0) {
@@ -181,18 +181,6 @@ function runNodeValidations(showNotifications: boolean = true) {
 							label: 'Entendido',
 							action: () => {},
 							style: 'primary'
-						},
-						{
-							label: 'Ver detalles',
-							action: () => {
-								showInfo('Detalles de validación', {
-									title: 'Estado actual del flujo',
-									description: `Regla "${ruleId}": ${messages.join(', ')}`,
-									duration: 10000,
-									persistent: false
-								});
-							},
-							style: 'secondary'
 						}
 					]
 				}
@@ -217,7 +205,7 @@ function canAddNodeType(nodeType: string): boolean {
 	const tempNodes = [...nodes.value, tempNode as any];
 	
 	// Validar reglas específicas para este tipo de nodo
-	const errors = getValidationErrors(tempNodes);
+	const errors = getValidationErrors(tempNodes, edges.value);
 	
 	// Si hay errores, mostrar notificaciones de validación
 	if (errors.length > 0) {
@@ -336,7 +324,7 @@ function loadFromLocalStorage() {
 		
 		// Después de cargar, verificar validaciones y mostrar resumen si hay errores
 		setTimeout(() => {
-			const errors = getValidationErrors(nodes.value);
+			const errors = getValidationErrors(nodes.value, edges.value);
 			if (errors.length > 0) {
 				// Mostrar notificación de resumen de validación
 				const startErrors = errors.filter(e => e.ruleId === 'single-start-node').length;
@@ -349,18 +337,12 @@ function loadFromLocalStorage() {
 				showWarning('Validaciones pendientes en el flujo', {
 					title: 'Flujo cargado con advertencias',
 					description,
-					duration: 10000,
-					persistent: true,
+					showCloseButton: true,
 					actions: [
-						{
-							label: 'Ver detalles',
-							action: () => runNodeValidations(true),
-							style: 'primary'
-						},
 						{
 							label: 'Entendido',
 							action: () => {},
-							style: 'secondary'
+							style: 'primary'
 						}
 					]
 				});
@@ -661,8 +643,53 @@ function clearFlow() {
 // ---
 
 function onConnect(params: Connection) {
+	// Crear la nueva conexión temporalmente para validar
+	const newEdge = {
+		id: `temp-edge-${Date.now()}`,
+		source: params.source!,
+		target: params.target!,
+		sourceHandle: params.sourceHandle,
+		targetHandle: params.targetHandle
+	};
+	
+	// Crear lista temporal de edges con la nueva conexión
+	const tempEdges = [...edges.value, newEdge];
+	
+	// Validar con todas las reglas de validación
+	const errors = getValidationErrors(nodes.value, tempEdges);
+	
+	if (errors.length > 0) {
+		// Mostrar todas las notificaciones de error
+		errors.forEach(error => {
+			let title = 'Conexión no permitida';
+			let description = error.message!;
+			
+			// Personalizar el título según el tipo de error
+			if (error.ruleId === 'no-circular-connections') {
+				title = 'Conexión circular detectada';
+			} else if (error.ruleId === 'valid-handler-connections') {
+				title = 'Conexión de handler inválida';
+			}
+			
+			showValidationError(title, {
+				title,
+				description,
+				actions: [
+					{
+						label: 'Entendido',
+						action: () => {},
+						style: 'primary'
+					}
+				]
+			});
+		});
+		return; // No crear la conexión
+	}
+	
+	// Si no hay errores de validación, crear la conexión
 	flowStore.addEdge(params);
 	console.log('Nueva conexión creada, guardando...');
+	
 	triggerAutoSave();
 }
 
@@ -746,12 +773,6 @@ function processNodeDrop(position: { x: number; y: number }, type: string | null
 			// Ejecutar validaciones después de agregar el nodo
 			setTimeout(() => runNodeValidations(), 100);
 			
-			// Mostrar notificación de éxito
-			showSuccess('Nodo personalizado agregado', {
-				description: `Se agregó el nodo "${nodeLabel}" al flujo`,
-				duration: 3000
-			});
-			
 			// Guardar inmediatamente después de agregar nodo personalizado
 			console.log('Nodo personalizado agregado, guardando...');
 			triggerAutoSave();
@@ -788,12 +809,6 @@ function processNodeDrop(position: { x: number; y: number }, type: string | null
 		
 		// Ejecutar validaciones después de agregar el nodo
 		setTimeout(() => runNodeValidations(), 100);
-		
-		// Mostrar notificación de éxito
-		showSuccess('Nodo agregado', {
-			description: `Se agregó el nodo "${nodeLabel}" al flujo`,
-			duration: 3000
-		});
 		
 		// Guardar inmediatamente después de agregar nodo estándar
 		console.log('Nodo estándar agregado, guardando...');
@@ -973,7 +988,7 @@ function updateNodeProperty({ key, value }: { key: string; value: string }) {
 			data: {}
 		};
 		const tempNodes = [...tempNodesWithoutCurrent, tempNode as any];
-		const errors = getValidationErrors(tempNodes);
+		const errors = getValidationErrors(tempNodes, edges.value);
 		
 		if (errors.length > 0) {
 			// Mostrar error y cancelar el cambio
@@ -1120,10 +1135,6 @@ function onNodeDelete(nodeId: string) {
 					action: () => {
 						// Restaurar el nodo eliminado
 						nodes.value.splice(nodeIndex, 0, nodeToDelete);
-						showSuccess('Nodo restaurado', {
-							description: `Se restauró el nodo "${nodeLabel}"`,
-							duration: 3000
-						});
 						triggerAutoSave();
 					},
 					style: 'primary'
@@ -1170,12 +1181,6 @@ function onNodeDuplicate(nodeData: any) {
 		},
 	};
 	nodes.value.push(newNode);
-	
-	// Mostrar notificación de éxito
-	showSuccess('Nodo duplicado', {
-		description: `Se creó una copia del nodo "${nodeData.label || nodeData.type}"`,
-		duration: 3000
-	});
 	
 	triggerAutoSave();
 }
@@ -1440,7 +1445,6 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 }
 .vue-flow__handle {
 	pointer-events: auto !important;
-	z-index: 1;
 }
 
 /* Estilos para conexiones animadas y más gruesas */
@@ -1510,21 +1514,21 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .vue-flow__handle {
 	background: #5078ff !important;
 	border: 2px solid #ffffff !important;
-	width: 12px !important;
-	height: 12px !important;
-	transition: all 0.3s ease !important;
+	width: 10px !important;
+	height: 10px !important;
+	transition: all 0.2s ease !important;
 }
 
 .vue-flow__handle:hover {
 	background: #6b8aff !important;
-	transform: scale(1.3) !important;
-	box-shadow: 0 0 10px rgba(80, 120, 255, 0.6) !important;
+	transform: scale(1.2) !important;
+	box-shadow: 0 0 8px rgba(107, 138, 255, 0.6) !important;
 }
 
 .vue-flow__handle.connectingfrom,
 .vue-flow__handle.connectingto {
 	background: #7c9eff !important;
 	transform: scale(1.4) !important;
-	box-shadow: 0 0 15px rgba(80, 120, 255, 0.8) !important;
+	box-shadow: 0 0 12px rgba(124, 158, 255, 0.8) !important;
 }
 </style>
