@@ -68,6 +68,8 @@
 			:zoom-on-scroll="true"
 			:zoom-on-double-click="true"
 			:pan-on-drag="true"
+			:edges-selectable="true"
+			:default-edge-options="{ animated: true, type: 'default', selectable: true, focusable: true, deletable: true }"
 			class="custom-vue-flow"
 			@connect="onConnect"
 			:node-types="nodeTypes"
@@ -80,6 +82,10 @@
 			@node-copy="onNodeCopy"
 			@node-duplicate="onNodeDuplicate"
 			@node-menu="onNodeMenu"
+			@edge-click="onEdgeClick"
+			@edge-contextmenu="onEdgeContextMenu"
+			@edge-mouseenter="onEdgeMouseEnter"
+			@edge-mouseleave="onEdgeMouseLeave"
 		>
 			<Background :pattern-color="'#222'" :gap="20" />
 			<MiniMap :class="['minimap-absolute', { 'minimap-shifted': !panelCollapsed }]" />
@@ -93,14 +99,16 @@
 		/>
 		<Transition persisted name="slide-panel">
 			<NodePropertiesPanel
-				:key="selectedNode?.id || (showingProjectProps ? 'project' : 'none')"
+				:key="selectedNode?.id || selectedEdge?.id || (showingProjectProps ? 'project' : 'none')"
 				:node="selectedNode"
+				:edge="selectedEdge"
+				:nodes="nodes"
 				:collapsed="panelCollapsed"
-				:disabled="!selectedNode && !showingProjectProps"
+				:disabled="!selectedNode && !selectedEdge && !showingProjectProps"
 				:showProject="showingProjectProps"
 				:projectProps="projectProperties"
-				@close="selectedNodeId = null"
-				@update="updateNodeProperty"
+				@close="deselectAll"
+				@update="updateProperty"
 				@toggle-collapsed="panelCollapsed = $event"
 				@update-project="updateProjectProperties"
 			/>
@@ -116,8 +124,8 @@ import { storeToRefs } from 'pinia';
 import { useFlowStore } from '../stores/flow';
 import ContextMenu from './ContextMenu.vue';
 import NodePropertiesPanel from './NodePropertiesPanel.vue';
-import { reactive, markRaw, ref, watch, onMounted, onBeforeUnmount } from 'vue';
-import type { Connection, Node, NodeTypesObject } from '@vue-flow/core';
+import { reactive, markRaw, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import type { Connection, Node, NodeTypesObject, Edge } from '@vue-flow/core';
 import CustomNode from './CustomNode.vue';
 import MinimalNode from './MinimalNode.vue';
 import ConditionNode from './ConditionNode.vue';
@@ -304,7 +312,15 @@ function loadFromLocalStorage() {
 			nodes.value = sanitizeNodesOnLoad(savedData.nodes as ExtendedNode[]);
 		}
 		if (savedData.edges && Array.isArray(savedData.edges)) {
-			edges.value = savedData.edges;
+			// Asegurar que las conexiones tengan las propiedades necesarias
+			edges.value = savedData.edges.map(edge => ({
+				...edge,
+				animated: edge.animated !== undefined ? edge.animated : true,
+				type: edge.type || 'default',
+				selectable: edge.selectable !== undefined ? edge.selectable : true,
+				focusable: edge.focusable !== undefined ? edge.focusable : true,
+				deletable: edge.deletable !== undefined ? edge.deletable : true,
+			}));
 		}
 		if (savedData.flowProps) {
 			projectProperties.value = { ...projectProperties.value, ...savedData.flowProps };
@@ -363,6 +379,9 @@ onMounted(() => {
 	loadFromLocalStorage();
 	setupAutoSave();
 	
+	// Configurar un event listener global para capturar clicks en edges
+	setupGlobalEdgeClickDetection();
+	
 	// Esperar múltiples ciclos para asegurar que Vue Flow esté completamente inicializado
 	setTimeout(() => {
 		const hasViewport = hasSavedViewport();
@@ -414,6 +433,11 @@ onMounted(() => {
 			vueFlowZoomOut();
 			vueFlowZoomOut();
 		}
+		
+		// Configurar event listeners directos para edges existentes
+		setTimeout(() => {
+			setupEdgeEventListeners();
+		}, 500);
 	}, 250); // Aumentar el delay para dar más tiempo a Vue Flow y al viewport
 });
 
@@ -620,6 +644,8 @@ function clearFlow() {
 		// Limpiar selección y mostrar propiedades del proyecto
 		selectedNodeId.value = null;
 		selectedNode.value = null;
+		selectedEdgeId.value = null;
+		selectedEdge.value = null;
 		showingProjectProps.value = true;
 
 		// También limpiar localStorage
@@ -645,11 +671,16 @@ function clearFlow() {
 function onConnect(params: Connection) {
 	// Crear la nueva conexión temporalmente para validar
 	const newEdge = {
-		id: `temp-edge-${Date.now()}`,
+		id: `e${params.source}-${params.target}`, // Usar el mismo formato que el store
 		source: params.source!,
 		target: params.target!,
 		sourceHandle: params.sourceHandle,
-		targetHandle: params.targetHandle
+		targetHandle: params.targetHandle,
+		animated: true,
+		type: 'default',
+		selectable: true,
+		focusable: true,
+		deletable: true
 	};
 	
 	// Crear lista temporal de edges con la nueva conexión
@@ -687,8 +718,37 @@ function onConnect(params: Connection) {
 	}
 	
 	// Si no hay errores de validación, crear la conexión
-	flowStore.addEdge(params);
-	console.log('Nueva conexión creada, guardando...');
+	flowStore.addEdge({
+		source: newEdge.source,
+		target: newEdge.target,
+		sourceHandle: newEdge.sourceHandle,
+		targetHandle: newEdge.targetHandle,
+		animated: true,
+		type: 'default',
+		selectable: true,
+		focusable: true,
+		deletable: true
+	});
+	
+	console.log('Nueva conexión creada entre:', newEdge.source, '->', newEdge.target);
+	console.log('Conexiones totales después de crear:', edges.value.length);
+	console.log('Array de conexiones:', edges.value.map(e => ({ id: e.id, source: e.source, target: e.target })));
+	
+	// Seleccionar la conexión recién creada (usar el mismo ID que ya definimos)
+	setTimeout(() => {
+		const createdEdge = edges.value.find(e => e.id === newEdge.id);
+		if (createdEdge) {
+			selectedNodeId.value = null; // Deseleccionar nodo si había uno
+			selectedEdgeId.value = createdEdge.id;
+			console.log('Conexión seleccionada automáticamente:', createdEdge.id);
+		} else {
+			console.log('No se pudo encontrar la conexión creada. ID esperado:', newEdge.id);
+			console.log('Conexiones disponibles:', edges.value.map(e => ({ id: e.id, source: e.source, target: e.target })));
+		}
+		
+		// Configurar event listeners directos para la nueva conexión
+		setupEdgeEventListeners();
+	}, 50);
 	
 	triggerAutoSave();
 }
@@ -838,9 +898,18 @@ function onVueFlowContextMenu(e: MouseEvent) {
 const selectedNodeId = ref<string | null>(null);
 const selectedNode = ref<Node | null>(null);
 
+// Estado para conexiones seleccionadas
+const selectedEdgeId = ref<string | null>(null);
+const selectedEdge = ref<Edge | null>(null);
+
 // Sincronizar selectedNode cuando cambia el ID usando nuestra función optimizada
 watch(selectedNodeId, () => {
 	updateSelectedNodeFromList();
+});
+
+// Sincronizar selectedEdge cuando cambia el ID
+watch(selectedEdgeId, () => {
+	updateSelectedEdgeFromList();
 });
 
 // Observar cambios en nodes para actualizar selectedNode solo cuando sea necesario
@@ -880,6 +949,24 @@ function updateSelectedNodeFromList() {
 	selectedNode.value = updatedNode;
 }
 
+// Función similar para conexiones
+function updateSelectedEdgeFromList() {
+	if (!selectedEdgeId.value) {
+		selectedEdge.value = null;
+		return;
+	}
+
+	const updatedEdge = edges.value.find((e) => e.id === selectedEdgeId.value) || null;
+	
+	if (!updatedEdge) {
+		selectedEdge.value = null;
+		return;
+	}
+
+	if (selectedEdge.value === updatedEdge) return;
+	selectedEdge.value = updatedEdge;
+}
+
 // Observar cambios en nodes para actualizar selectedNode solo cuando sea necesario
 watch(
 	nodes,
@@ -887,6 +974,17 @@ watch(
 		// Solo actualizar si hay un nodo seleccionado
 		if (selectedNodeId.value) {
 			updateSelectedNodeFromList();
+		}
+	},
+	{ deep: false },
+);
+
+// Observar cambios en edges para actualizar selectedEdge
+watch(
+	edges,
+	() => {
+		if (selectedEdgeId.value) {
+			updateSelectedEdgeFromList();
 		}
 	},
 	{ deep: false },
@@ -912,6 +1010,22 @@ function onNodeClick({ node }: { node: Node }) {
 		return;
 	}
 
+	// Deseleccionar conexión si había una seleccionada
+	selectedEdgeId.value = null;
+	selectedEdge.value = null;
+	
+	// Deseleccionar todas las conexiones visualmente
+	edges.value = edges.value.map(e => ({
+		...e,
+		selected: false
+	}));
+
+	// Actualizar todos los nodos para deseleccionar y luego seleccionar el clickeado
+	nodes.value = nodes.value.map(n => ({
+		...n,
+		selected: n.id === node.id
+	}));
+
 	// Actualizar en orden específico para minimizar renders
 	showingProjectProps.value = false;
 	selectedNodeId.value = node.id;
@@ -926,15 +1040,48 @@ function onNodeClick({ node }: { node: Node }) {
 function onNodeDragStop(event: any) {
 	console.log('Nodo movido, guardando posición...', event);
 	console.log('Posiciones actuales de todos los nodos:', nodes.value.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })));
+	
+	// Actualizar la selección al nodo que se acaba de arrastrar
+	const draggedNode = event.node;
+	if (draggedNode && draggedNode.id) {
+		// Deseleccionar conexión si había una seleccionada
+		selectedEdgeId.value = null;
+		selectedEdge.value = null;
+		
+		// Deseleccionar todas las conexiones visualmente
+		edges.value = edges.value.map(e => ({
+			...e,
+			selected: false
+		}));
+
+		// Actualizar todos los nodos para deseleccionar y luego seleccionar el arrastrado
+		nodes.value = nodes.value.map(n => ({
+			...n,
+			selected: n.id === draggedNode.id
+		}));
+
+		// Actualizar la selección
+		showingProjectProps.value = false;
+		selectedNodeId.value = draggedNode.id;
+		
+		// Expandir el panel si está colapsado
+		if (panelCollapsed.value) {
+			panelCollapsed.value = false;
+		}
+	}
+	
 	triggerAutoSave();
 }
 
 // Click normal en el fondo del designer
 function onCanvasClick(e: MouseEvent) {
 	const target = e.target as HTMLElement;
-	// Si el click fue sobre el fondo (no sobre un nodo ni sobre el panel de propiedades)
-	if (!target.closest('.vue-flow__node') && !target.closest('.node-properties-panel')) {
+	// Si el click fue sobre el fondo (no sobre un nodo, conexión ni sobre el panel de propiedades)
+	if (!target.closest('.vue-flow__node') && 
+		!target.closest('.vue-flow__edge') && 
+		!target.closest('.node-properties-panel')) {
 		selectedNodeId.value = null;
+		selectedEdgeId.value = null;
 		showingProjectProps.value = true;
 		if (panelCollapsed.value) {
 			panelCollapsed.value = false;
@@ -942,6 +1089,8 @@ function onCanvasClick(e: MouseEvent) {
 		contextMenu.visible = false;
 		// Deseleccionar todos los nodos en el store
 		nodes.value = (nodes.value as ExtendedNode[]).map((n) => ({ ...n, selected: false }));
+		// Deseleccionar todas las conexiones
+		edges.value = edges.value.map(e => ({ ...e, selected: false }));
 	}
 }
 
@@ -1100,6 +1249,400 @@ function updateNodeProperty({ key, value }: { key: string; value: string }) {
 	}
 }
 
+// Función unificada para actualizar propiedades (nodos y edges)
+function updateProperty({ key, value, isEdge }: { key: string; value: any; isEdge?: boolean }) {
+	if (isEdge) {
+		updateEdgeProperty({ key, value });
+	} else {
+		updateNodeProperty({ key, value });
+	}
+}
+
+// Actualizar propiedades de edge desde el panel
+function updateEdgeProperty({ key, value }: { key: string; value: any }) {
+	if (!selectedEdge.value || !selectedEdge.value.id) return;
+
+	const edgeId = selectedEdge.value.id;
+	const edgeIndex = edges.value.findIndex((e) => e.id === edgeId);
+
+	if (edgeIndex === -1) return;
+
+	console.log(`Actualizando propiedad ${key} a "${value}" en edge ${edgeId}`);
+
+	// Crear una copia del edge
+	const edgeCopy = { ...edges.value[edgeIndex] };
+	
+	// Actualizar la propiedad
+	(edgeCopy as any)[key] = value;
+
+	// Actualizar en el array
+	edges.value.splice(edgeIndex, 1, edgeCopy);
+
+	// Actualizar el edge seleccionado
+	selectedEdge.value = edgeCopy;
+
+	console.log('Edge actualizado:', edgeCopy);
+	triggerAutoSave();
+}
+
+// Deseleccionar todo (nodos y edges)
+function deselectAll() {
+	selectedNodeId.value = null;
+	selectedNode.value = null;
+	selectedEdgeId.value = null;
+	selectedEdge.value = null;
+	showingProjectProps.value = false;
+	
+	// Deseleccionar visualmente todos los nodos
+	nodes.value = nodes.value.map(n => ({
+		...n,
+		selected: false
+	}));
+	
+	// Deseleccionar visualmente todas las conexiones
+	edges.value = edges.value.map(e => ({
+		...e,
+		selected: false
+	}));
+}
+
+// ===== FUNCIONES PARA MANEJO DE CONEXIONES =====
+
+// Seleccionar una conexión al hacer click
+function onEdgeClick({ edge }: { edge: Edge }) {
+	console.log('🔗 EDGE CLICK DETECTADO!');
+	console.log('Conexión seleccionada:', edge);
+	console.log('Edge ID:', edge.id);
+	console.log('Current selectedEdgeId:', selectedEdgeId.value);
+	
+	// Deseleccionar nodo si había uno seleccionado
+	selectedNodeId.value = null;
+	selectedNode.value = null;
+	
+	// Deseleccionar todos los nodos visualmente
+	nodes.value = nodes.value.map(n => ({
+		...n,
+		selected: false
+	}));
+	
+	// Deseleccionar todas las conexiones primero
+	edges.value = edges.value.map(e => ({
+		...e,
+		selected: e.id === edge.id
+	}));
+	
+	// Seleccionar la conexión clickeada
+	selectedEdgeId.value = edge.id;
+	showingProjectProps.value = false;
+	
+	if (panelCollapsed.value) {
+		panelCollapsed.value = false;
+	}
+}
+
+// Método para registrar event listeners directos en edges
+function setupEdgeEventListeners() {
+	console.log('⚙️ Configurando event listeners directos para edges...');
+	
+	nextTick(() => {
+		// Buscar tanto los elementos <g> de edge como los paths directamente
+		const edgeElements = document.querySelectorAll('.vue-flow__edge');
+		const edgePaths = document.querySelectorAll('.vue-flow__edge-path');
+		
+		console.log('🔍 Encontrados', edgeElements.length, 'elementos de edges');
+		console.log('🔍 Encontrados', edgePaths.length, 'paths de edges');
+		
+		// Registrar eventos en los elementos <g> principales
+		edgeElements.forEach((edgeElement, index) => {
+			console.log(`📌 Configurando edge element ${index}:`, edgeElement);
+			
+			// Remover listener anterior si existe
+			edgeElement.removeEventListener('click', handleEdgeClick);
+			edgeElement.removeEventListener('mousedown', handleEdgeClick);
+			edgeElement.removeEventListener('pointerdown', handleEdgeClick);
+			
+			// Registrar múltiples tipos de eventos
+			edgeElement.addEventListener('click', handleEdgeClick, { capture: true });
+			edgeElement.addEventListener('mousedown', handleEdgeClick, { capture: true });
+			edgeElement.addEventListener('pointerdown', handleEdgeClick, { capture: true });
+		});
+		
+		// También registrar eventos directamente en los paths SVG
+		edgePaths.forEach((pathElement, index) => {
+			console.log(`📌 Configurando edge path ${index}:`, pathElement);
+			
+			// Remover listener anterior si existe
+			pathElement.removeEventListener('click', handleEdgePathClick);
+			pathElement.removeEventListener('mousedown', handleEdgePathClick);
+			pathElement.removeEventListener('pointerdown', handleEdgePathClick);
+			
+			// Registrar múltiples tipos de eventos con capture
+			pathElement.addEventListener('click', handleEdgePathClick, { capture: true });
+			pathElement.addEventListener('mousedown', handleEdgePathClick, { capture: true });
+			pathElement.addEventListener('pointerdown', handleEdgePathClick, { capture: true });
+		});
+	});
+}
+
+// Handler separado para el click en edges
+function handleEdgeClick(event: Event) {
+	console.log('🎯 Click/MouseDown/PointerDown directo en edge detectado!', event.type, event);
+	event.stopPropagation();
+	event.preventDefault();
+	
+	const edgeElement = event.currentTarget as HTMLElement;
+	
+	// Intentar extraer el ID del edge del DOM
+	let edgeId = edgeElement.getAttribute('data-id');
+	
+	if (!edgeId) {
+		// Buscar en elementos hijos
+		const pathElement = edgeElement.querySelector('.vue-flow__edge-path');
+		edgeId = pathElement?.getAttribute('data-edge-id');
+	}
+	
+	if (!edgeId && edges.value.length > 0) {
+		// Como fallback, usar el primer edge disponible
+		edgeId = edges.value[0].id;
+		console.log('🔧 Usando edge ID de fallback:', edgeId);
+	}
+	
+	console.log('🆔 Edge ID extraído:', edgeId);
+	
+	// Buscar el edge correspondiente
+	const edge = edges.value.find(e => e.id === edgeId);
+	if (edge) {
+		console.log('✅ Edge encontrado, disparando onEdgeClick');
+		onEdgeClick({ edge });
+	} else {
+		console.log('❌ No se pudo encontrar el edge con ID:', edgeId);
+		console.log('Edges disponibles:', edges.value.map(e => e.id));
+	}
+}
+
+// Handler específico para clicks en el path SVG
+function handleEdgePathClick(event: Event) {
+	console.log('🎯 Click/MouseDown/PointerDown directo en SVG PATH detectado!', event.type, event);
+	event.stopPropagation();
+	event.preventDefault();
+	
+	const pathElement = event.currentTarget as SVGElement;
+	
+	// El path está dentro del elemento <g> que tiene el data-id
+	const edgeElement = pathElement.closest('.vue-flow__edge') as HTMLElement;
+	
+	if (edgeElement) {
+		const edgeId = edgeElement.getAttribute('data-id');
+		console.log('🆔 Edge ID extraído desde path:', edgeId);
+		
+		// Buscar el edge correspondiente
+		const edge = edges.value.find(e => e.id === edgeId);
+		if (edge) {
+			console.log('✅ Edge encontrado desde path, disparando onEdgeClick');
+			onEdgeClick({ edge });
+		} else {
+			console.log('❌ No se pudo encontrar el edge con ID:', edgeId);
+			console.log('Edges disponibles:', edges.value.map(e => e.id));
+		}
+	} else {
+		console.log('❌ No se pudo encontrar el elemento padre .vue-flow__edge');
+	}
+}
+
+// Configurar detección global de clicks en edges
+function setupGlobalEdgeClickDetection() {
+	console.log('🌐 Configurando detección global de clicks en edges...');
+	
+	// Añadir event listener al documento completo
+	document.addEventListener('click', (event) => {
+		const target = event.target as Element;
+		console.log('🌐 Click detectado globalmente:', target);
+		console.log('🔍 Clases del target:', target.classList?.toString());
+		console.log('🔍 Tag name del target:', target.tagName);
+		
+		// Verificar si el click fue directamente en un edge path
+		if (target && target.classList.contains('vue-flow__edge-path')) {
+			console.log('🎯 Click global detectado DIRECTAMENTE en edge path!');
+			handleGlobalEdgeClick(target, event);
+			return;
+		}
+		
+		// Verificar si el click fue en un elemento edge
+		if (target && target.classList.contains('vue-flow__edge')) {
+			console.log('🎯 Click global detectado DIRECTAMENTE en elemento edge!');
+			handleGlobalEdgeClick(target, event);
+			return;
+		}
+		
+		// Verificar si el click fue dentro de un edge (buscar hacia arriba)
+		const edgeElement = target.closest('.vue-flow__edge');
+		if (edgeElement) {
+			console.log('🎯 Click global detectado DENTRO de elemento edge!', edgeElement);
+			handleGlobalEdgeClick(edgeElement, event);
+			return;
+		}
+		
+		// Verificar si el click fue en un path SVG que podría ser un edge
+		if (target.tagName === 'path' && target.getAttribute('class')?.includes('vue-flow__edge-path')) {
+			console.log('🎯 Click global detectado en path SVG edge!');
+			handleGlobalEdgeClick(target, event);
+			return;
+		}
+		
+		// NUEVA ESTRATEGIA: Usar elementFromPoint para encontrar todos los elementos en esa posición
+		const clickX = (event as MouseEvent).clientX;
+		const clickY = (event as MouseEvent).clientY;
+		
+		if (clickX !== undefined && clickY !== undefined) {
+			console.log('🔍 Verificando elementos en posición del cursor:', { x: clickX, y: clickY });
+			
+			// Obtener todos los elementos en esa posición
+			const elementsAtPoint = document.elementsFromPoint(clickX, clickY);
+			console.log('📍 Elementos en esa posición:', elementsAtPoint);
+			
+			// Buscar si alguno de esos elementos es un edge path o edge
+			for (const element of elementsAtPoint) {
+				if (element.classList.contains('vue-flow__edge-path')) {
+					console.log('🎯 ¡Encontrado edge path en elementsFromPoint!', element);
+					handleGlobalEdgeClick(element, event);
+					return;
+				}
+				if (element.classList.contains('vue-flow__edge')) {
+					console.log('🎯 ¡Encontrado edge element en elementsFromPoint!', element);
+					handleGlobalEdgeClick(element, event);
+					return;
+				}
+			}
+		}
+		
+		console.log('💭 Click no fue en un edge');
+	}, true); // Use capture phase
+}
+
+// Handler centralizado para clicks globales en edges
+function handleGlobalEdgeClick(element: Element, event: Event) {
+	console.log('🎯 Procesando click en edge element:', element);
+	
+	let edgeId: string | null = null;
+	
+	// Si es un path, buscar el elemento padre edge
+	if (element.classList.contains('vue-flow__edge-path')) {
+		const edgeElement = element.closest('.vue-flow__edge') as HTMLElement;
+		edgeId = edgeElement?.getAttribute('data-id') || null;
+		console.log('🆔 Edge ID desde path parent:', edgeId);
+	}
+	// Si es el elemento edge directamente
+	else if (element.classList.contains('vue-flow__edge')) {
+		edgeId = element.getAttribute('data-id');
+		console.log('🆔 Edge ID directo:', edgeId);
+	}
+	
+	if (edgeId) {
+		// Buscar el edge correspondiente
+		const edge = edges.value.find(e => e.id === edgeId);
+		if (edge) {
+			console.log('✅ Edge encontrado desde click global, disparando onEdgeClick');
+			event.stopPropagation();
+			event.preventDefault();
+			onEdgeClick({ edge });
+		} else {
+			console.log('❌ No se pudo encontrar el edge con ID:', edgeId);
+			console.log('Edges disponibles:', edges.value.map(e => e.id));
+		}
+	} else {
+		console.log('❌ No se pudo extraer edge ID del elemento');
+	}
+}
+
+// Menú contextual para conexiones
+function onEdgeContextMenu({ event, edge }: { event: MouseEvent; edge: Edge }) {
+	event.preventDefault();
+	console.log('Menú contextual para conexión:', edge);
+	
+	const sourceNode = nodes.value.find(n => n.id === edge.source);
+	const targetNode = nodes.value.find(n => n.id === edge.target);
+	
+	contextMenu.x = event.clientX;
+	contextMenu.y = event.clientY;
+	contextMenu.items = [
+		{
+			label: `Eliminar conexión`,
+			action: () => deleteEdge(edge.id)
+		},
+		{
+			label: `Información`,
+			action: () => {
+				const sourceLabel = sourceNode?.label || sourceNode?.type || 'Nodo';
+				const targetLabel = targetNode?.label || targetNode?.type || 'Nodo';
+				showInfo('Información de conexión', {
+					title: 'Detalles de la conexión',
+					description: `Conecta desde "${sourceLabel}" hacia "${targetLabel}"`,
+					duration: 5000
+				});
+			}
+		}
+	];
+	contextMenu.visible = true;
+}
+
+// Hover effects para conexiones
+function onEdgeMouseEnter({ edge }: { edge: Edge }) {
+	// Podrías agregar efectos visuales aquí si quisieras
+	console.log('Mouse enter en conexión:', edge.id);
+}
+
+function onEdgeMouseLeave({ edge }: { edge: Edge }) {
+	// Podrías agregar efectos visuales aquí si quisieras  
+	console.log('Mouse leave en conexión:', edge.id);
+}
+
+// Función para eliminar una conexión
+function deleteEdge(edgeId: string) {
+	console.log('Eliminando conexión:', edgeId);
+	
+	const edgeIndex = edges.value.findIndex(e => e.id === edgeId);
+	if (edgeIndex !== -1) {
+		const edgeToDelete = edges.value[edgeIndex];
+		const sourceNode = nodes.value.find(n => n.id === edgeToDelete.source);
+		const targetNode = nodes.value.find(n => n.id === edgeToDelete.target);
+		const sourceLabel = sourceNode?.label || sourceNode?.type || 'Nodo';
+		const targetLabel = targetNode?.label || targetNode?.type || 'Nodo';
+		
+		// Remover la conexión
+		edges.value.splice(edgeIndex, 1);
+		
+		// Si la conexión eliminada era la seleccionada, limpiar selección
+		if (selectedEdgeId.value === edgeId) {
+			selectedEdgeId.value = null;
+			selectedEdge.value = null;
+		}
+		
+		// Mostrar notificación
+		showWarning('Conexión eliminada', {
+			description: `Se eliminó la conexión de "${sourceLabel}" a "${targetLabel}"`,
+			duration: 4000,
+			actions: [
+				{
+					label: 'Deshacer',
+					action: () => {
+						// Restaurar la conexión eliminada
+						edges.value.splice(edgeIndex, 0, edgeToDelete);
+						triggerAutoSave();
+					},
+					style: 'primary'
+				}
+			]
+		});
+		
+		// Ejecutar validaciones después de eliminar la conexión
+		setTimeout(() => runNodeValidations(false), 100);
+		
+		triggerAutoSave();
+	}
+}
+
+// ===== FIN FUNCIONES DE CONEXIONES =====
+
 function onNodeContextMenu({ event, node }: { event: MouseEvent; node: Node }) {
 	// Deshabilitar el menú contextual - ahora usamos toolbar en cada nodo
 	event.preventDefault();
@@ -1234,7 +1777,15 @@ function importFlow(e: Event) {
 			const data = JSON.parse(ev.target?.result as string);
 			if (data.nodes && data.edges) {
 				nodes.value = data.nodes;
-				edges.value = data.edges;
+				// Asegurar que las conexiones tengan las propiedades necesarias
+				edges.value = data.edges.map(edge => ({
+					...edge,
+					animated: edge.animated !== undefined ? edge.animated : true,
+					type: edge.type || 'default',
+					selectable: edge.selectable !== undefined ? edge.selectable : true,
+					focusable: edge.focusable !== undefined ? edge.focusable : true,
+					deletable: edge.deletable !== undefined ? edge.deletable : true,
+				}));
 				
 				showSuccess('Flujo importado exitosamente', {
 					description: `Se cargaron ${data.nodes.length} nodos y ${data.edges.length} conexiones`,
@@ -1447,27 +1998,79 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	pointer-events: auto !important;
 }
 
-/* Estilos para conexiones animadas y más gruesas */
+/* Animaciones para conexiones */
+@keyframes dash {
+	from {
+		stroke-dashoffset: 0;
+	}
+	to {
+		stroke-dashoffset: -13;
+	}
+}
+
+@keyframes dash-selected {
+	from {
+		stroke-dashoffset: 0;
+	}
+	to {
+		stroke-dashoffset: -13;
+	}
+}
+
+/* Estilos básicos y funcionales para conexiones */
+.vue-flow__edge {
+	cursor: pointer !important;
+	pointer-events: all !important;
+	z-index: 100 !important;
+}
+
 .vue-flow__edge-path {
 	stroke: #5078ff !important;
 	stroke-width: 3px !important;
-	animation: dash 20s linear infinite;
-	stroke-dasharray: 15 10;
-	filter: drop-shadow(0 2px 4px rgba(80, 120, 255, 0.3));
+	fill: none !important;
+	cursor: pointer !important;
+	animation: dash 2s linear infinite;
+	stroke-dasharray: 8 5;
 	transition: stroke-width 0.3s ease, stroke 0.3s ease;
+	filter: drop-shadow(0 1px 2px rgba(80, 120, 255, 0.3));
+	pointer-events: all !important;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	z-index: 104 !important;
+}
+
+.vue-flow__edge svg {
+	pointer-events: all !important;
+	cursor: pointer !important;
+	z-index: 102 !important;
+}
+
+.vue-flow__edge g {
+	pointer-events: all !important;
+	cursor: pointer !important;
+	z-index: 103 !important;
 }
 
 .vue-flow__edge-path:hover {
 	stroke: #6b8aff !important;
 	stroke-width: 4px !important;
-	filter: drop-shadow(0 3px 6px rgba(80, 120, 255, 0.5));
+	filter: drop-shadow(0 2px 4px rgba(80, 120, 255, 0.5));
+	z-index: 105 !important;
 }
 
 .vue-flow__edge.selected .vue-flow__edge-path {
-	stroke: #7c9eff !important;
-	stroke-width: 4px !important;
-	stroke-dasharray: 12 8;
-	animation: dash 15s linear infinite;
+	stroke: #ffd700 !important;
+	stroke-width: 5px !important;
+	stroke-dasharray: 8 5;
+	animation: dash-selected 1.0s linear infinite;
+	filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6));
+}
+
+/* Estilo para conexión seleccionada en hover */
+.vue-flow__edge.selected .vue-flow__edge-path:hover {
+	stroke: #ffed4e !important;
+	stroke-width: 6px !important;
+	filter: drop-shadow(0 3px 6px rgba(255, 215, 0, 0.8));
 }
 
 /* Animación de las líneas punteadas */
@@ -1480,7 +2083,6 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 /* Estilos para las puntas de flecha */
 .vue-flow__arrowhead {
 	fill: #5078ff !important;
-	transition: fill 0.3s ease;
 }
 
 .vue-flow__edge:hover .vue-flow__arrowhead {

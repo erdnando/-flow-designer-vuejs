@@ -1,6 +1,7 @@
 <template>
 	<div 
 		class="end-node"
+		:class="{ 'node-selected': isNodeSelected }"
 		@mouseenter="onMouseEnter"
 		@mouseleave="onMouseLeave"
 	>
@@ -108,6 +109,9 @@ const showToolbar = ref(false);
 let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const subtitle = computed(() => props.data?.subtitle || 'Fin del flujo');
+
+// Detectar si el nodo está seleccionado
+const isNodeSelected = computed(() => node?.selected || false);
 
 // Handlers simplificados para mostrar/ocultar toolbar
 const onMouseEnter = () => {
@@ -320,5 +324,27 @@ onBeforeUnmount(() => {
 
 .toolbar-btn:hover img {
 	transform: scale(1.1);
+}
+
+/* Estilo para nodo seleccionado */
+.end-node.node-selected {
+	border-color: #1faaff !important;
+	border-width: 3px !important;
+	outline: 4px solid #1faaff !important;
+	outline-offset: 2px !important;
+	box-shadow:
+		0 0 0 8px #1faaff66,
+		0 8px 32px rgba(31, 170, 255, 0.24) !important;
+}
+
+/* También agregar soporte para la clase de Vue Flow */
+:deep(.vue-flow__node.selected) .end-node {
+	border-color: #1faaff !important;
+	border-width: 3px !important;
+	outline: 4px solid #1faaff !important;
+	outline-offset: 2px !important;
+	box-shadow:
+		0 0 0 8px #1faaff66,
+		0 8px 32px rgba(31, 170, 255, 0.24) !important;
 }
 </style>

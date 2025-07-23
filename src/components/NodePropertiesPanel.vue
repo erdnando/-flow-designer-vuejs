@@ -27,7 +27,8 @@
 		</div>
 		<div v-else class="panel-header" @click="collapsed = false" :tabindex="-1">
 			<span class="panel-title">{{
-				showProject ? 'Propiedades del flujo' : 'Propiedades del nodo'
+				showProject ? 'Propiedades del flujo' : 
+				edge ? 'Propiedades de la conexión' : 'Propiedades del nodo'
 			}}</span>
 			<button class="collapse-btn" @click.stop="toggleCollapse">
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -97,6 +98,60 @@
 						<span>Actualizado: {{ projectProps?.updatedAt || '' }}</span>
 					</div>
 				</template>
+				<template v-else-if="!disabled && edge">
+					<label>
+						ID de la conexión
+						<input :value="edge.id" disabled />
+					</label>
+					<label>
+						Tipo de conexión
+						<select :value="edge.type || 'default'" @change="onEdgeTypeChange($event)">
+							<option value="default">Por defecto</option>
+							<option value="straight">Línea recta</option>
+							<option value="step">Escalones</option>
+							<option value="smoothstep">Escalones suaves</option>
+							<option value="bezier">Curva Bézier</option>
+						</select>
+					</label>
+					<label>
+						Nodo origen
+						<input :value="`${edge.source} (${getNodeLabel(edge.source)})`" disabled />
+					</label>
+					<label>
+						Nodo destino
+						<input :value="`${edge.target} (${getNodeLabel(edge.target)})`" disabled />
+					</label>
+					<label>
+						Handle origen
+						<input :value="edge.sourceHandle || 'output'" disabled />
+					</label>
+					<label>
+						Handle destino
+						<input :value="edge.targetHandle || 'input'" disabled />
+					</label>
+					<div class="edge-properties">
+						<label class="checkbox-label">
+							<input
+								type="checkbox"
+								:checked="edge.animated || false"
+								@change="onEdgeAnimatedChange($event)"
+							/>
+							Animación habilitada
+						</label>
+						<label class="checkbox-label">
+							<input
+								type="checkbox"
+								:checked="edge.selectable !== false"
+								@change="onEdgeSelectableChange($event)"
+							/>
+							Seleccionable
+						</label>
+					</div>
+					<div class="edge-meta">
+						<span>Posición origen: ({{ Math.round(edge.sourceX || 0) }}, {{ Math.round(edge.sourceY || 0) }})</span>
+						<span>Posición destino: ({{ Math.round(edge.targetX || 0) }}, {{ Math.round(edge.targetY || 0) }})</span>
+					</div>
+				</template>
 				<template v-else-if="!disabled && node">
 					<label>
 						Nombre
@@ -143,6 +198,8 @@ import { useNodeTypesStore } from '../stores/nodeTypes';
 
 const props = defineProps<{
 	node: any;
+	edge?: any;
+	nodes?: any[];
 	collapsed?: boolean;
 	disabled?: boolean;
 	showProject?: boolean;
@@ -211,6 +268,30 @@ function onSubtitleChange(event: Event) {
 	// Importante: asegurarse que el valor se pasa correctamente para subtitle
 	console.log('Actualizando subtítulo:', value);
 	emit('update', { key: 'subtitle', value });
+}
+
+// Handlers para las propiedades de edges/conexiones
+function onEdgeTypeChange(event: Event) {
+	const value = (event.target as HTMLSelectElement).value;
+	emit('update', { key: 'type', value, isEdge: true });
+}
+
+function onEdgeAnimatedChange(event: Event) {
+	const value = (event.target as HTMLInputElement).checked;
+	emit('update', { key: 'animated', value, isEdge: true });
+}
+
+function onEdgeSelectableChange(event: Event) {
+	const value = (event.target as HTMLInputElement).checked;
+	emit('update', { key: 'selectable', value, isEdge: true });
+}
+
+// Helper para obtener el label de un nodo por su ID
+function getNodeLabel(nodeId: string): string {
+	if (!props.nodes) return `Nodo ${nodeId}`;
+	
+	const node = props.nodes.find((n: any) => n.id === nodeId);
+	return node?.label || `Nodo ${nodeId}`;
 }
 
 function toggleCollapse() {
@@ -399,4 +480,36 @@ select {
 	opacity: 0;
 	transform: translateX(30px);
 }
+
+/* Estilos específicos para propiedades de edges */
+.edge-properties {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 12px 0;
+}
+
+.checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+}
+
+.checkbox-label input[type="checkbox"] {
+	margin: 0;
+}
+
+.edge-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: 12px;
+	padding: 8px;
+	background-color: rgba(255, 255, 255, 0.05);
+	border-radius: 4px;
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.7);
+}
 </style>
+```

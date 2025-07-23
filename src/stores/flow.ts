@@ -35,6 +35,10 @@ export const useFlowStore = defineStore('flow', () => {
 			sourceHandle: connection.sourceHandle,
 			targetHandle: connection.targetHandle,
 			type: 'default',
+			animated: true,
+			selectable: true,
+			focusable: true,
+			deletable: true,
 		});
 	}
 
