@@ -47,7 +47,6 @@
 		</div>
 		<div v-if="!collapsed" class="panel-content">
 			<input v-model="search" class="search" placeholder="Buscar nodo..." />
-			<button class="add-node-type-btn" @click="openCreateModal">+ Tipo de nodo</button>
 			<div class="category-list">
 				<div v-for="cat in filteredCategories" :key="cat.name" class="category-block">
 					<div class="category-title">{{ cat.name }}</div>
@@ -59,73 +58,29 @@
 							draggable="true"
 							@dragstart="onDragStart(node, $event)"
 						>
-							<!-- Type guard para nodos personalizados -->
 							<span
 								class="node-icon"
-								v-if="'icon' in node && 'color' in node"
-								:style="{ color: node.color }"
-								>{{ node.icon }}</span
-							>
-							<span
-								class="node-icon"
-								v-else
 								v-html="nodeTypeMeta[node.type]?.icon || nodeTypeMeta.default.icon"
 							></span>
 							<span>{{ node.label }}</span>
-							<template v-if="'icon' in node && 'color' in node">
-								<button class="edit-btn" @click.stop="openEditModal(node.type)">✏️</button>
-								<button class="delete-btn" @click.stop="removeNodeType(node.type)">🗑️</button>
-							</template>
 						</li>
 					</ul>
 				</div>
 			</div>
 		</div>
-		<CustomNodeTypeModal
-			:visible="showModal"
-			:editId="editNodeType"
-			:nodeType="
-				editNodeType ? nodeTypesStore.customNodeTypes.find((n) => n.id === editNodeType) : undefined
-			"
-			@close="closeModal"
-			@save="saveNodeType"
-		/>
 	</div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
-import { useNodeTypesStore } from '../stores/nodeTypes';
-import CustomNodeTypeModal from './CustomNodeTypeModal.vue';
 
 const collapsed = ref(false);
 const search = ref('');
 
 // CRUD node types store
-const nodeTypesStore = useNodeTypesStore();
-const showModal = ref(false);
-const editNodeType = ref(null as null | string);
-
-function openCreateModal() {
-	editNodeType.value = null;
-	showModal.value = true;
-}
-function openEditModal(id: string) {
-	editNodeType.value = id;
-	showModal.value = true;
-}
-function closeModal() {
-	showModal.value = false;
-}
-function saveNodeType(node: any) {
-	if (node.id) nodeTypesStore.updateNodeType(node.id, node);
-	else nodeTypesStore.addNodeType(node);
-	showModal.value = false;
-}
-function removeNodeType(id: string) {
-	if (confirm('¿Eliminar este tipo de nodo?')) nodeTypesStore.removeNodeType(id);
-}
+// Ya no necesitamos la store de nodos personalizados
+// const nodeTypesStore = useNodeTypesStore();
 
 // Estructura de categorías (estática + custom)
 const nodeCategories = computed(() => [
@@ -137,41 +92,17 @@ const nodeCategories = computed(() => [
 		],
 	},
 	{
-		name: 'Entrada',
+		name: 'Negocio',
 		nodes: [
 			{ type: 'webhook', label: 'Webhook' },
 			{ type: 'http', label: 'HTTP Request' },
 		],
 	},
 	{
-		name: 'Mensajería',
-		nodes: [{ type: 'gmail', label: 'Gmail' }],
-	},
-	{
 		name: 'Lógica',
 		nodes: [
 			{ type: 'condition', label: 'Condición (If)' }, // Diamond node
-			{ type: 'merge', label: 'Merge' },
-			{ type: 'delay', label: 'Delay' },
 		],
-	},
-	{
-		name: 'Utilidad',
-		nodes: [
-			{ type: 'set', label: 'Set' },
-			{ type: 'function', label: 'Function' },
-		],
-	},
-	{
-		name: 'Personalizados',
-		nodes: nodeTypesStore.customNodeTypes.map((n) => ({
-			type: n.id,
-			label: n.name,
-			icon: n.icon,
-			color: n.color,
-			description: n.description,
-			_custom: true,
-		})),
 	},
 ]);
 
@@ -193,22 +124,11 @@ function onDragStart(
 	node: {
 		type: string;
 		label: string;
-		_custom?: boolean;
-		icon?: string;
-		color?: string;
-		description?: string;
 	},
 	e: DragEvent,
 ) {
 	e.dataTransfer?.setData('application/node-type', node.type);
 	e.dataTransfer?.setData('text/plain', node.label);
-	if (node._custom) {
-		// Buscar el tipo personalizado completo
-		const customType = nodeTypesStore.customNodeTypes.find((n) => n.id === node.type);
-		if (customType) {
-			e.dataTransfer?.setData('application/custom-node-type', JSON.stringify(customType));
-		}
-	}
 }
 </script>
 
@@ -306,6 +226,8 @@ function onDragStart(
 	color: #ffb84d;
 	margin: 12px 0 4px 0;
 	letter-spacing: 0.01em;
+	text-align: left;
+	padding-left: 6px;
 }
 .category-block {
 	margin-bottom: 8px;
