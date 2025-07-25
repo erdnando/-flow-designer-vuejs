@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 
 // Tipos para las notificaciones
 export type NotificationType = 'default' | 'success' | 'warning' | 'danger' | 'info'
@@ -77,7 +77,7 @@ function showNotification(options: Partial<Notification> & { message: string, ty
 	notifications.value.push(notification)
 
 	// Auto-remover después del duration especificado
-	if (!notification.persistent && notification.duration > 0) {
+	if (!notification.persistent && notification.duration !== undefined && notification.duration > 0) {
 		setTimeout(() => {
 			removeNotification(notification.id)
 		}, notification.duration)

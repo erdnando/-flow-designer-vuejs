@@ -14,7 +14,7 @@
 					<path d="M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 				</svg>
 			</button>
-			<button @click.stop="centerNodes" title="Centrar nodos">
+			<button @click.stop="() => centerNodes()" title="Centrar nodos">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
 					<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
 					<circle cx="12" cy="12" r="3" fill="currentColor" />
@@ -114,6 +114,38 @@
 			/>
 		</Transition>
 	</div>
+	
+	<!-- Diálogo de confirmación para limpieza del flujo -->
+	<SimpleDialog 
+		v-model="showClearFlowDialog"
+		title="Confirmar limpieza"
+		message="¿Estás seguro de que deseas limpiar el flujo? Esta acción eliminará todos los nodos y conexiones."
+		type="warning"
+		:show-icon="true"
+		:show-cancel-button="true"
+		cancel-button-text="Cancelar"
+		confirm-button-text="Sí, limpiar"
+		confirm-button-type="danger"
+		@confirm="confirmClearFlow"
+		@cancel="cancelClearFlow"
+	/>
+	
+	<!-- Diálogo de confirmación para eliminar nodo -->
+	<SimpleDialog 
+		v-if="nodeToDelete && showDeleteNodeDialog"
+		v-model="showDeleteNodeDialog"
+		:title="`Eliminar nodo ${nodeToDelete?.label || nodeToDelete?.type || 'sin nombre'}`"
+		message="¿Estás seguro de que deseas eliminar este nodo?"
+		note="Esta acción eliminará también todas las conexiones asociadas a este nodo."
+		type="error"
+		:show-icon="true"
+		:show-cancel-button="true"
+		cancel-button-text="Cancelar"
+		confirm-button-text="Eliminar"
+		confirm-button-type="danger"
+		@confirm="confirmDeleteNode"
+		@cancel="cancelDeleteNode"
+	/>
 </template>
 
 <script setup lang="ts">
@@ -124,7 +156,7 @@ import { storeToRefs } from 'pinia';
 import { useFlowStore } from '../stores/flow';
 import ContextMenu from './ContextMenu.vue';
 import NodePropertiesPanel from './NodePropertiesPanel.vue';
-import { reactive, markRaw, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { reactive, markRaw, ref, watch, onMounted, onBeforeUnmount, nextTick, provide } from 'vue';
 import type { Connection, Node, NodeTypesObject, Edge } from '@vue-flow/core';
 import CustomNode from './CustomNode.vue';
 import MinimalNode from './MinimalNode.vue';
@@ -132,9 +164,10 @@ import ConditionNode from './ConditionNode.vue';
 import StartNode from './StartNode.vue';
 import EndNode from './EndNode.vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
-import { ElMessageBox } from 'element-plus';
-import { validateAllRules, getValidationErrors, isFlowValid, type ValidationResult } from '../utils/nodeValidationRules';
+// ElMessageBox reemplazado por CustomDialog
+import { getValidationErrors, type ValidationResult } from '../utils/nodeValidationRules';
 import { useNotifications } from '../composables/useNotifications';
+import SimpleDialog from './SimpleDialog.vue';
 
 // Extender el tipo Node para incluir la propiedad selected opcional
 interface ExtendedNode extends Node {
@@ -156,7 +189,7 @@ let autoCenterApplied = false;
 const validationErrors = ref<ValidationResult[]>([]);
 
 // Sistema de notificaciones
-const { showValidationError, showValidationWarning, showSuccess, showWarning, showDanger, showInfo } = useNotifications();
+const { showValidationError, showSuccess, showWarning, showDanger, showInfo } = useNotifications();
 
 // Función para ejecutar validaciones y mostrar notificaciones
 function runNodeValidations(showNotifications: boolean = true) {
@@ -313,7 +346,7 @@ function loadFromLocalStorage() {
 		}
 		if (savedData.edges && Array.isArray(savedData.edges)) {
 			// Asegurar que las conexiones tengan las propiedades necesarias
-			edges.value = savedData.edges.map(edge => ({
+			edges.value = savedData.edges.map((edge: any) => ({
 				...edge,
 				animated: edge.animated !== undefined ? edge.animated : true,
 				type: edge.type || 'default',
@@ -376,11 +409,32 @@ function loadFromLocalStorage() {
 
 // Configurar el ciclo de vida
 onMounted(() => {
+	console.log('FlowCanvas montado');
 	loadFromLocalStorage();
 	setupAutoSave();
 	
 	// Configurar un event listener global para capturar clicks en edges
 	setupGlobalEdgeClickDetection();
+	
+	// Debug: agregar algunas funciones de prueba al window para testing
+	(window as any).debugFlow = {
+		getNodes: () => nodes.value,
+		deleteNode: onNodeDelete,
+		showDialog: () => { showDeleteNodeDialog.value = true; },
+		addTestNode: () => {
+			const newId = (nodes.value.length + 1).toString();
+			const newNode = {
+				id: newId,
+				type: 'minimal',
+				label: 'Test Node ' + newId,
+				data: { label: 'Test Node ' + newId },
+				position: { x: 100 + (nodes.value.length * 50), y: 100 }
+			};
+			nodes.value.push(newNode);
+			console.log('Nodo de prueba agregado:', newNode);
+		}
+	};
+	console.log('Debug funciones disponibles en window.debugFlow');
 	
 	// Esperar múltiples ciclos para asegurar que Vue Flow esté completamente inicializado
 	setTimeout(() => {
@@ -452,9 +506,7 @@ const nodeTypes = {
 	default: markRaw(CustomNode),
 	error: markRaw(CustomNode),
 	minimal: markRaw(MinimalNode),
-	start: markRaw(StartNode),
-	end: markRaw(EndNode),
-	// Primero el spread, luego sobrescribes condition:
+	// Primero el spread, luego sobrescribes condition, start y end:
 	...Object.fromEntries(Object.keys(nodeTypeMeta).map((type) => [type, markRaw(CustomNode)])),
 	condition: markRaw(ConditionNode), // Esto asegura que 'condition' SIEMPRE sea diamante
 	// Asegurar que start y end usen sus componentes específicos
@@ -627,43 +679,54 @@ function centerNodes(isAutomatic = false) {
 
 // ---
 // Agrega las funciones faltantes para el template
+// Estado para el diálogo de confirmación de limpieza
+const showClearFlowDialog = ref(false);
+
 function clearFlow() {
-	ElMessageBox.confirm(
-		'¿Estás seguro de que deseas limpiar el flujo? Esta acción eliminará todos los nodos y conexiones.',
-		'Confirmar limpieza',
-		{
-			confirmButtonText: 'Sí, limpiar',
-			cancelButtonText: 'Cancelar',
-			type: 'warning',
-		},
-	).then(() => {
-		// Limpiar nodos y edges
-		nodes.value = [];
-		edges.value = [];
+	// Mostrar el diálogo de confirmación
+	showClearFlowDialog.value = true;
+}
 
-		// Limpiar selección y mostrar propiedades del proyecto
-		selectedNodeId.value = null;
-		selectedNode.value = null;
-		selectedEdgeId.value = null;
-		selectedEdge.value = null;
-		showingProjectProps.value = true;
+function confirmClearFlow() {
+	// Limpiar nodos y edges
+	nodes.value = [];
+	edges.value = [];
 
-		// También limpiar localStorage
-		localStorage.removeItem(AUTOSAVE_KEY);
+	// Limpiar selección y mostrar propiedades del proyecto
+	selectedNodeId.value = null;
+	selectedNode.value = null;
+	selectedEdgeId.value = null;
+	selectedEdge.value = null;
+	showingProjectProps.value = true;
 
-		// Reiniciar propiedades del proyecto a valores predeterminados
-		projectProperties.value = {
-			name: 'Mi Flujo',
-			description: 'Descripción del flujo',
-			status: 'Activo',
-			owner: 'Usuario',
-			createdAt: new Date().toLocaleDateString(),
-			updatedAt: new Date().toLocaleDateString(),
-		};
+	// También limpiar localStorage
+	localStorage.removeItem(AUTOSAVE_KEY);
 
-		// Guardar los cambios en localStorage
-		saveToLocalStorage();
+	// Reiniciar propiedades del proyecto a valores predeterminados
+	projectProperties.value = {
+		name: 'Mi Flujo',
+		description: 'Descripción del flujo',
+		status: 'Activo',
+		owner: 'Usuario',
+		createdAt: new Date().toLocaleDateString(),
+		updatedAt: new Date().toLocaleDateString(),
+	};
+
+	// Guardar los cambios en localStorage
+	saveToLocalStorage();
+
+	// Cerrar el diálogo
+	showClearFlowDialog.value = false;
+	
+	// Mostrar notificación de éxito
+	showSuccess('Flujo limpiado', {
+		description: 'Se han eliminado todos los nodos y conexiones del flujo',
+		duration: 3000
 	});
+}
+
+function cancelClearFlow() {
+	showClearFlowDialog.value = false;
 }
 
 // ---
@@ -718,17 +781,16 @@ function onConnect(params: Connection) {
 	}
 	
 	// Si no hay errores de validación, crear la conexión
-	flowStore.addEdge({
+	// Usar el tipo correcto para evitar errores de TypeScript
+	// Crear objeto básico de Connection y luego hacer cast
+	const edgeBase = {
 		source: newEdge.source,
 		target: newEdge.target,
 		sourceHandle: newEdge.sourceHandle,
 		targetHandle: newEdge.targetHandle,
-		animated: true,
-		type: 'default',
-		selectable: true,
-		focusable: true,
-		deletable: true
-	});
+	};
+	
+	flowStore.addEdge(edgeBase);
 	
 	console.log('Nueva conexión creada entre:', newEdge.source, '->', newEdge.target);
 	console.log('Conexiones totales después de crear:', edges.value.length);
@@ -755,9 +817,14 @@ function onConnect(params: Connection) {
 
 function onDrop(e: DragEvent) {
 	// Soporta tanto nodos estándar como personalizados
-	const type = e.dataTransfer?.getData('application/node-type');
-	const label = e.dataTransfer?.getData('text/plain');
-	const customNodeTypeRaw = e.dataTransfer?.getData('application/custom-node-type');
+	const typeRaw = e.dataTransfer?.getData('application/node-type');
+	const type: string | null = typeRaw || null;
+	
+	const labelRaw = e.dataTransfer?.getData('text/plain');
+	const label: string | null = labelRaw || null;
+	
+	const customNodeTypeRawData = e.dataTransfer?.getData('application/custom-node-type');
+	const customNodeTypeRaw: string | null = customNodeTypeRawData || null;
 
 	// Calcular posición antes de cualquier operación asíncrona
 	const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -1393,12 +1460,13 @@ function handleEdgeClick(event: Event) {
 	const edgeElement = event.currentTarget as HTMLElement;
 	
 	// Intentar extraer el ID del edge del DOM
-	let edgeId = edgeElement.getAttribute('data-id');
+	let edgeId: string | null = edgeElement.getAttribute('data-id');
 	
 	if (!edgeId) {
 		// Buscar en elementos hijos
 		const pathElement = edgeElement.querySelector('.vue-flow__edge-path');
-		edgeId = pathElement?.getAttribute('data-edge-id');
+		const pathId = pathElement?.getAttribute('data-edge-id');
+		edgeId = pathId !== undefined ? pathId : null;
 	}
 	
 	if (!edgeId && edges.value.length > 0) {
@@ -1449,9 +1517,9 @@ function handleEdgePathClick(event: Event) {
 	}
 }
 
-// Configurar detección global de clicks en edges
+// Configurar detección global de clicks en edges y botones de eliminar
 function setupGlobalEdgeClickDetection() {
-	console.log('🌐 Configurando detección global de clicks en edges...');
+	console.log('🌐 Configurando detección global de clicks en edges y botones...');
 	
 	// Añadir event listener al documento completo
 	document.addEventListener('click', (event) => {
@@ -1459,6 +1527,13 @@ function setupGlobalEdgeClickDetection() {
 		console.log('🌐 Click detectado globalmente:', target);
 		console.log('🔍 Clases del target:', target.classList?.toString());
 		console.log('🔍 Tag name del target:', target.tagName);
+		
+		// NUEVA LÓGICA: Verificar si el click fue en un botón de eliminar
+		if (target && target.classList.contains('delete-btn') && target.classList.contains('toolbar-btn')) {
+			console.log('🗑️ Click detectado en botón de eliminar!');
+			handleDeleteButtonClick(target, event);
+			return;
+		}
 		
 		// Verificar si el click fue directamente en un edge path
 		if (target && target.classList.contains('vue-flow__edge-path')) {
@@ -1554,6 +1629,30 @@ function handleGlobalEdgeClick(element: Element, event: Event) {
 	}
 }
 
+// Handler para clicks en botones de eliminar
+function handleDeleteButtonClick(element: Element, event: Event) {
+	console.log('🗑️ Procesando click en botón de eliminar:', element);
+	
+	// Buscar el nodo padre que contiene este botón
+	const nodeElement = element.closest('.vue-flow__node') as HTMLElement;
+	
+	if (nodeElement) {
+		const nodeId = nodeElement.getAttribute('data-id');
+		console.log('🆔 Node ID extraído del botón de eliminar:', nodeId);
+		
+		if (nodeId) {
+			console.log('✅ Iniciando proceso de eliminación para nodo:', nodeId);
+			event.stopPropagation();
+			event.preventDefault();
+			onNodeDelete(nodeId);
+		} else {
+			console.log('❌ No se pudo extraer el ID del nodo desde el botón');
+		}
+	} else {
+		console.log('❌ No se pudo encontrar el elemento nodo padre del botón');
+	}
+}
+
 // Menú contextual para conexiones
 function onEdgeContextMenu({ event, edge }: { event: MouseEvent; edge: Edge }) {
 	event.preventDefault();
@@ -1620,18 +1719,7 @@ function deleteEdge(edgeId: string) {
 		// Mostrar notificación
 		showWarning('Conexión eliminada', {
 			description: `Se eliminó la conexión de "${sourceLabel}" a "${targetLabel}"`,
-			duration: 4000,
-			actions: [
-				{
-					label: 'Deshacer',
-					action: () => {
-						// Restaurar la conexión eliminada
-						edges.value.splice(edgeIndex, 0, edgeToDelete);
-						triggerAutoSave();
-					},
-					style: 'primary'
-				}
-			]
+			duration: 4000
 		});
 		
 		// Ejecutar validaciones después de eliminar la conexión
@@ -1643,7 +1731,7 @@ function deleteEdge(edgeId: string) {
 
 // ===== FIN FUNCIONES DE CONEXIONES =====
 
-function onNodeContextMenu({ event, node }: { event: MouseEvent; node: Node }) {
+function onNodeContextMenu({ event }: { event: MouseEvent; node: Node }) {
 	// Deshabilitar el menú contextual - ahora usamos toolbar en cada nodo
 	event.preventDefault();
 	event.stopPropagation();
@@ -1652,44 +1740,91 @@ function onNodeContextMenu({ event, node }: { event: MouseEvent; node: Node }) {
 	return;
 }
 
+// Estado para el diálogo de eliminación de nodo
+const showDeleteNodeDialog = ref(false);
+const nodeToDelete = ref<ExtendedNode | null>(null);
+const nodeIndexToDelete = ref<number>(-1);
+
+// Proveer funciones a los componentes hijos
+provide('deleteNode', onNodeDelete);
+provide('copyNode', onNodeCopy);
+provide('duplicateNode', onNodeDuplicate);
+provide('menuNode', onNodeMenu);
+
+console.log('FlowCanvas: Funciones provistas a componentes hijos');
+
 // Funciones para manejar eventos de la toolbar
 function onNodeDelete(nodeId: string) {
-	console.log('Eliminando nodo:', nodeId);
+	console.log('FlowCanvas: onNodeDelete recibido con nodeId:', nodeId);
 	const nodeIndex = nodes.value.findIndex((n) => n.id === nodeId);
+	console.log('FlowCanvas: nodeIndex encontrado:', nodeIndex);
 	if (nodeIndex !== -1) {
-		const nodeToDelete = nodes.value[nodeIndex];
-		const nodeLabel = nodeToDelete.label || nodeToDelete.type || 'Nodo';
+		// Guardar referencia del nodo e índice para usarlo cuando se confirme la eliminación
+		nodeToDelete.value = nodes.value[nodeIndex] as ExtendedNode;
+		nodeIndexToDelete.value = nodeIndex;
 		
-		nodes.value.splice(nodeIndex, 1);
-		
-		// Si el nodo eliminado era el seleccionado, limpiar selección
-		if (selectedNodeId.value === nodeId) {
-			selectedNodeId.value = null;
-			selectedNode.value = null;
-		}
-		
-		// Mostrar notificación de eliminación
-		showWarning('Nodo eliminado', {
-			description: `Se eliminó el nodo "${nodeLabel}" del flujo`,
-			duration: 4000,
-			actions: [
-				{
-					label: 'Deshacer',
-					action: () => {
-						// Restaurar el nodo eliminado
-						nodes.value.splice(nodeIndex, 0, nodeToDelete);
-						triggerAutoSave();
-					},
-					style: 'primary'
-				}
-			]
-		});
-		
-		// Ejecutar validaciones después de eliminar el nodo
-		setTimeout(() => runNodeValidations(false), 100); // Sin notificaciones al eliminar
-		
-		triggerAutoSave();
+		console.log('FlowCanvas: Mostrando diálogo de confirmación');
+		// Mostrar diálogo de confirmación
+		showDeleteNodeDialog.value = true;
+	} else {
+		console.log('FlowCanvas: No se encontró el nodo con ID:', nodeId);
 	}
+}
+
+function confirmDeleteNode() {
+	if (!nodeToDelete.value || nodeIndexToDelete.value === -1) return;
+	
+	// Obtener datos antes de eliminar
+	const nodeLabel = nodeToDelete.value.label || nodeToDelete.value.type || 'Nodo';
+	const deletedNode = nodeToDelete.value;
+	const nodeIndex = nodeIndexToDelete.value;
+	
+	// Eliminar el nodo
+	nodes.value.splice(nodeIndex, 1);
+	
+	// Si el nodo eliminado era el seleccionado, limpiar selección
+	if (selectedNodeId.value === deletedNode.id) {
+		selectedNodeId.value = null;
+		selectedNode.value = null;
+	}
+	
+	// Mostrar notificación de eliminación
+	showWarning('Nodo eliminado', {
+		description: `Se eliminó el nodo "${nodeLabel}" del flujo`,
+		duration: 4000
+	});
+	
+	// Ejecutar validaciones después de eliminar el nodo
+	setTimeout(() => runNodeValidations(false), 100); // Sin notificaciones al eliminar
+	
+	// Resetear variables
+	nodeToDelete.value = null;
+	nodeIndexToDelete.value = -1;
+	
+	// Guardar estado
+	triggerAutoSave();
+}
+
+// Función de depuración para probar desde la consola
+(window as any).testNodeDeletion = (nodeId?: string) => {
+	console.log('Probando eliminación de nodo...');
+	console.log('Nodos disponibles:', nodes.value.map(n => ({ id: n.id, type: n.type, label: n.label })));
+	
+	const targetNodeId = nodeId || (nodes.value.length > 0 ? nodes.value[0].id : null);
+	if (targetNodeId) {
+		console.log('Intentando eliminar nodo:', targetNodeId);
+		onNodeDelete(targetNodeId);
+	} else {
+		console.log('No hay nodos para eliminar');
+	}
+};
+
+console.log('Función testNodeDeletion disponible en window.testNodeDeletion()');
+
+function cancelDeleteNode() {
+	nodeToDelete.value = null;
+	nodeIndexToDelete.value = -1;
+	showDeleteNodeDialog.value = false;
 }
 
 function onNodeCopy(nodeData: any) {
@@ -1728,7 +1863,7 @@ function onNodeDuplicate(nodeData: any) {
 	triggerAutoSave();
 }
 
-function onNodeMenu(event: MouseEvent, node: any) {
+function onNodeMenu(_event: MouseEvent, node: any) {
 	console.log('Menú del nodo:', node);
 	// Por ahora solo prevenir el comportamiento por defecto
 	// La funcionalidad del menú se puede implementar después
@@ -1778,7 +1913,7 @@ function importFlow(e: Event) {
 			if (data.nodes && data.edges) {
 				nodes.value = data.nodes;
 				// Asegurar que las conexiones tengan las propiedades necesarias
-				edges.value = data.edges.map(edge => ({
+				edges.value = data.edges.map((edge: any) => ({
 					...edge,
 					animated: edge.animated !== undefined ? edge.animated : true,
 					type: edge.type || 'default',
@@ -2132,5 +2267,12 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	background: #7c9eff !important;
 	transform: scale(1.4) !important;
 	box-shadow: 0 0 12px rgba(124, 158, 255, 0.8) !important;
+}
+
+/* Estilos para el diálogo de confirmación */
+.dialog-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
 }
 </style>
