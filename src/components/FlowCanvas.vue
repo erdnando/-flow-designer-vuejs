@@ -69,10 +69,11 @@
 			:zoom-on-double-click="true"
 			:pan-on-drag="true"
 			:edges-selectable="true"
-			:default-edge-options="{ animated: true, type: 'default', selectable: true, focusable: true, deletable: true }"
+			:default-edge-options="{ animated: true, type: 'deletable', selectable: true, focusable: true, deletable: true }"
 			class="custom-vue-flow"
 			@connect="onConnect"
 			:node-types="nodeTypes"
+			:edge-types="edgeTypes"
 			style="width: 100%; height: 100%; min-height: 0; min-width: 0"
 			@node-contextmenu="onNodeContextMenu"
 			@contextmenu="onVueFlowContextMenu"
@@ -115,7 +116,7 @@
 		</Transition>
 	</div>
 	
-	<!-- Diálogo de confirmación para limpieza del flujo -->
+	<!-- Diálogos de confirmación -->
 	<SimpleDialog 
 		v-model="showClearFlowDialog"
 		title="Confirmar limpieza"
@@ -130,7 +131,6 @@
 		@cancel="cancelClearFlow"
 	/>
 	
-	<!-- Diálogo de confirmación para eliminar nodo -->
 	<SimpleDialog 
 		v-if="nodeToDelete && showDeleteNodeDialog"
 		v-model="showDeleteNodeDialog"
@@ -145,6 +145,21 @@
 		confirm-button-type="danger"
 		@confirm="confirmDeleteNode"
 		@cancel="cancelDeleteNode"
+	/>
+	
+	<SimpleDialog 
+		v-if="edgeToDelete && showDeleteEdgeDialog"
+		v-model="showDeleteEdgeDialog"
+		title="Eliminar conexión"
+		message="¿Estás seguro de que deseas eliminar esta conexión?"
+		type="error"
+		:show-icon="true"
+		:show-cancel-button="true"
+		cancel-button-text="Cancelar"
+		confirm-button-text="Eliminar"
+		confirm-button-type="danger"
+		@confirm="confirmDeleteEdge"
+		@cancel="cancelDeleteEdge"
 	/>
 </template>
 
@@ -163,6 +178,7 @@ import MinimalNode from './MinimalNode.vue';
 import ConditionNode from './ConditionNode.vue';
 import StartNode from './StartNode.vue';
 import EndNode from './EndNode.vue';
+import CustomEdge from './CustomEdge.vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 // ElMessageBox reemplazado por CustomDialog
 import { getValidationErrors, type ValidationResult } from '../utils/nodeValidationRules';
@@ -410,6 +426,7 @@ function loadFromLocalStorage() {
 // Configurar el ciclo de vida
 onMounted(() => {
 	console.log('FlowCanvas montado');
+	
 	loadFromLocalStorage();
 	setupAutoSave();
 	
@@ -513,6 +530,11 @@ const nodeTypes = {
 	start: markRaw(StartNode),
 	end: markRaw(EndNode),
 } as unknown as NodeTypesObject;
+
+// Definir tipos de edges personalizados
+const edgeTypes = {
+	deletable: markRaw(CustomEdge),
+} as any; // Forzar tipado para evitar errores de TypeScript
 
 // Usa useVueFlow para zoom seguro y tipado
 const { zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, fitView, getViewport, setViewport } = useVueFlow();
@@ -740,7 +762,7 @@ function onConnect(params: Connection) {
 		sourceHandle: params.sourceHandle,
 		targetHandle: params.targetHandle,
 		animated: true,
-		type: 'default',
+		type: 'deletable', // Usar el tipo personalizado con botón de eliminar
 		selectable: true,
 		focusable: true,
 		deletable: true
@@ -1745,6 +1767,10 @@ const showDeleteNodeDialog = ref(false);
 const nodeToDelete = ref<ExtendedNode | null>(null);
 const nodeIndexToDelete = ref<number>(-1);
 
+// Estado para el diálogo de eliminación de conexión
+const showDeleteEdgeDialog = ref(false);
+const edgeToDelete = ref<Edge | null>(null);
+
 // Proveer funciones a los componentes hijos
 provide('deleteNode', onNodeDelete);
 provide('copyNode', onNodeCopy);
@@ -1825,6 +1851,63 @@ function cancelDeleteNode() {
 	nodeToDelete.value = null;
 	nodeIndexToDelete.value = -1;
 	showDeleteNodeDialog.value = false;
+}
+
+// Funciones para eliminar conexiones
+function onEdgeDelete(edgeId: string) {
+	const edgeIndex = edges.value.findIndex(e => e.id === edgeId);
+	if (edgeIndex === -1) {
+		console.warn('Edge no encontrado para eliminar:', edgeId);
+		return;
+	}
+	
+	const edge = edges.value[edgeIndex];
+	edgeToDelete.value = edge;
+	showDeleteEdgeDialog.value = true;
+}
+
+function confirmDeleteEdge() {
+	if (!edgeToDelete.value) return;
+	
+	// Obtener datos antes de eliminar
+	const deletedEdge = edgeToDelete.value;
+	
+	// Encontrar los nodos conectados para la descripción
+	const sourceNode = nodes.value.find(n => n.id === deletedEdge.source);
+	const targetNode = nodes.value.find(n => n.id === deletedEdge.target);
+	const sourceLabel = sourceNode?.label || sourceNode?.type || deletedEdge.source;
+	const targetLabel = targetNode?.label || targetNode?.type || deletedEdge.target;
+	
+	// Eliminar la conexión
+	edges.value = edges.value.filter(e => e.id !== deletedEdge.id);
+	
+	// Si la conexión eliminada era la seleccionada, limpiar selección
+	if (selectedEdgeId.value === deletedEdge.id) {
+		selectedEdgeId.value = null;
+		selectedEdge.value = null;
+		showingProjectProps.value = false;
+	}
+	
+	// Mostrar notificación de eliminación
+	showWarning('Conexión eliminada', {
+		description: `Se eliminó la conexión de "${sourceLabel}" a "${targetLabel}"`,
+		duration: 4000
+	});
+	
+	// Ejecutar validaciones después de eliminar la conexión
+	setTimeout(() => runNodeValidations(false), 100);
+	
+	// Resetear variables
+	edgeToDelete.value = null;
+	showDeleteEdgeDialog.value = false;
+	
+	// Guardar estado
+	triggerAutoSave();
+}
+
+function cancelDeleteEdge() {
+	edgeToDelete.value = null;
+	showDeleteEdgeDialog.value = false;
 }
 
 function onNodeCopy(nodeData: any) {

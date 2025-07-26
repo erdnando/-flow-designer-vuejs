@@ -4,7 +4,7 @@ import { ref } from 'vue';
 
 export const useFlowStore = defineStore('flow', () => {
 	// Estado reactivo para nodos y edges
-	const nodes = ref<Node[]>([]); // Inicialmente vacío
+	const nodes = ref<Node[]>([]);
 	const edges = ref<Edge[]>([]);
 
 	// Método para agregar nodos
@@ -34,7 +34,7 @@ export const useFlowStore = defineStore('flow', () => {
 			target: connection.target,
 			sourceHandle: connection.sourceHandle,
 			targetHandle: connection.targetHandle,
-			type: 'default',
+			type: 'deletable', // Usar el tipo personalizado con botón de eliminar
 			animated: true,
 			selectable: true,
 			focusable: true,
