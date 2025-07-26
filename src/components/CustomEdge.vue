@@ -103,14 +103,71 @@ const path = computed(() => {
 	}
 });
 
-// Calcular la posición del botón de eliminar en el centro del edge
+// Calcular la posición del botón de eliminar en el centro real de la curva
 const deleteButtonPosition = computed(() => {
-	const { sourceX, sourceY, targetX, targetY } = props;
+	const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, type } = props;
 	
-	return {
-		x: (sourceX + targetX) / 2 - 16, // Centrar el botón de 32px
-		y: (sourceY + targetY) / 2 - 16
-	};
+	if (type === 'straight') {
+		// Para líneas rectas, usar el punto medio simple
+		return {
+			x: (sourceX + targetX) / 2 - 16,
+			y: (sourceY + targetY) / 2 - 16
+		};
+	} else {
+		// Para curvas Bézier y step, calcular punto en la curva real
+		// Determinar la distancia de los puntos de control basada en la dirección
+		const dx = Math.abs(targetX - sourceX);
+		const dy = Math.abs(targetY - sourceY);
+		
+		// Calcular puntos de control basados en las posiciones de los handles
+		let controlX1 = sourceX;
+		let controlY1 = sourceY;
+		let controlX2 = targetX;
+		let controlY2 = targetY;
+		
+		// Usar la misma lógica que Vue Flow para calcular la distancia de control
+		// Para conexiones horizontales, usar dx; para verticales, usar dy
+		let controlDistanceX = Math.max(dx * 0.5, 50);
+		let controlDistanceY = Math.max(dy * 0.5, 50);
+		
+		// Ajustar puntos de control según la posición del handle de origen
+		if (sourcePosition === Position.Right) {
+			controlX1 = sourceX + controlDistanceX;
+		} else if (sourcePosition === Position.Left) {
+			controlX1 = sourceX - controlDistanceX;
+		} else if (sourcePosition === Position.Bottom) {
+			controlY1 = sourceY + controlDistanceY;
+		} else if (sourcePosition === Position.Top) {
+			controlY1 = sourceY - controlDistanceY;
+		}
+		
+		// Ajustar puntos de control según la posición del handle de destino
+		if (targetPosition === Position.Left) {
+			controlX2 = targetX - controlDistanceX;
+		} else if (targetPosition === Position.Right) {
+			controlX2 = targetX + controlDistanceX;
+		} else if (targetPosition === Position.Top) {
+			controlY2 = targetY - controlDistanceY;
+		} else if (targetPosition === Position.Bottom) {
+			controlY2 = targetY + controlDistanceY;
+		}
+		
+		// Calcular punto en t=0.5 de la curva Bézier cúbica
+		const t = 0.5;
+		const x = Math.pow(1-t, 3) * sourceX + 
+				  3 * Math.pow(1-t, 2) * t * controlX1 + 
+				  3 * (1-t) * Math.pow(t, 2) * controlX2 + 
+				  Math.pow(t, 3) * targetX;
+		const y = Math.pow(1-t, 3) * sourceY + 
+				  3 * Math.pow(1-t, 2) * t * controlY1 + 
+				  3 * (1-t) * Math.pow(t, 2) * controlY2 + 
+				  Math.pow(t, 3) * targetY;
+		
+		return {
+			x: x - 16,
+			y: y - 16
+		};
+	}
 });
 
 function onDeleteClick() {
