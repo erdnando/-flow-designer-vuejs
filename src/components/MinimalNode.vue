@@ -69,6 +69,9 @@
 			</button>
 		</div>
 
+		<!-- Warning icon -->
+		<NodeWarning :hasError="hasError" />
+
 		{{ nodeLabel }}
 	</div>
 </template>
@@ -76,6 +79,8 @@
 <script setup lang="ts">
 import { useNode } from '@vue-flow/core';
 import { computed, ref, watch, inject } from 'vue';
+import { useNodeValidation } from '../composables/useNodeValidation';
+import NodeWarning from './NodeWarning.vue';
 
 const props = defineProps<{ data: { label?: string } }>();
 const { data } = props;
@@ -100,7 +105,12 @@ const emit = defineEmits<{
 
 const nodeLabel = data.label ?? node?.node?.label ?? 'Nodo';
 const isSelected = computed(() => node?.node?.selected ?? false);
-const hasError = computed(() => (typeof nodeLabel === 'string' ? !nodeLabel.trim() : true));
+
+// Validation composable with connection validation
+const { hasError } = useNodeValidation({
+	validateTitle: true,
+	validateConnections: true
+});
 
 // Handlers para mostrar/ocultar toolbar
 function onMouseEnter() {
@@ -211,25 +221,50 @@ watch(isSelected, (selected) => {
 		transform 0.15s;
 }
 .minimal-node.selected {
-	border: 1.77px solid #97fdff !important;
-	outline: 2.77px solid #97fdff !important;
+	border: 4px solid #fff !important;
+	outline: 5px solid #1faaff !important;
 	outline-offset: 2px !important;
 	box-shadow:
-		0 0 0 1.11px #fff,
-		0 0 9.98px 2.22px #97fdff45,
-		0 0 11.1px 3.5px #97fdff13;
-	background-color: #2b3038 !important;
-	transform: scale(1.03);
-	animation: minimal-node-pulse 1.2s infinite alternate;
+		0 0 0 6px #1faaff99,
+		0 0 0 12px #fff,
+		0 0 30px 10px #1faaffaa,
+		0 2px 16px 0 #1faaff88,
+		0 4px 32px 0 #1faaff44;
+	background: linear-gradient(135deg, #2a2f36 50%, #1faaff44 100%) !important;
+	animation: minimal-node-glow 2s infinite alternate;
+	transform: scale(1.1);
+	z-index: 20;
 }
 .minimal-node.selected.error {
-	border: 1.77px solid #ff4d4f !important;
-	outline: 2.77px solid #ff4d4f !important;
+	border: 4px solid #fff !important;
+	outline: 5px solid #ff4d4f !important;
+	outline-offset: 2px !important;
 	box-shadow:
-		0 0 0 1.11px #fff,
-		0 0 9.98px 2.22px #ff4d4f45,
-		0 0 11.1px 3.5px #ff4d4f13;
+		0 0 0 6px #ff4d4f99,
+		0 0 0 12px #fff,
+		0 0 30px 10px #ff4d4faa,
+		0 2px 16px 0 #ff4d4f88,
+		0 4px 32px 0 #ff4d4f44;
+	background: linear-gradient(135deg, #2a2f36 50%, #ff4d4f44 100%) !important;
 	animation: minimal-node-pulse-error 1.2s infinite alternate;
+}
+@keyframes minimal-node-glow {
+	0% {
+		box-shadow:
+			0 0 0 6px #1faaff99,
+			0 0 0 12px #fff,
+			0 0 30px 10px #1faaffaa,
+			0 2px 16px 0 #1faaff88,
+			0 4px 32px 0 #1faaff44;
+	}
+	100% {
+		box-shadow:
+			0 0 0 6px #1faaff99,
+			0 0 0 12px #fff,
+			0 0 40px 15px #1faaffbb,
+			0 2px 20px 0 #1faaffaa,
+			0 4px 40px 0 #1faaff66;
+	}
 }
 @keyframes minimal-node-pulse {
 	0% {

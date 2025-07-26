@@ -69,6 +69,9 @@
 			</button>
 		</div>
 
+		<!-- Warning icon -->
+		<NodeWarning :hasError="hasError" />
+
 		<div class="start-node-content">
 			<div class="start-icon">
 				<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -93,6 +96,8 @@
 <script setup lang="ts">
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { computed, ref, onBeforeUnmount } from 'vue';
+import { useNodeValidation } from '../composables/useNodeValidation';
+import NodeWarning from './NodeWarning.vue';
 
 interface Props {
 	data?: {
@@ -109,6 +114,11 @@ const props = withDefaults(defineProps<Props>(), {
 const showToolbar = ref(false);
 let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
 const nodeInstance = useNode();
+
+// Validation composable
+const { hasError } = useNodeValidation({
+	validateConnections: true
+});
 
 // Emits para comunicar con el parent
 const emit = defineEmits<{
@@ -334,25 +344,41 @@ onBeforeUnmount(() => {
 	transform: scale(1.1);
 }
 
-/* Estilo para nodo seleccionado */
+/* Estilo para nodo seleccionado usando clase directa */
 .start-node.node-selected {
-	border-color: #1faaff !important;
-	border-width: 3px !important;
-	outline: 4px solid #1faaff !important;
-	outline-offset: 2px !important;
+	border-color: transparent !important;
+	border-width: 0px !important;
+	outline: none !important;
 	box-shadow:
-		0 0 0 8px #1faaff66,
-		0 8px 32px rgba(31, 170, 255, 0.24) !important;
+		0 0 0 2px #1faaff,
+		0 0 0 4px #fff,
+		0 0 20px 8px #1faaff66,
+		0 2px 12px 0 #1faaff44,
+		0 4px 24px 0 #1faaff22;
+	animation: start-node-glow 2s infinite alternate;
+	transform: scale(1.03);
+	transition:
+		box-shadow 0.2s ease,
+		transform 0.2s ease;
+	z-index: 20;
 }
 
-/* También agregar soporte para la clase de Vue Flow */
-:deep(.vue-flow__node.selected) .start-node {
-	border-color: #1faaff !important;
-	border-width: 3px !important;
-	outline: 4px solid #1faaff !important;
-	outline-offset: 2px !important;
-	box-shadow:
-		0 0 0 8px #1faaff66,
-		0 8px 32px rgba(31, 170, 255, 0.24) !important;
+@keyframes start-node-glow {
+	0% {
+		box-shadow:
+			0 0 0 2px #1faaff,
+			0 0 0 2px #fff,
+			0 0 20px 8px #1faaff66,
+			0 2px 12px 0 #1faaff44,
+			0 4px 24px 0 #1faaff22;
+	}
+	100% {
+		box-shadow:
+			0 0 0 2px #1faaffdd,
+			0 0 0 3px #fff,
+			0 0 25px 12px #1faaff88,
+			0 2px 14px 0 #1faaff66,
+			0 4px 28px 0 #1faaff33;
+	}
 }
 </style>

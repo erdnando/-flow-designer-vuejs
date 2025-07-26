@@ -1,6 +1,7 @@
 <template>
 	<div 
 		class="condition-node"
+		:class="{ 'node-selected': isSelected }"
 		@mouseenter="onMouseEnter"
 		@mouseleave="onMouseLeave"
 	>
@@ -68,6 +69,9 @@
 			</button>
 		</div>
 
+		<!-- Warning icon -->
+		<NodeWarning :hasError="hasError" />
+
 		<!-- Handler de entrada en el vértice izquierdo -->
 		<Handle type="target" :position="Position.Left" id="input" class="handle handle-left" />
 		<!-- Handler de salida true en el vértice derecho -->
@@ -80,9 +84,6 @@
 			class="handle handle-bottom"
 		/>
 		<!-- Indicador de selección visible -->
-		<div v-if="isSelected" class="selection-indicator">
-			<div :class="['selection-border', { error: hasError }]" />
-		</div>
 		<div class="diamond">
 			<span class="label">{{ data.label || 'Condición\n(If)' }}</span>
 		</div>
@@ -94,10 +95,17 @@
 <script setup lang="ts">
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { computed, ref, watch, inject } from 'vue';
+import { useNodeValidation } from '../composables/useNodeValidation';
+import NodeWarning from './NodeWarning.vue';
 
 const props = defineProps<{ data: { label?: string } }>();
 const data = props.data || {};
 const nodeInstance = useNode ? useNode() : undefined;
+
+// Validation composable
+const { hasError } = useNodeValidation({
+	validateConnections: true
+});
 
 // Estado para la toolbar
 const showToolbar = ref(false);
@@ -118,7 +126,6 @@ const emit = defineEmits<{
 
 // Verificar si el nodo está seleccionado
 const isSelected = computed(() => nodeInstance?.node?.selected || false);
-const hasError = computed(() => typeof data.label !== 'string' || !data.label.trim());
 
 // Handlers para mostrar/ocultar toolbar
 function onMouseEnter() {
@@ -216,44 +223,39 @@ watch(isSelected, (selected) => {
 	justify-content: center;
 }
 /* Borde ULTRA resaltado y efecto especial para el nodo seleccionado */
-:deep(.vue-flow__node.selected) .diamond {
-	border-color: #fff !important;
-	border-width: 4px !important;
+.condition-node.node-selected .diamond {
+	border-color: transparent !important;
+	border-width: 0px !important;
+	outline: none !important;
 	box-shadow:
-		0 0 0 6px #1faaff99,
-		0 0 0 12px #fff,
-		0 0 30px 10px #1faaffaa,
-		0 2px 16px 0 #1faaff88,
-		0 4px 32px 0 #1faaff44;
-	outline: 5px solid #1faaff !important;
-	outline-offset: 2px !important;
-	background: linear-gradient(135deg, #2a2f36 50%, #1faaff44 100%) !important;
+		0 0 0 2px #1faaff,
+		0 0 0 4px #fff,
+		0 0 20px 8px #1faaff66,
+		0 2px 12px 0 #1faaff44,
+		0 4px 24px 0 #1faaff22;
 	animation: diamond-glow 2s infinite alternate;
-	transform: rotate(45deg) scale(1.1);
+	transform: rotate(45deg) scale(1.03);
 	transition:
-		border-color 0.15s,
-		box-shadow 0.15s,
-		outline 0.15s,
-		background 0.15s,
-		transform 0.15s;
+		box-shadow 0.2s ease,
+		transform 0.2s ease;
 	z-index: 20;
 }
 @keyframes diamond-glow {
 	0% {
 		box-shadow:
-			0 0 0 6px #1faaff99,
-			0 0 0 12px #fff,
-			0 0 20px 5px #1faaffaa,
-			0 2px 16px 0 #1faaff88,
-			0 4px 32px 0 #1faaff44;
+			0 0 0 2px #1faaff,
+			0 0 0 2px #fff,
+			0 0 20px 8px #1faaff66,
+			0 2px 12px 0 #1faaff44,
+			0 4px 24px 0 #1faaff22;
 	}
 	100% {
 		box-shadow:
-			0 0 0 10px #1faaffcc,
-			0 0 0 18px #fff,
-			0 0 40px 15px #1faaffcc,
-			0 2px 32px 0 #1faaffcc,
-			0 8px 48px 0 #1faaff66;
+			0 0 0 2px #1faaffdd,
+			0 0 0 3px #fff,
+			0 0 25px 12px #1faaff88,
+			0 2px 14px 0 #1faaff66,
+			0 4px 28px 0 #1faaff33;
 	}
 }
 .diamond {
@@ -320,85 +322,23 @@ watch(isSelected, (selected) => {
 	position: absolute !important;
 	left: 0%;
 	top: 50%;
-	transform: translate(-50%, -50%);
+	transform: translate(-75%, -50%);
+	z-index: 25;
 }
 .handle-right {
 	position: absolute !important;
 	right: 0%;
 	top: 50%;
-	transform: translate(50%, -50%);
+	transform: translate(75%, -50%);
+	z-index: 25;
 }
 .handle-bottom {
 	position: absolute !important;
 	left: 50%;
 	bottom: 0%;
-	transform: translate(-50%, 50%);
+	transform: translate(-50%, 75%);
+	z-index: 25;
 }
-/* Indicador explícito de selección */
-.selection-indicator {
-	position: absolute;
-	width: 120px;
-	height: 120px;
-	pointer-events: none;
-	z-index: 1000;
-}
-
-.selection-border {
-	position: absolute;
-	top: -3px;
-	left: -3px;
-	width: 125.3px;
-	height: 125.3px;
-	border: 1.77px solid #97fdff;
-	border-radius: 10.45px;
-	box-shadow:
-		0 0 0 1.11px #fff,
-		0 0 9.98px 2.22px #97fdff45,
-		0 0 11.1px 3.5px #97fdff13;
-	animation: selection-flash 1.2s infinite alternate;
-	z-index: 1000;
-}
-.selection-border.error {
-	border: 1.77px solid #ff4d4f;
-	box-shadow:
-		0 0 0 1.11px #fff,
-		0 0 9.98px 2.22px #ff4d4f45,
-		0 0 11.1px 3.5px #ff4d4f13;
-	animation: selection-flash-error 1.2s infinite alternate;
-}
-@keyframes selection-flash {
-	0% {
-		border-color: #97fdff;
-		box-shadow:
-			0 0 0 1.11px #fff,
-			0 0 6.75px 1.11px #97fdff34,
-			0 0 10.1px 3.5px #97fdff0f;
-	}
-	100% {
-		border-color: #97fdff;
-		box-shadow:
-			0 0 0 1.11px #fff,
-			0 0 15.77px 3.5px #97fdff8a,
-			0 0 26.9px 7px #97fdff40;
-	}
-}
-@keyframes selection-flash-error {
-	0% {
-		border-color: #ff4d4f;
-		box-shadow:
-			0 0 0 1.11px #fff,
-			0 0 6.75px 1.11px #ff4d4f34,
-			0 0 10.1px 3.5px #ff4d4f0f;
-	}
-	100% {
-		border-color: #ff4d4f;
-		box-shadow:
-			0 0 0 1.11px #fff,
-			0 0 15.77px 3.5px #ff4d4f8a,
-			0 0 26.9px 7px #ff4d4f40;
-	}
-}
-
 /* Estilos para la toolbar inline */
 .node-toolbar-inline {
 	position: absolute;

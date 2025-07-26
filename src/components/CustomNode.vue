@@ -1,6 +1,7 @@
 <template>
 	<div
 		class="custom-node"
+		:class="{ 'node-selected': isNodeSelected }"
 		tabindex="0"
 		style="pointer-events: auto"
 		@mouseenter="onMouseEnter"
@@ -70,6 +71,9 @@
 			</button>
 		</div>
 
+		<!-- Warning icon -->
+		<NodeWarning :hasError="hasError" />
+
 		<!-- Indicador de selección visible -->
 		<div v-if="isNodeSelected" class="selection-indicator">
 			<div :class="['selection-border', { error: hasError }]" />
@@ -79,21 +83,6 @@
 			<div class="node-icon">
 				<!-- Icono dinámico según el tipo -->
 				<span v-html="nodeIcon"></span>
-				<div v-if="hasError" class="node-warning">
-					<svg width="20" height="20" viewBox="0 0 20 20">
-						<circle cx="10" cy="10" r="9" fill="#e14d43" stroke="#ffffff" stroke-width="1" />
-						<text
-							x="10"
-							y="14.5"
-							text-anchor="middle"
-							font-size="14"
-							font-weight="bold"
-							fill="#fff"
-						>
-							!
-						</text>
-					</svg>
-				</div>
 			</div>
 			<div class="node-labels">
 				<div class="node-title">{{ nodeLabel }}</div>
@@ -109,6 +98,8 @@
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { useNodeValidation } from '../composables/useNodeValidation';
+import NodeWarning from './NodeWarning.vue';
 
 const props = defineProps<{ data: { label?: string; type?: string; subtitle?: string } }>();
 const nodeInstance = useNode ? useNode() : undefined;
@@ -184,11 +175,8 @@ const nodeLabel = computed(
 
 // Para el tipo, implementamos una solución robusta que siempre refleja el tipo actual
 const nodeType = computed(() => {
-	// Usar el trigger para forzar reevaluación cuando cambia el tipo externamente
-	const _ = forceUpdateTrigger.value;
-
 	// LOGGING: Información completa para diagnóstico
-	console.log('Recalculando tipo de nodo. Node:', nodeInstance?.node, 'Trigger:', _);
+	console.log('Recalculando tipo de nodo. Node:', nodeInstance?.node);
 
 	// Prioridad 1: Tipo directo del nodo (la fuente más confiable)
 	const directNodeType = nodeInstance?.node?.type;
@@ -249,90 +237,8 @@ const nodeSubtitle = computed(() => {
 	return defaultSubtitle;
 });
 
-function isEmpty(val: unknown) {
-	if (val === null || val === undefined) return true;
-	if (typeof val === 'string') return val.trim() === '';
-	return false;
-}
-
-// Agregar un indicador para forzar la actualización del componente
-const forceUpdateTrigger = ref(0);
-
-// Observar cambios en el nodo para forzar actualización
-if (nodeInstance?.node) {
-	// Observamos varios aspectos del nodo que podrían cambiar
-	watch(
-		() => [
-			nodeInstance.node.type, // El tipo principal del nodo
-			nodeInstance.node.data?.type, // El tipo en data (para nodos personalizados)
-			nodeInstance.node.id, // El ID del nodo (para detectar nodos recreados)
-			nodeInstance.node.selected, // El estado de selección (puede cambiar después de recreación)
-		],
-		(newVal, oldVal) => {
-			console.log(
-				'Detectado cambio en nodo:',
-				'Tipo anterior:',
-				oldVal?.[0],
-				'Nuevo tipo:',
-				newVal?.[0],
-				'Tipo en data anterior:',
-				oldVal?.[1],
-				'Nuevo tipo en data:',
-				newVal?.[1],
-			);
-
-			// Incrementamos el contador para forzar la reactividad
-			forceUpdateTrigger.value++;
-			console.log('Trigger de actualización incrementado a:', forceUpdateTrigger.value);
-		},
-		{ immediate: true }, // Ejecutar inmediatamente al montar el componente
-	);
-
-	// Observar explícitamente cambios en el objeto data para capturar cambios más profundos
-	watch(
-		() => nodeInstance.node.data,
-		() => {
-			console.log('Detectado cambio en data del nodo');
-			forceUpdateTrigger.value++;
-		},
-		{ deep: true }, // Observar cambios profundos en el objeto
-	);
-}
-
-// Mejora en la reactividad de la validación
-const hasError = computed(() => {
-	// Obtenemos los valores directamente de las fuentes más actualizadas
-	const label = nodeLabel.value;
-	const type = nodeType.value;
-
-	// Verificamos el subtitle directamente desde las fuentes de datos para mayor precisión
-	// Importante: NO usamos valores predeterminados de nodeTypeMeta aquí para que los nodos recién creados muestren el error
-	const subtitle =
-		props.data?.subtitle !== undefined
-			? props.data.subtitle
-			: nodeInstance?.node?.data?.subtitle !== undefined
-				? nodeInstance.node.data.subtitle
-				: '';
-
-	// Log para depuración - más detallado
-	console.log('Validando nodo:', {
-		label,
-		type,
-		subtitle,
-		'props.data.subtitle': props.data?.subtitle,
-		'node.data.subtitle': nodeInstance?.node?.data?.subtitle,
-	});
-
-	// Comprobamos cada campo individualmente de forma estricta
-	const labelEmpty = isEmpty(label);
-	const typeEmpty = isEmpty(type);
-	const subtitleEmpty = isEmpty(subtitle);
-
-	console.log('¿Campos vacíos?', { labelEmpty, typeEmpty, subtitleEmpty });
-
-	// Si alguno está vacío, mostrar error
-	return labelEmpty || typeEmpty || subtitleEmpty;
-});
+// Usar el sistema de validación unificado
+const { hasError } = useNodeValidation({ validateConnections: true });
 
 // Propiedad computada para detectar si el nodo está seleccionado
 const isNodeSelected = computed(() => nodeInstance?.node?.selected || false);

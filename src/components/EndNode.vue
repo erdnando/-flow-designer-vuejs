@@ -1,7 +1,7 @@
 <template>
 	<div 
 		class="end-node"
-		:class="{ 'node-selected': isNodeSelected }"
+		:class="{ 'node-selected': isSelected }"
 		@mouseenter="onMouseEnter"
 		@mouseleave="onMouseLeave"
 	>
@@ -57,6 +57,9 @@
 			</button>
 		</div>
 
+		<!-- Warning icon -->
+		<NodeWarning :hasError="hasError" />
+
 		<div class="end-node-content">
 			<div class="end-icon">
 				<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -81,6 +84,8 @@
 <script setup lang="ts">
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { computed, ref, onBeforeUnmount } from 'vue';
+import { useNodeValidation } from '../composables/useNodeValidation';
+import NodeWarning from './NodeWarning.vue';
 
 interface Props {
 	data?: {
@@ -104,14 +109,19 @@ const emit = defineEmits<{
 // Hook para obtener información del nodo
 const { node } = useNode();
 
+// Validation composable
+const { hasError } = useNodeValidation({
+	validateConnections: true
+});
+
 // Estado para mostrar/ocultar la toolbar
 const showToolbar = ref(false);
 let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const subtitle = computed(() => props.data?.subtitle || 'Fin del flujo');
 
-// Detectar si el nodo está seleccionado
-const isNodeSelected = computed(() => node?.selected || false);
+// Verificar si el nodo está seleccionado
+const isSelected = computed(() => node?.selected || false);
 
 // Handlers simplificados para mostrar/ocultar toolbar
 const onMouseEnter = () => {
@@ -180,7 +190,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .end-node {
 	background: linear-gradient(135deg, #F44336 0%, #EF5350 100%);
-	border: 2px solid #C62828;
+	border: 2px solid transparent;
 	border-radius: 20px;
 	padding: 12px 16px;
 	min-width: 140px;
@@ -326,25 +336,41 @@ onBeforeUnmount(() => {
 	transform: scale(1.1);
 }
 
-/* Estilo para nodo seleccionado */
+/* Estilo para nodo seleccionado usando clase directa */
 .end-node.node-selected {
-	border-color: #1faaff !important;
-	border-width: 3px !important;
-	outline: 4px solid #1faaff !important;
-	outline-offset: 2px !important;
+	border-color: transparent !important;
+	border-width: 0px !important;
+	outline: none !important;
 	box-shadow:
-		0 0 0 8px #1faaff66,
-		0 8px 32px rgba(31, 170, 255, 0.24) !important;
+		0 0 0 2px #1faaff,
+		0 0 0 4px #fff,
+		0 0 20px 8px #1faaff66,
+		0 2px 12px 0 #1faaff44,
+		0 4px 24px 0 #1faaff22;
+	animation: end-node-glow 2s infinite alternate;
+	transform: scale(1.03);
+	transition:
+		box-shadow 0.2s ease,
+		transform 0.2s ease;
+	z-index: 20;
 }
 
-/* También agregar soporte para la clase de Vue Flow */
-:deep(.vue-flow__node.selected) .end-node {
-	border-color: #1faaff !important;
-	border-width: 3px !important;
-	outline: 4px solid #1faaff !important;
-	outline-offset: 2px !important;
-	box-shadow:
-		0 0 0 8px #1faaff66,
-		0 8px 32px rgba(31, 170, 255, 0.24) !important;
+@keyframes end-node-glow {
+	0% {
+		box-shadow:
+			0 0 0 2px #1faaff,
+			0 0 0 2px #fff,
+			0 0 20px 8px #1faaff66,
+			0 2px 12px 0 #1faaff44,
+			0 4px 24px 0 #1faaff22;
+	}
+	100% {
+		box-shadow:
+			0 0 0 2px #1faaffdd,
+			0 0 0 3px #fff,
+			0 0 25px 12px #1faaff88,
+			0 2px 14px 0 #1faaff66,
+			0 4px 28px 0 #1faaff33;
+	}
 }
 </style>
