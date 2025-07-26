@@ -106,7 +106,37 @@ document.addEventListener('click', (event) => {
 
 #### 1. Posicionamiento del Botón
 - **Problema**: Botón no aparecía en el punto medio de la conexión
-- **Solución**: Cálculo correcto de coordenadas usando `edgeCenterX` y `edgeCenterY`
+- **Solución inicial**: Cálculo correcto de coordenadas usando `edgeCenterX` y `edgeCenterY`
+- **Problema refinado**: Desfase en conexiones con curvas complejas (ej: handler "false" del nodo IF)
+- **Solución final**: Cálculo matemático preciso usando fórmula de curva Bézier cúbica
+
+#### 2. Algoritmo de Posicionamiento Preciso
+**Implementación matemática**:
+```javascript
+// Calcular puntos de control reales
+let controlDistanceX = Math.max(dx * 0.5, 50);
+let controlDistanceY = Math.max(dy * 0.5, 50);
+
+// Aplicar según dirección de handlers
+if (sourcePosition === Position.Bottom) {
+    controlY1 = sourceY + controlDistanceY;
+}
+if (targetPosition === Position.Left) {
+    controlX2 = targetX - controlDistanceX;
+}
+
+// Calcular punto exacto en t=0.5 de la curva Bézier
+const t = 0.5;
+const x = Math.pow(1-t, 3) * sourceX + 
+          3 * Math.pow(1-t, 2) * t * controlX1 + 
+          3 * (1-t) * Math.pow(t, 2) * controlX2 + 
+          Math.pow(t, 3) * targetX;
+```
+
+**Casos específicos resueltos**:
+- ✅ Conexiones desde handler "false" (Bottom) del nodo IF
+- ✅ Conexiones con curvas pronunciadas
+- ✅ Diferentes tipos de edges (Bézier, straight, step)
 
 #### 2. Z-Index y Visibilidad
 - **Problema**: Botón no era clickeable debido a elementos superpuestos
