@@ -339,6 +339,11 @@ watch(isSelected, (selected) => {
 	transform: translate(-50%, 75%);
 	z-index: 25;
 }
+
+/* Asegurar que los handlers estén por encima cuando el nodo está seleccionado */
+.condition-node.node-selected .handle {
+	z-index: 30 !important;
+}
 /* Estilos para la toolbar inline */
 .node-toolbar-inline {
 	position: absolute;
@@ -416,5 +421,12 @@ watch(isSelected, (selected) => {
 
 .toolbar-btn:hover img {
 	filter: brightness(1.2);
+}
+
+/* Ajuste específico del NodeWarning para el nodo diamante */
+.condition-node .node-warning {
+	top: -8px;
+	right: 15px; /* Mover más hacia la izquierda debido a la forma del diamante */
+	z-index: 1000;
 }
 </style>
