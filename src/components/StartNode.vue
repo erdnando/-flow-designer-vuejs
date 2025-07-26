@@ -363,6 +363,39 @@ onBeforeUnmount(() => {
 	z-index: 20;
 }
 
+/* Handlers específicos para StartNode */
+:deep(.vue-flow__handle) {
+	width: 16px !important;
+	height: 16px !important;
+	border: 3px solid #fff !important;
+	background: #4CAF50 !important;
+	z-index: 10 !important;
+	border-radius: 50%;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+	transform-origin: center center !important;
+}
+
+/* Posicionamiento correcto para handlers de StartNode */
+:deep(.vue-flow__handle[data-handlepos="right"]) {
+	right: -133px !important; /* Mitad del ancho del handler (16px/2) */
+}
+
+/* Efecto hover específico para StartNode que crece en lugar */
+:deep(.vue-flow__handle:hover) {
+	width: 20px !important;
+	height: 20px !important;
+	border: 4px solid #fff !important;
+	background: #66BB6A !important;
+	box-shadow: 
+		0 0 0 2px rgba(76, 175, 80, 0.3),
+		0 0 12px rgba(76, 175, 80, 0.6) !important;
+}
+
+/* Ajustar posición en hover para mantener centrado */
+:deep(.vue-flow__handle[data-handlepos="right"]:hover) {
+	right: -133px !important; /* Mitad del ancho hover (20px/2) */
+}
+
 @keyframes start-node-glow {
 	0% {
 		box-shadow:

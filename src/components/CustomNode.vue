@@ -389,6 +389,37 @@ onBeforeUnmount(() => {
 	background: #222 !important;
 	z-index: 10 !important;
 	border-radius: 50%;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+	transform-origin: center center !important;
+}
+
+/* Posicionamiento correcto para handlers de CustomNode */
+:deep(.vue-flow__handle[data-handlepos="left"]) {
+	left: -20px !important; /* Mitad del ancho del handler (18px/2) */
+}
+
+:deep(.vue-flow__handle[data-handlepos="right"]) {
+	right: -30px !important; /* Mitad del ancho del handler (18px/2) */
+}
+
+/* Efecto hover específico para CustomNode que crece en lugar */
+:deep(.vue-flow__handle:hover) {
+	width: 22px !important;
+	height: 22px !important;
+	border: 3px solid #fff !important;
+	background: #1faaff !important;
+	box-shadow: 
+		0 0 0 2px rgba(31, 170, 255, 0.3),
+		0 0 12px rgba(31, 170, 255, 0.6) !important;
+}
+
+/* Ajustar posición en hover para mantener centrado */
+:deep(.vue-flow__handle[data-handlepos="left"]:hover) {
+	left: -20px !important; /* Mitad del ancho hover (22px/2) */
+}
+
+:deep(.vue-flow__handle[data-handlepos="right"]:hover) {
+	right: -30px !important; /* Mitad del ancho hover (22px/2) */
 }
 
 /* Estilo para nodo seleccionado usando clase directa - HOMOLOGADO CON STARNODE */

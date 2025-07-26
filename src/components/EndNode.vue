@@ -355,6 +355,39 @@ onBeforeUnmount(() => {
 	z-index: 20;
 }
 
+/* Handlers específicos para EndNode */
+:deep(.vue-flow__handle) {
+	width: 16px !important;
+	height: 16px !important;
+	border: 3px solid #fff !important;
+	background: #F44336 !important;
+	z-index: 10 !important;
+	border-radius: 50%;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+	transform-origin: center center !important;
+}
+
+/* Posicionamiento correcto para handlers de EndNode */
+:deep(.vue-flow__handle[data-handlepos="left"]) {
+	left: -18px !important; /* Mitad del ancho del handler (16px/2) here*/
+}
+
+/* Efecto hover específico para EndNode que crece en lugar */
+:deep(.vue-flow__handle:hover) {
+	width: 20px !important;
+	height: 20px !important;
+	border: 4px solid #fff !important;
+	background: #E57373 !important;
+	box-shadow: 
+		0 0 0 2px rgba(244, 67, 54, 0.3),
+		0 0 12px rgba(244, 67, 54, 0.6) !important;
+}
+
+/* Ajustar posición en hover para mantener centrado */
+:deep(.vue-flow__handle[data-handlepos="left"]:hover) {
+	left: -18px !important; /* Mitad del ancho hover (20px/2) here*/
+}
+
 @keyframes end-node-glow {
 	0% {
 		box-shadow:

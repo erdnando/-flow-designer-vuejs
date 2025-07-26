@@ -317,6 +317,19 @@ watch(isSelected, (selected) => {
 	background: #222 !important;
 	z-index: 10 !important;
 	border-radius: 50%;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+	transform-origin: center center !important;
+}
+
+/* Efecto hover específico para ConditionNode que crece en lugar */
+.handle:hover {
+	width: 22px !important;
+	height: 22px !important;
+	border: 3px solid #fff !important;
+	background: #FF9800 !important;
+	box-shadow: 
+		0 0 0 2px rgba(255, 152, 0, 0.3),
+		0 0 12px rgba(255, 152, 0, 0.6) !important;
 }
 .handle-left {
 	position: absolute !important;

@@ -2253,20 +2253,58 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	border: 2px solid #ffffff !important;
 	width: 10px !important;
 	height: 10px !important;
-	transition: all 0.2s ease !important;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+	transform-origin: center center !important;
+	position: relative !important;
+}
+
+/* Posicionamiento correcto para handlers globales */
+.vue-flow__handle[data-handlepos="left"] {
+	left: -5px !important; /* Mitad del ancho del handler (10px/2) */
+}
+
+.vue-flow__handle[data-handlepos="right"] {
+	right: -5px !important; /* Mitad del ancho del handler (10px/2) */
 }
 
 .vue-flow__handle:hover {
 	background: #6b8aff !important;
-	transform: scale(1.2) !important;
-	box-shadow: 0 0 8px rgba(107, 138, 255, 0.6) !important;
+	width: 14px !important;
+	height: 14px !important;
+	border: 3px solid #ffffff !important;
+	box-shadow: 0 0 12px rgba(107, 138, 255, 0.8) !important;
+	/* Sin transform scale para evitar movimientos */
+}
+
+/* Ajustar posición en hover para mantener centrado */
+.vue-flow__handle[data-handlepos="left"]:hover {
+	left: -7px !important; /* Mitad del ancho hover (14px/2) */
+}
+
+.vue-flow__handle[data-handlepos="right"]:hover {
+	right: -7px !important; /* Mitad del ancho hover (14px/2) */
 }
 
 .vue-flow__handle.connectingfrom,
 .vue-flow__handle.connectingto {
 	background: #7c9eff !important;
-	transform: scale(1.4) !important;
-	box-shadow: 0 0 12px rgba(124, 158, 255, 0.8) !important;
+	width: 16px !important;
+	height: 16px !important;
+	border: 4px solid #ffffff !important;
+	box-shadow: 
+		0 0 0 3px rgba(124, 158, 255, 0.3),
+		0 0 16px rgba(124, 158, 255, 0.8) !important;
+}
+
+/* Ajustar posición durante conexión */
+.vue-flow__handle[data-handlepos="left"].connectingfrom,
+.vue-flow__handle[data-handlepos="left"].connectingto {
+	left: -8px !important; /* Mitad del ancho conectando (16px/2) */
+}
+
+.vue-flow__handle[data-handlepos="right"].connectingfrom,
+.vue-flow__handle[data-handlepos="right"].connectingto {
+	right: -8px !important; /* Mitad del ancho conectando (16px/2) */
 }
 
 /* Estilos para el diálogo de confirmación */
