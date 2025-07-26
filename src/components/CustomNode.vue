@@ -74,10 +74,6 @@
 		<!-- Warning icon -->
 		<NodeWarning :hasError="hasError" />
 
-		<!-- Indicador de selección visible -->
-		<div v-if="isNodeSelected" class="selection-indicator">
-			<div :class="['selection-border', { error: hasError }]" />
-		</div>
 		<Handle type="target" :position="Position.Left" id="input" />
 		<div class="node-content">
 			<div class="node-icon">
@@ -385,57 +381,6 @@ onBeforeUnmount(() => {
 	animation: type-badge-flash 1.5s 1;
 }
 
-/* Indicador explícito de selección */
-.selection-indicator {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	pointer-events: none;
-	z-index: 1000;
-}
-
-.selection-border {
-	position: absolute;
-	top: -3px;
-	left: -3px;
-	width: calc(100% + 6px);
-	height: calc(100% + 6px);
-	border: 1.77px solid #97fdff;
-	border-radius: 10.45px;
-	box-shadow:
-		0 0 0 1.11px #fff,
-		0 0 9.98px 2.22px #97fdff45,
-		0 0 11.1px 3.5px #97fdff13;
-	animation: selection-flash 1.2s infinite alternate;
-	z-index: 1000;
-}
-.selection-border.error {
-	border: 1.77px solid #ff4d4f;
-	box-shadow:
-		0 0 0 1.11px #fff,
-		0 0 9.98px 2.22px #ff4d4f45,
-		0 0 11.1px 3.5px #ff4d4f13;
-	animation: selection-flash-error 1.2s infinite alternate;
-}
-@keyframes selection-flash-error {
-	0% {
-		border-color: #ff4d4f;
-		box-shadow:
-			0 0 0 1.11px #fff,
-			0 0 6.75px 1.11px #ff4d4f34,
-			0 0 10.1px 3.5px #ff4d4f0f;
-	}
-	100% {
-		border-color: #ff4d4f;
-		box-shadow:
-			0 0 0 1.11px #fff,
-			0 0 15.77px 3.5px #ff4d4f8a,
-			0 0 26.9px 7px #ff4d4f40;
-	}
-}
-
 /* Handlers grandes y visibles como en el nodo IF */
 :deep(.vue-flow__handle) {
 	width: 18px !important;
@@ -446,39 +391,41 @@ onBeforeUnmount(() => {
 	border-radius: 50%;
 }
 
-/* Borde resaltado para el nodo seleccionado - EFECTO EXTREMO */
-:deep(.vue-flow__node.selected) .custom-node {
-	border-color: #1faaff !important;
-	border-width: 3px !important;
-	outline: 4px solid #1faaff !important;
-	outline-offset: 2px !important;
+/* Estilo para nodo seleccionado usando clase directa - HOMOLOGADO CON STARNODE */
+.custom-node.node-selected {
+	border-color: transparent !important;
+	border-width: 0px !important;
+	outline: none !important;
 	box-shadow:
-		0 0 0 8px #1faaff66,
-		0 0 25px 5px #1faaff77,
-		0 2px 12px 0 rgba(0, 0, 0, 0.5);
-	background-color: #2b3038 !important;
+		0 0 0 2px #1faaff,
+		0 0 0 4px #fff,
+		0 0 20px 8px #1faaff66,
+		0 2px 12px 0 #1faaff44,
+		0 4px 24px 0 #1faaff22;
+	animation: custom-node-glow 2s infinite alternate;
 	transform: scale(1.03);
-	animation: node-pulse 2s infinite alternate;
 	transition:
-		border-color 0.15s,
-		box-shadow 0.15s,
-		outline 0.15s,
-		background-color 0.15s,
-		transform 0.15s;
+		box-shadow 0.2s ease,
+		transform 0.2s ease;
+	z-index: 20;
 }
 
-@keyframes node-pulse {
+@keyframes custom-node-glow {
 	0% {
 		box-shadow:
-			0 0 0 4px #1faaff77,
-			0 0 15px 2px #1faaff77,
-			0 2px 12px 0 rgba(0, 0, 0, 0.5);
+			0 0 0 2px #1faaff,
+			0 0 0 2px #fff,
+			0 0 20px 8px #1faaff66,
+			0 2px 12px 0 #1faaff44,
+			0 4px 24px 0 #1faaff22;
 	}
 	100% {
 		box-shadow:
-			0 0 0 8px #1faaff55,
-			0 0 25px 5px #1faaff88,
-			0 2px 12px 0 rgba(0, 0, 0, 0.5);
+			0 0 0 2px #1faaffdd,
+			0 0 0 3px #fff,
+			0 0 25px 12px #1faaff88,
+			0 2px 14px 0 #1faaff66,
+			0 4px 28px 0 #1faaff33;
 	}
 }
 
