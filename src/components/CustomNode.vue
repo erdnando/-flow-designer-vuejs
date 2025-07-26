@@ -383,7 +383,7 @@ onBeforeUnmount(() => {
 
 /* Handlers grandes y visibles como en el nodo IF */
 :deep(.vue-flow__handle) {
-	width: 18px !important;
+	width: 21px !important;
 	height: 18px !important;
 	border: 2.5px solid #fff !important;
 	background: #222 !important;

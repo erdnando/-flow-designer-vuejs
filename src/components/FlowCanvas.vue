@@ -90,6 +90,11 @@
 		>
 			<Background :pattern-color="'#222'" :gap="20" />
 			<MiniMap :class="['minimap-absolute', { 'minimap-shifted': !panelCollapsed }]" />
+			
+			<!-- Template slot para edge personalizado -->
+			<template #edge-deletable="edgeProps">
+				<CustomEdge v-bind="edgeProps" @delete="onEdgeDelete" />
+			</template>
 		</VueFlow>
 		<ContextMenu
 			:visible="contextMenu.visible"
@@ -151,12 +156,12 @@
 		v-if="edgeToDelete && showDeleteEdgeDialog"
 		v-model="showDeleteEdgeDialog"
 		title="Eliminar conexión"
-		message="¿Estás seguro de que deseas eliminar esta conexión?"
+		:message="getEdgeDeleteMessage()"
 		type="error"
 		:show-icon="true"
 		:show-cancel-button="true"
 		cancel-button-text="Cancelar"
-		confirm-button-text="Eliminar"
+		confirm-button-text="Eliminar conexión"
 		confirm-button-type="danger"
 		@confirm="confirmDeleteEdge"
 		@cancel="cancelDeleteEdge"
@@ -1550,9 +1555,33 @@ function setupGlobalEdgeClickDetection() {
 		console.log('🔍 Clases del target:', target.classList?.toString());
 		console.log('🔍 Tag name del target:', target.tagName);
 		
-		// NUEVA LÓGICA: Verificar si el click fue en un botón de eliminar
+		// NUEVA LÓGICA: Verificar usando elementsFromPoint para capturar clicks interceptados
+		const elementsFromPoint = document.elementsFromPoint(event.clientX, event.clientY);
+		console.log('🔍 Verificando elementos en posición del cursor:', {x: event.clientX, y: event.clientY});
+		console.log('📍 Elementos en esa posición:', elementsFromPoint);
+		
+		// Buscar botón de eliminar conexión en la pila de elementos
+		const deleteButton = elementsFromPoint.find(el => 
+			el.classList.contains('edge-delete-button') || 
+			el.closest('.edge-delete-button')
+		);
+		
+		if (deleteButton) {
+			console.log('🗑️ ¡Encontrado botón de eliminar conexión en elementsFromPoint!', deleteButton);
+			handleEdgeDeleteButtonClick(deleteButton, event);
+			return;
+		}
+		
+		// FALLBACK: Verificar si el click fue en un botón de eliminar de conexión (método original)
+		if (target && (target.classList.contains('edge-delete-button') || target.closest('.edge-delete-button'))) {
+			console.log('🗑️ Click detectado en botón de eliminar conexión (método original)!');
+			handleEdgeDeleteButtonClick(target, event);
+			return;
+		}
+		
+		// NUEVA LÓGICA: Verificar si el click fue en un botón de eliminar de nodo
 		if (target && target.classList.contains('delete-btn') && target.classList.contains('toolbar-btn')) {
-			console.log('🗑️ Click detectado en botón de eliminar!');
+			console.log('🗑️ Click detectado en botón de eliminar nodo!');
 			handleDeleteButtonClick(target, event);
 			return;
 		}
@@ -1706,6 +1735,39 @@ function onEdgeContextMenu({ event, edge }: { event: MouseEvent; edge: Edge }) {
 	contextMenu.visible = true;
 }
 
+// Función para manejar clicks en botones de eliminar conexión
+function handleEdgeDeleteButtonClick(element: Element, event: Event) {
+	console.log('🗑️ FlowCanvas: handleEdgeDeleteButtonClick ejecutado');
+	event.preventDefault();
+	event.stopPropagation();
+	
+	// Buscar el elemento foreignObject padre que contiene el edge ID
+	const foreignObjectElement = element.closest('.vue-flow__edge-delete-button');
+	if (!foreignObjectElement) {
+		console.warn('No se encontró foreignObject padre');
+		return;
+	}
+	
+	// Buscar el elemento edge padre
+	const edgeElement = foreignObjectElement.closest('.vue-flow__edge');
+	if (!edgeElement) {
+		console.warn('No se encontró elemento edge padre');
+		return;
+	}
+	
+	// Obtener el ID del edge
+	const edgeId = edgeElement.getAttribute('data-id');
+	if (!edgeId) {
+		console.warn('No se encontró data-id del edge');
+		return;
+	}
+	
+	console.log('🗑️ FlowCanvas: ID del edge a eliminar:', edgeId);
+	
+	// Llamar a la función de eliminación
+	onEdgeDelete(edgeId);
+}
+
 // Hover effects para conexiones
 function onEdgeMouseEnter({ edge }: { edge: Edge }) {
 	// Podrías agregar efectos visuales aquí si quisieras
@@ -1855,6 +1917,7 @@ function cancelDeleteNode() {
 
 // Funciones para eliminar conexiones
 function onEdgeDelete(edgeId: string) {
+	console.log('🗑️ FlowCanvas: onEdgeDelete ejecutado para edge:', edgeId);
 	const edgeIndex = edges.value.findIndex(e => e.id === edgeId);
 	if (edgeIndex === -1) {
 		console.warn('Edge no encontrado para eliminar:', edgeId);
@@ -1862,8 +1925,10 @@ function onEdgeDelete(edgeId: string) {
 	}
 	
 	const edge = edges.value[edgeIndex];
+	console.log('🗑️ FlowCanvas: Configurando diálogo para edge:', edge);
 	edgeToDelete.value = edge;
 	showDeleteEdgeDialog.value = true;
+	console.log('🗑️ FlowCanvas: showDeleteEdgeDialog.value =', showDeleteEdgeDialog.value);
 }
 
 function confirmDeleteEdge() {
@@ -1908,6 +1973,18 @@ function confirmDeleteEdge() {
 function cancelDeleteEdge() {
 	edgeToDelete.value = null;
 	showDeleteEdgeDialog.value = false;
+}
+
+function getEdgeDeleteMessage(): string {
+	if (!edgeToDelete.value) return '¿Estás seguro de que deseas eliminar esta conexión?';
+	
+	const sourceNode = nodes.value.find(n => n.id === edgeToDelete.value!.source);
+	const targetNode = nodes.value.find(n => n.id === edgeToDelete.value!.target);
+	
+	const sourceName = sourceNode?.label || sourceNode?.type || 'Nodo origen';
+	const targetName = targetNode?.label || targetNode?.type || 'Nodo destino';
+	
+	return `¿Estás seguro de que deseas eliminar la conexión entre "${sourceName}" y "${targetName}"?`;
 }
 
 function onNodeCopy(nodeData: any) {

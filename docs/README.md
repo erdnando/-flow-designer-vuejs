@@ -13,9 +13,15 @@ npm run dev
 
 ### Sistemas Principales
 - **[Sistema de Conexiones](CONEXIONES-SISTEMA.md)** - Implementación completa de selección, animación y gestión de conexiones
+- **[Sistema de Eliminación](DELETION-SYSTEM-AND-DIALOGS.md)** - Sistema completo de eliminación de nodos y conexiones con diálogos
+- **[Sistema de Eliminación de Conexiones](EDGE-DELETION-SYSTEM.md)** - Implementación detallada del sistema de eliminación de edges
 - **[Sistema de Validación](validation-rules-system.md)** - Reglas y validaciones para flujos
 - **[Sistema de Notificaciones](notifications-system.md)** - Manejo de notificaciones y feedback al usuario
 - **[Web Components](WEB_COMPONENT_IMPLEMENTATION.md)** - Implementación como componente web
+
+### Patrones y Soluciones Técnicas
+- **[Global Click Listener Pattern](GLOBAL-CLICK-LISTENER-PATTERN.md)** - ⭐ Patrón para superar interceptación de eventos en Vue Flow
+- **[Lecciones Aprendidas - Homologación Nodos](LECCIONES-APRENDIDAS-HOMOLOGACION-NODOS.md)** - Experiencias en desarrollo
 
 ### Guías de Desarrollo
 - **[Mejoras de Notificaciones](MEJORAS-NOTIFICACIONES.md)** - Mejoras implementadas en el sistema de notificaciones

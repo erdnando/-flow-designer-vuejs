@@ -114,6 +114,7 @@ const deleteButtonPosition = computed(() => {
 });
 
 function onDeleteClick() {
+	console.log('🗑️ CustomEdge: onDeleteClick ejecutado para edge:', props.id);
 	emit('delete', props.id);
 }
 </script>

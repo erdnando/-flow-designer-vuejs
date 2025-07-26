@@ -1,16 +1,54 @@
-# Sistema de Eliminación de Nodos y Diálogos Personalizados
+# Sistema de Eliminación y Diálogos - Guía Completa
 
 ## 📋 Resumen General
 
-Este documento describe la implementación completa del sistema de eliminación de nodos con confirmación por diálogo y el sistema de diálogos personalizados reutilizables en el Flow Designer.
+Este documento describe la implementación completa del sistema de eliminación (nodos y conexiones) con confirmación por diálogo y las lecciones críticas sobre manejo de eventos en Vue Flow.
 
-## 🎯 Objetivos Cumplidos
+## 🎯 Funcionalidades Implementadas
 
 - ✅ **Sistema de diálogos personalizado** (SimpleDialog) para reemplazar Element Plus
-- ✅ **Eliminación de nodos con confirmación** mediante diálogo
-- ✅ **Comunicación entre componentes** usando provide/inject
-- ✅ **Notificaciones limpias** sin funcionalidades no implementadas
+- ✅ **Eliminación de nodos con confirmación** mediante diálogo y toolbar
+- ✅ **Eliminación de conexiones con confirmación** mediante botón en edge y diálogo
+- ✅ **Global Click Listener** para superar limitaciones de Vue Flow
+- ✅ **Comunicación entre componentes** usando provide/inject y eventos globales
+- ✅ **Notificaciones limpias** con información detallada
 - ✅ **Persistencia automática** en localStorage
+
+## 🚨 LECCIÓN CRÍTICA: Vue Flow Event Interception
+
+### Problemática Principal
+**Vue Flow intercepta y maneja los eventos de los nodos y edges, evitando que los eventos custom se propaguen correctamente al componente padre.**
+
+### Síntomas Identificados
+- Eventos click detectados a nivel DOM pero no en handlers de Vue
+- `event.target` no coincide con el elemento visual clickeado
+- `elementsFromPoint` muestra elementos correctos pero eventos no se propagan
+
+### Solución: Global Click Listener Pattern
+
+**Implementación base**:
+```javascript
+document.addEventListener('click', (event) => {
+    const elementsFromPoint = document.elementsFromPoint(event.clientX, event.clientY);
+    
+    // Buscar elemento específico en la pila de elementos
+    const targetElement = elementsFromPoint.find(el => 
+        el.classList.contains('target-class') || 
+        el.closest('.target-class')
+    );
+    
+    if (targetElement) {
+        handleElementClick(targetElement, event);
+        return;
+    }
+}, true); // Use capture phase
+```
+
+### Casos de Uso del Patrón
+1. **Botones en custom edges** (como botón de eliminar conexión)
+2. **Toolbars en nodos personalizados**
+3. **Elementos interactivos en overlays**
+4. **Controles adicionales en minimap**
 
 ## 🏗️ Arquitectura del Sistema
 
