@@ -1,6 +1,7 @@
 <template>
 	<div class="node-panel" :class="{ collapsed }">
-		<div v-if="collapsed" class="collapsed-top">
+		<div v-if="collapsed" class="collapsed-t// Estado del acordeón - categorías expandidas
+const expandedCategories = ref<Set<string>>(new Set(['Control de flujo', 'Lógica', 'Captura', 'Procesamiento'])); // Categorías principales expandidas por defecto">
 			<button class="collapse-btn" @click.stop="toggle">
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
 					<g>
@@ -47,24 +48,45 @@
 		</div>
 		<div v-if="!collapsed" class="panel-content">
 			<input v-model="search" class="search" placeholder="Buscar nodo..." />
-			<div class="category-list">
-				<div v-for="cat in filteredCategories" :key="cat.name" class="category-block">
-					<div class="category-title">{{ cat.name }}</div>
-					<ul class="node-list">
-						<li
-							v-for="node in cat.nodes"
-							:key="(node as any).templateId || node.type"
-							class="node-item"
-							draggable="true"
-							@dragstart="onDragStart(node as any, $event)"
-						>
-							<span 
-								class="node-icon"
-								v-html="(node as any).icon || (nodeTypeMeta[node.type]?.icon || nodeTypeMeta.default.icon)"
-							></span>
-							<span>{{ node.label }}</span>
-						</li>
-					</ul>
+			<div class="accordion-container">
+				<div v-for="cat in filteredCategories" :key="cat.name" class="accordion-section">
+					<div 
+						class="accordion-header"
+						@click="toggleCategory(cat.name)"
+						:class="{ 'active': isCategoryExpanded(cat.name) }"
+					>
+						<div class="accordion-title">
+							<span class="category-icon">{{ getCategoryIcon(cat.name) }}</span>
+							<span class="category-name">{{ cat.name }}</span>
+							<span class="node-count">({{ cat.nodes.length }})</span>
+						</div>
+						<div class="accordion-arrow" :class="{ 'expanded': isCategoryExpanded(cat.name) }">
+							<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+								<path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</div>
+					</div>
+					<div 
+						class="accordion-content"
+						:class="{ 'expanded': isCategoryExpanded(cat.name) }"
+					>
+						<div class="node-grid">
+							<div
+								v-for="node in cat.nodes"
+								:key="(node as any).templateId || node.type"
+								class="node-card"
+								draggable="true"
+								@dragstart="onDragStart(node as any, $event)"
+							>
+								<div class="node-card-icon">
+									<span 
+										v-html="(node as any).icon || (nodeTypeMeta[node.type]?.icon || nodeTypeMeta.default.icon)"
+									></span>
+								</div>
+								<div class="node-card-label">{{ node.label }}</div>
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -78,6 +100,9 @@ import { useNodeCatalogStore } from '../stores/nodeCatalog';
 
 const collapsed = ref(false);
 const search = ref('');
+
+// Estado del acordeón - categorías expandidas
+const expandedCategories = ref<Set<string>>(new Set(['Control de flujo', 'Lógica'])); // Por defecto expandidas
 
 // Usar el store del catálogo de nodos
 const nodeCatalogStore = useNodeCatalogStore();
@@ -132,6 +157,35 @@ const filteredCategories = computed(() => {
 
 function toggle() {
 	collapsed.value = !collapsed.value;
+}
+
+// Funciones del acordeón
+function toggleCategory(categoryName: string) {
+	if (expandedCategories.value.has(categoryName)) {
+		expandedCategories.value.delete(categoryName);
+	} else {
+		expandedCategories.value.add(categoryName);
+	}
+}
+
+function isCategoryExpanded(categoryName: string): boolean {
+	return expandedCategories.value.has(categoryName);
+}
+
+function getCategoryIcon(categoryName: string): string {
+	const iconMap: Record<string, string> = {
+		'Control de flujo': '🔀',
+		'Lógica': '🧠',
+		'Validación': '✅',
+		'Captura': '📝',
+		'Procesamiento': '⚙️',
+		'Documentos': '📄',
+		'Sistema': '🔧',
+		'Control': '🎛️',
+		'Análisis': '📊',
+		'Producción': '🏭'
+	};
+	return iconMap[categoryName] || '📁';
 }
 
 function onDragStart(
@@ -237,57 +291,141 @@ function onDragStart(
 .search:focus {
 	border: 1.5px solid #ffb84d;
 }
-.category-list {
+
+/* Estilos del Acordeón */
+.accordion-container {
 	margin: 0;
 	padding: 0;
 	flex: 1;
 	overflow-y: auto;
 }
-.category-title {
-	font-weight: 700;
-	font-size: 1.05rem;
-	color: #ffb84d;
-	margin: 12px 0 4px 0;
-	letter-spacing: 0.01em;
-	text-align: left;
-	padding-left: 6px;
+
+.accordion-section {
+	margin-bottom: 4px;
+	border-radius: 8px;
+	border: 1px solid #333;
+	background: #2a2d35;
+	overflow: hidden;
 }
-.category-block {
-	margin-bottom: 8px;
-}
-.node-list {
-	list-style: none;
-	padding: 0;
-	margin: 0;
-	flex: 1;
-	overflow-y: auto;
-}
-.node-item {
+
+.accordion-header {
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	padding: 8px 6px;
+	justify-content: space-between;
+	padding: 12px 16px;
+	background: #2a2d35;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	border-bottom: 1px solid transparent;
+}
+
+.accordion-header:hover {
+	background: #31353c;
+}
+
+.accordion-header.active {
+	background: #31353c;
+	border-bottom: 1px solid #404040;
+}
+
+.accordion-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 600;
+	font-size: 0.95rem;
+	color: #fff;
+}
+
+.category-icon {
+	font-size: 1.1rem;
+}
+
+.category-name {
+	color: #ffb84d;
+}
+
+.node-count {
+	font-size: 0.85rem;
+	color: #999;
+	font-weight: 400;
+}
+
+.accordion-arrow {
+	transition: transform 0.2s ease;
+	color: #999;
+}
+
+.accordion-arrow.expanded {
+	transform: rotate(180deg);
+}
+
+.accordion-content {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.3s ease;
+	background: #23272e;
+}
+
+.accordion-content.expanded {
+	max-height: 500px; /* Ajusta según necesites */
+}
+
+/* Grid de nodos mejorado */
+.node-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+	gap: 6px;
+	padding: 12px;
+}
+
+.node-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 10px 6px;
 	border-radius: 6px;
+	background: #2a2d35;
+	border: 1px solid #404040;
 	cursor: grab;
-	transition: background 0.15s;
+	transition: all 0.2s ease;
+	min-height: 75px;
+	justify-content: center;
 }
-.node-item:hover {
-	background: #31343b;
+
+.node-card:hover {
+	background: #31353c;
+	border-color: #555;
+	transform: translateY(-1px);
+	box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
 }
-.node-icon {
-	display: inline-block;
-	vertical-align: middle;
-	margin-right: 8px;
-	width: 28px;
-	height: 28px;
-	font-size: 1.2rem;
+
+.node-card:active {
+	cursor: grabbing;
+	transform: translateY(0);
+}
+
+.node-card-icon {
+	font-size: 1.4rem;
+	line-height: 1;
+}
+
+.node-card-icon svg {
+	width: 22px;
+	height: 22px;
+	fill: #ffb84d;
+}
+
+.node-card-label {
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: #fff;
 	text-align: center;
-	line-height: 28px;
-}
-.node-icon svg {
-	width: 20px;
-	height: 20px;
-	fill: currentColor;
+	line-height: 1.1;
+	word-break: break-word;
+	hyphens: auto;
+	max-width: 100%;
 }
 .add-node-type-btn {
 	width: 100%;
