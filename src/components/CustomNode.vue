@@ -403,6 +403,8 @@ onBeforeUnmount(() => {
 .custom-node :deep(.vue-flow__handle) {
 	width: 18px !important;
 	height: 18px !important;
+	min-width: 18px !important;
+	min-height: 18px !important;
 	border: 2.5px solid #fff !important;
 	background: #222 !important;
 	z-index: 10 !important;
