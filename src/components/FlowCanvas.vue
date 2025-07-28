@@ -1,61 +1,32 @@
 <template>
 	<div class="flow-canvas-wrapper" @drop="onDrop" @dragover.prevent @click="onCanvasClick">
-		<!-- Botones de zoom, exportar/importar y limpiar -->
+		<!-- Botones para test y publicación -->
 		<div :class="['actions-bar', { 'actions-bar-shifted': !panelCollapsed }]">
-			<button @click.stop="zoomIn" title="Acercar">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-					<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2" />
-					<path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+			<!-- Dropdown de versiones -->
+			<div class="version-dropdown" title="Seleccionar versión del flujo">
+				<select v-model="selectedVersion" @change="onVersionChange" class="version-select">
+					<option v-for="version in flowVersions" :key="version.value" :value="version.value">
+						{{ version.label }}
+					</option>
+				</select>
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" class="dropdown-arrow">
+					<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 				</svg>
+			</div>
+			<button @click.stop="testFlow" title="Ejecutar test del flujo" class="text-button test-button">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+					<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+					<path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
+				<span>Probar</span>
 			</button>
-			<button @click.stop="zoomOut" title="Alejar">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-					<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2" />
-					<path d="M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+			<button @click.stop="publishFlow" title="Publicar flujo" class="text-button publish-button">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+					<path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+					<path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+					<path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 				</svg>
-			</button>
-			<button @click.stop="() => centerNodes()" title="Centrar nodos">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-					<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
-					<circle cx="12" cy="12" r="3" fill="currentColor" />
-					<path d="M12 6v2M12 16v2M6 12h2M16 12h2" stroke="currentColor" stroke-width="1" />
-				</svg>
-			</button>
-			<button @click.stop="exportFlow" title="Exportar flujo">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-					<path
-						d="M12 3v12m0 0l-4-4m4 4l4-4"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-					<rect x="4" y="17" width="16" height="4" rx="2" fill="currentColor" />
-				</svg>
-			</button>
-			<label class="import-label" title="Importar flujo" @click.stop>
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-					<path
-						d="M12 21V9m0 0l-4 4m4-4l4 4"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-					<rect x="4" y="3" width="16" height="4" rx="2" fill="currentColor" />
-				</svg>
-				<input type="file" accept="application/json" @change="importFlow" style="display: none" />
-			</label>
-			<button @click.stop="clearFlow" title="Limpiar flujo">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-					<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2" />
-					<path
-						d="M8 8l8 8M16 8l-8 8"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-					/>
-				</svg>
+				<span>Publicar</span>
 			</button>
 		</div>
 		
@@ -280,6 +251,19 @@ let autoCenterApplied = false;
 
 // Estado para validaciones de nodos
 const validationErrors = ref<ValidationResult[]>([]);
+
+// Sistema de versiones del flujo
+const selectedVersion = ref('1.0.0');
+const flowVersions = ref([
+	{ value: '1.0.0', label: 'v1.0.0' },
+	{ value: '1.0.1', label: 'v1.0.1' },
+	{ value: '1.0.2', label: 'v1.0.2' },
+	{ value: '1.0.3', label: 'v1.0.3' },
+	{ value: '1.1.0', label: 'v1.1.0' },
+	{ value: '1.1.1', label: 'v1.1.1' },
+	{ value: '1.2.0', label: 'v1.2.0' },
+	{ value: '2.0.0', label: 'v2.0.0' }
+]);
 
 // Sistema de notificaciones
 const { showValidationError, showSuccess, showWarning, showDanger, showInfo } = useNotifications();
@@ -2241,6 +2225,176 @@ function importFlow(e: Event) {
 	reader.readAsText(file);
 }
 
+// Función para ejecutar test del flujo
+function testFlow() {
+	console.log('Ejecutando test del flujo...');
+	
+	// Validar que el flujo tenga al menos un nodo START y END
+	const startNodes = nodes.value.filter(n => n.type === 'start');
+	const endNodes = nodes.value.filter(n => n.type === 'end');
+	
+	if (startNodes.length === 0) {
+		showDanger('Error en el test', {
+			title: 'Nodo START requerido',
+			description: 'El flujo debe tener al menos un nodo START para poder ejecutar el test.',
+			duration: 6000
+		});
+		return;
+	}
+	
+	if (endNodes.length === 0) {
+		showDanger('Error en el test', {
+			title: 'Nodo END requerido',
+			description: 'El flujo debe tener al menos un nodo END para poder ejecutar el test.',
+			duration: 6000
+		});
+		return;
+	}
+	
+	// Ejecutar validaciones completas
+	const isValid = runNodeValidations(true);
+	
+	if (isValid) {
+		showSuccess('Test ejecutado exitosamente', {
+			title: 'Flujo válido',
+			description: `El flujo pasó todas las validaciones. Nodos: ${nodes.value.length}, Conexiones: ${edges.value.length}`,
+			duration: 5000,
+			actions: [
+				{
+					label: 'Ver detalles',
+					action: () => {
+						console.log('Detalles del test:', {
+							nodes: nodes.value.length,
+							edges: edges.value.length,
+							startNodes: startNodes.length,
+							endNodes: endNodes.length
+						});
+					},
+					style: 'primary'
+				}
+			]
+		});
+	} else {
+		showWarning('Test completado con advertencias', {
+			title: 'Validaciones pendientes',
+			description: 'El flujo tiene errores de validación que deben corregirse.',
+			duration: 6000
+		});
+	}
+}
+
+// Función para publicar el flujo
+function publishFlow() {
+	console.log('Publicando flujo...');
+	
+	// Validar que el flujo esté completo antes de publicar
+	const isValid = runNodeValidations(false);
+	
+	if (!isValid) {
+		showDanger('Error al publicar', {
+			title: 'Flujo incompleto',
+			description: 'El flujo tiene errores de validación que deben corregirse antes de publicar.',
+			duration: 6000,
+			actions: [
+				{
+					label: 'Ejecutar test',
+					action: () => testFlow(),
+					style: 'primary'
+				}
+			]
+		});
+		return;
+	}
+	
+	// Simular proceso de publicación
+	showInfo('Publicando flujo...', {
+		title: 'Proceso de publicación',
+		description: 'Preparando el flujo para publicación...',
+		duration: 2000
+	});
+	
+	// Simular delay de publicación
+	setTimeout(() => {
+		// Crear nueva versión automáticamente al publicar
+		const newVersion = createNewVersion();
+		
+		showSuccess('Flujo publicado exitosamente', {
+			title: 'Publicación completada',
+			description: `El flujo "${projectProperties.value.name}" v${newVersion} ha sido publicado correctamente.`,
+			duration: 5000,
+			actions: [
+				{
+					label: 'Ver detalles',
+					action: () => {
+						console.log('Flujo publicado:', {
+							name: projectProperties.value.name,
+							nodes: nodes.value.length,
+							edges: edges.value.length,
+							publishedAt: new Date().toISOString()
+						});
+					},
+					style: 'primary'
+				}
+			]
+		});
+		
+		// Actualizar fecha de actualización
+		projectProperties.value.updatedAt = new Date().toLocaleDateString();
+		triggerAutoSave();
+	}, 2500);
+}
+
+// Función para manejar cambio de versión
+function onVersionChange() {
+	console.log('Cambiando a versión:', selectedVersion.value);
+	
+	showInfo('Cambiando versión', {
+		title: 'Versión del flujo',
+		description: `Cambiando a la versión ${selectedVersion.value}`,
+		duration: 3000
+	});
+	
+	// Aquí podrías implementar la lógica para cargar una versión específica
+	// Por ejemplo, cargar desde localStorage con un key que incluya la versión
+	// loadVersionFromLocalStorage(selectedVersion.value);
+	
+	// Actualizar propiedades del proyecto con la nueva versión
+	if (!projectProperties.value.version) {
+		// Si no existe la propiedad version, la agregamos
+		projectProperties.value = {
+			...projectProperties.value,
+			version: selectedVersion.value
+		};
+	} else {
+		projectProperties.value.version = selectedVersion.value;
+	}
+	
+	triggerAutoSave();
+}
+
+// Función para crear una nueva versión (llamada desde publishFlow)
+function createNewVersion() {
+	const currentVersions = flowVersions.value.map(v => v.value);
+	const lastVersion = currentVersions[currentVersions.length - 1];
+	
+	// Generar siguiente versión automáticamente
+	const versionParts = lastVersion.split('.').map(Number);
+	versionParts[2]++; // Incrementar patch version
+	
+	const newVersion = versionParts.join('.');
+	const newVersionItem = {
+		value: newVersion,
+		label: `v${newVersion}`
+	};
+	
+	// Agregar nueva versión a la lista
+	flowVersions.value.push(newVersionItem);
+	selectedVersion.value = newVersion;
+	
+	console.log('Nueva versión creada:', newVersion);
+	return newVersion;
+}
+
 // --- SANITIZAR SELECCIÓN ANTES DE GUARDAR ---
 function sanitizeNodesForSave(nodes: ExtendedNode[]) {
 	return nodes.map((n: ExtendedNode) => {
@@ -2386,6 +2540,111 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	width: 22px;
 	height: 22px;
 	padding: 0;
+}
+
+/* Estilos para botones con texto en la toolbar superior */
+.actions-bar .text-button {
+	display: flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	padding: 8px 16px !important;
+	width: auto !important;
+	height: 44px !important;
+	font-size: 14px !important;
+	font-weight: 500 !important;
+	border-radius: 8px !important;
+	transition: all 0.2s ease !important;
+}
+
+.actions-bar .text-button svg {
+	width: 18px !important;
+	height: 18px !important;
+	flex-shrink: 0 !important;
+}
+
+.actions-bar .text-button span {
+	color: #fff !important;
+	font-weight: 500 !important;
+	white-space: nowrap !important;
+}
+
+/* Estilos específicos para botón de probar */
+.actions-bar .test-button {
+	background: #d46f26 !important;
+	border: 1px solid #c2b1a5 !important;
+}
+
+.actions-bar .test-button:hover {
+	background: #e86600 !important;
+	box-shadow: 0 2px 8px rgba(255, 107, 0, 0.3) !important;
+	
+}
+
+/* Estilos específicos para botón de publicar */
+.actions-bar .publish-button {
+	background: #1a4480 !important;
+	border: 1px solid #2196f3 !important;
+}
+
+.actions-bar .publish-button:hover {
+	background: #2557a6 !important;
+	box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3) !important;
+}
+
+/* Estilos para dropdown de versiones */
+.actions-bar .version-dropdown {
+	position: relative;
+	display: flex;
+	align-items: center;
+	background: #2d5016;
+	border: 1px solid #4caf50;
+	border-radius: 6px;
+	height: 41px;
+	padding: 0 12px;
+	min-width: 80px;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.actions-bar .version-dropdown:hover {
+	background: #3d6b1f;
+	border-color: #66bb6a;
+	box-shadow: 0 2px 6px rgba(76, 175, 80, 0.25);
+}
+
+.actions-bar .version-select {
+	background: transparent;
+	border: none;
+	color: #fff;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	outline: none;
+	appearance: none;
+	padding-right: 16px;
+	width: 100%;
+	letter-spacing: 0.5px;
+}
+
+.actions-bar .version-select option {
+	background: #2d5016;
+	color: #fff;
+	padding: 6px;
+	font-weight: 500;
+}
+
+.actions-bar .dropdown-arrow {
+	position: absolute;
+	right: 6px;
+	pointer-events: none;
+	color: #a5d6a7;
+	width: 10px;
+	height: 10px;
+}
+
+.actions-bar .version-dropdown:hover .dropdown-arrow {
+	color: #c8e6c9;
 }
 
 /* Estilos para la toolbar inferior izquierda */
