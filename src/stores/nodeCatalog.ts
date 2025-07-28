@@ -92,16 +92,16 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			}
 		},
 		{
-			id: 'carga-documentos',
-			name: 'Documentos',
+			id: 'cargadocs',
+			name: 'CargaDocs',
 			type: 'custom',
-			icon: '📑',
-			description: 'Carga y gestión de documentos',
+			icon: '📄',
+			description: 'Carga de documentos alternativa',
 			category: 'Captura',
 			defaultData: {
-				subtitle: 'Carga documentos',
+				subtitle: 'Carga docs',
 				config: {
-					type: 'document_upload'
+					type: 'docs_upload'
 				}
 			}
 		},

@@ -399,8 +399,8 @@ onBeforeUnmount(() => {
 	animation: type-badge-flash 1.5s 1;
 }
 
-/* Handlers grandes y visibles específicos para CustomNode - con mayor especificidad */
-.custom-node :deep(.vue-flow__handle) {
+/* Handlers grandes y visibles específicos para CustomNode - ESPECIFICIDAD MÁXIMA */
+.custom-node.custom-node :deep(.vue-flow__handle) {
 	width: 18px !important;
 	height: 18px !important;
 	min-width: 18px !important;
@@ -413,17 +413,17 @@ onBeforeUnmount(() => {
 	transform-origin: center center !important;
 }
 
-/* Posicionamiento correcto para handlers de CustomNode */
-.custom-node :deep(.vue-flow__handle[data-handlepos="left"]) {
+/* Posicionamiento correcto para handlers de CustomNode - ESPECIFICIDAD MÁXIMA */
+.custom-node.custom-node :deep(.vue-flow__handle[data-handlepos="left"]) {
 	left: -20px !important; /* Mitad del ancho del handler (18px/2) = 9px */
 }
 
-.custom-node :deep(.vue-flow__handle[data-handlepos="right"]) {
+.custom-node.custom-node :deep(.vue-flow__handle[data-handlepos="right"]) {
 	right: -30px !important; /* Mitad del ancho del handler (18px/2) = 9px */
 }
 
-/* Efecto hover específico para CustomNode que crece en lugar */
-.custom-node :deep(.vue-flow__handle:hover) {
+/* Efecto hover específico para CustomNode - ESPECIFICIDAD MÁXIMA */
+.custom-node.custom-node :deep(.vue-flow__handle:hover) {
 	width: 22px !important;
 	height: 22px !important;
 	border: 3px solid #fff !important;
@@ -433,12 +433,12 @@ onBeforeUnmount(() => {
 		0 0 12px rgba(31, 170, 255, 0.6) !important;
 }
 
-/* Ajustar posición en hover para mantener centrado */
-.custom-node :deep(.vue-flow__handle[data-handlepos="left"]:hover) {
+/* Ajustar posición en hover para mantener centrado - ESPECIFICIDAD MÁXIMA */
+.custom-node.custom-node :deep(.vue-flow__handle[data-handlepos="left"]:hover) {
 	left: -20px !important; /* Mitad del ancho hover (22px/2) = 11px */
 }
 
-.custom-node :deep(.vue-flow__handle[data-handlepos="right"]:hover) {
+.custom-node.custom-node :deep(.vue-flow__handle[data-handlepos="right"]:hover) {
 	right: -30px !important; /* Mitad del ancho hover (22px/2) = 11px */
 }
 
