@@ -27,7 +27,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '🪪',
 			description: 'Nodo para validación de INE',
-			category: 'Captura',
+			category: 'Proceso',
 			defaultData: {
 				subtitle: 'Validación de INE',
 				config: {
@@ -41,7 +41,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '📋',
 			description: 'Captura rápida de datos',
-			category: 'Captura',
+			category: 'Proceso',
 			defaultData: {
 				subtitle: 'Captura rápida',
 				config: {
@@ -55,7 +55,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '📝',
 			description: 'Captura de firma digital',
-			category: 'Captura',
+			category: 'Proceso',
 			defaultData: {
 				subtitle: 'Firma digital',
 				config: {
@@ -69,7 +69,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '📊',
 			description: 'Captura completa de información',
-			category: 'Captura',
+			category: 'Proceso',
 			defaultData: {
 				subtitle: 'Captura completa',
 				config: {
@@ -83,7 +83,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '☎️',
 			description: 'Captura de números telefónicos',
-			category: 'Captura',
+			category: 'Proceso',
 			defaultData: {
 				subtitle: 'Captura teléfonos',
 				config: {
@@ -97,7 +97,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '📄',
 			description: 'Carga de documentos alternativa',
-			category: 'Captura',
+			category: 'Proceso',
 			defaultData: {
 				subtitle: 'Carga docs',
 				config: {
@@ -148,58 +148,16 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			}
 		},
 		{
-			id: 'recuperacion',
-			name: 'Recuperación',
-			type: 'custom',
-			icon: '🔄',
-			description: 'Sistema de recuperación',
-			category: 'Control',
-			defaultData: {
-				subtitle: 'Recuperación',
-				config: {
-					type: 'recovery_system'
-				}
-			}
-		},
-		{
-			id: 'mesa-control',
-			name: 'Mesa de Control',
-			type: 'custom',
-			icon: '🖥️',
-			description: 'Panel de control principal',
-			category: 'Control',
-			defaultData: {
-				subtitle: 'Mesa de control',
-				config: {
-					type: 'control_panel'
-				}
-			}
-		},
-		{
 			id: 'alta-vision',
 			name: 'Alta Producto',
 			type: 'custom',
 			icon: '🏦',
 			description: 'Sistema de visión avanzada',
-			category: 'Alta Producto',
+			category: 'Proceso',
 			defaultData: {
 				subtitle: 'Alta producto',
 				config: {
 					type: 'high_vision'
-				}
-			}
-		},
-		{
-			id: 'embozado',
-			name: 'Embozado',
-			type: 'custom',
-			icon: '💳',
-			description: 'Sistema de embozado',
-			category: 'Alta Producto',
-			defaultData: {
-				subtitle: 'Embozado',
-				config: {
-					type: 'embossing'
 				}
 			}
 		}

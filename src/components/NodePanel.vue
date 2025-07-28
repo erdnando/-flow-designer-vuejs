@@ -101,7 +101,7 @@ const collapsed = ref(false);
 const search = ref('');
 
 // Estado del acordeón - categorías expandidas
-const expandedCategories = ref<Set<string>>(new Set(['Control de flujo', 'Captura', 'Motores de decisión', 'Alta Producto'])); // Categorías principales expandidas por defecto
+const expandedCategories = ref<Set<string>>(new Set(['Control de flujo', 'Proceso', 'Motores de decisión'])); // Categorías principales expandidas por defecto
 
 // Usar el store del catálogo de nodos
 const nodeCatalogStore = useNodeCatalogStore();
@@ -117,9 +117,9 @@ const nodeCategories = computed(() => {
 		{
 			name: 'Control de flujo',
 			nodes: [
-				{ type: 'start', label: 'START' },
+				{ type: 'start', label: 'INICIO' },
 				{ type: 'condition', label: 'Condición (If)' },
-				{ type: 'end', label: 'END' },
+				{ type: 'end', label: 'FIN' },
 			],
 		},
 	];
@@ -169,15 +169,13 @@ function isCategoryExpanded(categoryName: string): boolean {
 function getCategoryIcon(categoryName: string): string {
 	const iconMap: Record<string, string> = {
 		'Control de flujo': '🔀',
-		'Captura': '📋',
+		'Proceso': '📋',
 		'Procesamiento': '⚙️',
 		'Motores de decisión': '⚙️',
 		'Documentos': '📑',
 		'Sistema': '🔧',
-		'Control': '🖥️',
 		'Análisis': '📊',
-		'Producción': '🏭',
-		'Alta Producto': '💳'
+		'Producción': '🏭'
 	};
 	return iconMap[categoryName] || '📁';
 }

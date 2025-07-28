@@ -82,8 +82,8 @@
 			</div>
 			<div class="node-labels">
 				<div class="node-title">{{ nodeLabel }}</div>
-				<div class="node-type-badge">{{ nodeType }}</div>
-				<div class="node-subtitle">{{ nodeSubtitle }}</div>
+				<div class="node-type-badge">{{ nodeTypeDisplay }}</div>
+
 			</div>
 		</div>
 		<Handle type="source" :position="Position.Right" id="output" />
@@ -199,6 +199,25 @@ const nodeType = computed(() => {
 	console.log('Tipo final determinado:', finalType);
 
 	return finalType;
+});
+
+// Computed para mostrar el tipo de nodo en el badge (transformando 'custom' según la categoría)
+const nodeTypeDisplay = computed(() => {
+	const type = nodeType.value;
+	
+	if (type === 'custom') {
+		// Si el nodo tiene templateId, verificar su categoría
+		const templateId = rawData.value.templateId;
+		if (templateId) {
+			const template = nodeCatalogStore.getTemplateById(templateId);
+			if (template && template.category === 'Motores de decisión') {
+				return 'negocio';
+			}
+		}
+		return 'step';
+	}
+	
+	return type;
 });
 
 // El icono se actualiza automáticamente cuando cambia nodeType
@@ -344,8 +363,8 @@ onBeforeUnmount(() => {
 	width: 100%;
 }
 .node-icon {
-	width: 38px;
-	height: 38px;
+	width: 30px;
+	height: 30px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -370,11 +389,11 @@ onBeforeUnmount(() => {
 }
 .node-title {
 	font-weight: 700;
-	font-size: 1.18rem;
+	font-size: 1rem;
 	color: #fff;
 	letter-spacing: 0.01em;
 	line-height: 1.2;
-	margin-bottom: 2px;
+	margin-bottom: 5px;
 }
 .node-subtitle {
 	font-size: 0.92rem;

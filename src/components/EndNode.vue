@@ -68,7 +68,7 @@
 				</svg>
 			</div>
 			<div class="end-text">
-				<div class="end-title">END</div>
+				<div class="end-title">FIN</div>
 				<div class="end-subtitle">{{ subtitle || 'Fin del flujo' }}</div>
 			</div>
 		</div>
@@ -150,7 +150,7 @@ const onMouseLeave = () => {
 const handleCopy = () => {
 	const nodeData = {
 		type: 'end',
-		label: 'END',
+		label: 'FIN',
 		data: props.data
 	};
 	emit('node-copy', nodeData);
@@ -160,7 +160,7 @@ const handleCopy = () => {
 const handleDuplicate = () => {
 	const nodeData = {
 		type: 'end',
-		label: 'END',
+		label: 'FIN',
 		data: props.data,
 		position: node.position
 	};

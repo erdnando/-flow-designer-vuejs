@@ -80,7 +80,7 @@
 				</svg>
 			</div>
 			<div class="start-text">
-				<div class="start-title">START</div>
+				<div class="start-title">INICIO</div>
 				<div class="start-subtitle">{{ subtitle || 'Inicio del flujo' }}</div>
 			</div>
 		</div>
@@ -160,7 +160,7 @@ function onMouseLeave() {
 function handleCopy() {
 	const nodeData = {
 		type: 'start',
-		label: 'START',
+		label: 'INICIO',
 		data: props.data
 	};
 	emit('node-copy', nodeData);
@@ -169,7 +169,7 @@ function handleCopy() {
 function handleDuplicate() {
 	const nodeData = {
 		type: 'start',
-		label: 'START',
+		label: 'INICIO',
 		data: props.data,
 		position: nodeInstance?.node?.position
 	};
