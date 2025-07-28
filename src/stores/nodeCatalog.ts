@@ -151,7 +151,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'recuperacion',
 			name: 'Recuperación',
 			type: 'custom',
-			icon: '💰',
+			icon: '🔄',
 			description: 'Sistema de recuperación',
 			category: 'Control',
 			defaultData: {

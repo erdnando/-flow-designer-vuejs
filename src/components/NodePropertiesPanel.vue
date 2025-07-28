@@ -153,6 +153,17 @@
 					</div>
 				</template>
 				<template v-else-if="!disabled && node">
+					<!-- Icono y título del nodo -->
+					<div class="node-header">
+						<div class="node-icon-display">
+							<span v-html="nodeIcon"></span>
+						</div>
+						<div class="node-info">
+							<h3 class="node-name">{{ nodeProperties.label || 'Nodo sin nombre' }}</h3>
+							<span class="node-type-label">{{ nodeProperties.type }}</span>
+						</div>
+					</div>
+					
 					<label>
 						Nombre
 						<input :value="nodeProperties.label" @input="onLabelChange($event)" />
@@ -195,6 +206,7 @@
 import { ref, watch, toRefs, computed } from 'vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 import { useNodeTypesStore } from '../stores/nodeTypes';
+import { useNodeCatalogStore } from '../stores/nodeCatalog';
 
 const props = defineProps<{
 	node: any;
@@ -207,6 +219,9 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['close', 'update', 'toggle-collapsed', 'update-project']);
+
+// Store del catálogo de nodos
+const nodeCatalogStore = useNodeCatalogStore();
 
 const { collapsed: collapsedProp, disabled, showProject, projectProps } = toRefs(props);
 const collapsed = ref(collapsedProp?.value ?? false);
@@ -227,6 +242,31 @@ const nodeProperties = computed(() => {
 		type: props.node.type || 'default',
 		subtitle: props.node.data?.subtitle || '',
 	};
+});
+
+// Función computada para obtener el icono del nodo
+const nodeIcon = computed(() => {
+	if (!props.node) {
+		return nodeTypeMeta.default.icon;
+	}
+
+	// Prioridad 1: Si el nodo tiene templateId, buscar el icono en el catálogo
+	const templateId = props.node.data?.templateId;
+	if (templateId) {
+		const template = nodeCatalogStore.getTemplateById(templateId);
+		if (template && template.icon) {
+			return template.icon;
+		}
+	}
+
+	// Prioridad 2: Si el tipo existe en nodeTypeMeta, usar su icono
+	const nodeType = props.node.type || 'default';
+	if (nodeTypeMeta[nodeType]) {
+		return nodeTypeMeta[nodeType].icon;
+	}
+
+	// Prioridad 3: Usar el icono por defecto
+	return nodeTypeMeta.default.icon;
 });
 
 // Solo observar el estado de collapsed
@@ -509,7 +549,58 @@ select {
 	background-color: rgba(255, 255, 255, 0.05);
 	border-radius: 4px;
 	font-size: 12px;
-	color: rgba(255, 255, 255, 0.7);
+	color: #999;
+}
+
+/* Estilos para el header del nodo con icono */
+.node-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 20px;
+	padding: 12px;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: 8px;
+	border-left: 3px solid #ffb84d;
+}
+
+.node-icon-display {
+	width: 42px;
+	height: 42px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #23272e;
+	border-radius: 8px;
+	font-size: 1.8rem;
+	flex-shrink: 0;
+}
+
+.node-info {
+	flex: 1;
+	min-width: 0;
+}
+
+.node-name {
+	margin: 0 0 4px 0;
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: #fff;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.node-type-label {
+	display: inline-block;
+	background: #363a40;
+	color: #ffb84d;
+	font-size: 0.75rem;
+	font-weight: 600;
+	border-radius: 4px;
+	padding: 2px 6px;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
 }
 </style>
 ```
