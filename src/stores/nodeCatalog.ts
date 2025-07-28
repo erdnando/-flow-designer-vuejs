@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, readonly } from 'vue';
 
 // Interface para definir un template de nodo del catálogo
 export interface NodeTemplate {
@@ -93,7 +93,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 		},
 		{
 			id: 'carga-documentos',
-			name: 'Carga de Documentos',
+			name: 'Documentos',
 			type: 'custom',
 			icon: '📑',
 			description: 'Carga y gestión de documentos',
@@ -202,6 +202,20 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 					type: 'embossing'
 				}
 			}
+		},
+		{
+			id: 'condicion',
+			name: 'Condición (If)',
+			type: 'custom',
+			icon: '❓',
+			description: 'Condición lógica que determina el flujo',
+			category: 'Control de flujo',
+			defaultData: {
+				subtitle: 'Condición (If)',
+				config: {
+					type: 'condition'
+				}
+			}
 		}
 	];
 
@@ -273,9 +287,9 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 
 	return {
 		// Estado
-		nodeTemplates,
-		isLoading,
-		error,
+		nodeTemplates: readonly(nodeTemplates),
+		isLoading: readonly(isLoading),
+		error: readonly(error),
 		
 		// Computed
 		nodesByCategory,

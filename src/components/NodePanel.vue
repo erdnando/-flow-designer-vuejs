@@ -23,7 +23,7 @@
 			</button>
 		</div>
 		<div v-else class="panel-header" @click="toggle">
-			<span>Nodos</span>
+			<span>Originación</span>
 			<button class="collapse-btn">
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
 					<g>

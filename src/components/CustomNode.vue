@@ -399,9 +399,9 @@ onBeforeUnmount(() => {
 	animation: type-badge-flash 1.5s 1;
 }
 
-/* Handlers grandes y visibles como en el nodo IF */
-:deep(.vue-flow__handle) {
-	width: 21px !important;
+/* Handlers grandes y visibles específicos para CustomNode - con mayor especificidad */
+.custom-node :deep(.vue-flow__handle) {
+	width: 18px !important;
 	height: 18px !important;
 	border: 2.5px solid #fff !important;
 	background: #222 !important;
@@ -412,16 +412,16 @@ onBeforeUnmount(() => {
 }
 
 /* Posicionamiento correcto para handlers de CustomNode */
-:deep(.vue-flow__handle[data-handlepos="left"]) {
-	left: -20px !important; /* Mitad del ancho del handler (18px/2) */
+.custom-node :deep(.vue-flow__handle[data-handlepos="left"]) {
+	left: -20px !important; /* Mitad del ancho del handler (18px/2) = 9px */
 }
 
-:deep(.vue-flow__handle[data-handlepos="right"]) {
-	right: -30px !important; /* Mitad del ancho del handler (18px/2) */
+.custom-node :deep(.vue-flow__handle[data-handlepos="right"]) {
+	right: -30px !important; /* Mitad del ancho del handler (18px/2) = 9px */
 }
 
 /* Efecto hover específico para CustomNode que crece en lugar */
-:deep(.vue-flow__handle:hover) {
+.custom-node :deep(.vue-flow__handle:hover) {
 	width: 22px !important;
 	height: 22px !important;
 	border: 3px solid #fff !important;
@@ -432,12 +432,12 @@ onBeforeUnmount(() => {
 }
 
 /* Ajustar posición en hover para mantener centrado */
-:deep(.vue-flow__handle[data-handlepos="left"]:hover) {
-	left: -20px !important; /* Mitad del ancho hover (22px/2) */
+.custom-node :deep(.vue-flow__handle[data-handlepos="left"]:hover) {
+	left: -20px !important; /* Mitad del ancho hover (22px/2) = 11px */
 }
 
-:deep(.vue-flow__handle[data-handlepos="right"]:hover) {
-	right: -30px !important; /* Mitad del ancho hover (22px/2) */
+.custom-node :deep(.vue-flow__handle[data-handlepos="right"]:hover) {
+	right: -30px !important; /* Mitad del ancho hover (22px/2) = 11px */
 }
 
 /* Estilo para nodo seleccionado usando clase directa - HOMOLOGADO CON STARNODE */
