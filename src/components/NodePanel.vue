@@ -131,8 +131,8 @@ const nodeCategories = computed(() => {
 			type: template.type,
 			label: template.name,
 			templateId: template.id,
-			icon: template.icon,
-			defaultData: template.defaultData
+			icon: template.data?.icon,
+			defaultData: template.data
 		}))
 	}));
 

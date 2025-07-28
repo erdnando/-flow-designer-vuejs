@@ -254,8 +254,8 @@ const nodeIcon = computed(() => {
 	const templateId = props.node.data?.templateId;
 	if (templateId) {
 		const template = nodeCatalogStore.getTemplateById(templateId);
-		if (template && template.icon) {
-			return template.icon;
+		if (template && template.data?.icon) {
+			return template.data.icon;
 		}
 	}
 

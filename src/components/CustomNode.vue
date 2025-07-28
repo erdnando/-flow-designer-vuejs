@@ -201,12 +201,12 @@ const nodeType = computed(() => {
 	return finalType;
 });
 
-// Computed para mostrar el tipo de nodo en el badge (solo para nodos custom)
+// Computed para mostrar el tipo de nodo en el badge (solo para nodos processNode)
 const nodeTypeDisplay = computed(() => {
 	const type = nodeType.value;
-	// Los nodos custom siempre muestran 'step'
-	// Los engineNode tienen su propio componente que muestra 'negocio'
-	return type === 'custom' ? 'step' : type;
+	// Los nodos processNode muestran 'processNode'
+	// Los engineNode tienen su propio componente que muestra 'engineNode'
+	return type === 'processNode' ? 'processNode' : type;
 });
 
 // El icono se actualiza automáticamente cuando cambia nodeType
@@ -220,9 +220,9 @@ const nodeIcon = computed(() => {
 	const templateId = rawData.value.templateId;
 	if (templateId) {
 		const template = nodeCatalogStore.getTemplateById(templateId);
-		if (template && template.icon) {
-			console.log('Usando icono del template:', template.icon, 'para templateId:', templateId);
-			return template.icon;
+		if (template && template.data?.icon) {
+			console.log('Usando icono del template:', template.data.icon, 'para templateId:', templateId);
+			return template.data.icon;
 		}
 	}
 

@@ -5,12 +5,16 @@ import { ref, computed, readonly } from 'vue';
 export interface NodeTemplate {
 	id: string;
 	name: string;
-	type: 'custom' | 'engineNode'; // Ahora admite tanto custom como engineNode
-	icon: string;
-	color?: string;
-	defaultData?: any;
-	description?: string;
-	category?: string;
+	subtitle: string;
+	categoria: string;
+	description: string;
+	type: 'processNode' | 'engineNode'; // Ahora admite tanto processNode como engineNode
+	// Estas propiedades se asignarán al data del nodo cuando se agregue al canvas
+	data?: {
+		icon?: string;
+		customTypeId?: string;
+		[key: string]: any;
+	};
 }
 
 export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
@@ -24,150 +28,130 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 		{
 			id: 'ine',
 			name: 'INE',
-			type: 'custom',
-			icon: '🪪',
+			subtitle: 'Validación de INE',
+			categoria: 'Proceso',
 			description: 'Nodo para validación de INE',
-			category: 'Proceso',
-			defaultData: {
-				subtitle: 'Validación de INE',
-				config: {
-					type: 'ine_validation'
-				}
-			}
+			type: 'processNode',
+			data: {
+				icon: '🪪',
+				customTypeId: 'ine',
+			},
 		},
 		{
 			id: 'captura-rapida',
 			name: 'Captura Rápida',
-			type: 'custom',
-			icon: '📋',
+			subtitle: 'Captura rápida',
+			categoria: 'Proceso',
 			description: 'Captura rápida de datos',
-			category: 'Proceso',
-			defaultData: {
-				subtitle: 'Captura rápida',
-				config: {
-					type: 'quick_capture'
-				}
-			}
+			type: 'processNode',
+			data: {
+				icon: '📋',
+				customTypeId: 'captura-rapida',
+			},
 		},
 		{
 			id: 'firma',
 			name: 'Firma',
-			type: 'custom',
-			icon: '📝',
+			subtitle: 'Firma digital',
+			categoria: 'Proceso',
 			description: 'Captura de firma digital',
-			category: 'Proceso',
-			defaultData: {
-				subtitle: 'Firma digital',
-				config: {
-					type: 'signature_capture'
-				}
-			}
+			type: 'processNode',
+			data: {
+				icon: '📝',
+				customTypeId: 'firma',
+			},
 		},
 		{
 			id: 'captura-completa',
 			name: 'Captura Completa',
-			type: 'custom',
-			icon: '📊',
+			subtitle: 'Captura completa',
+			categoria: 'Proceso',
 			description: 'Captura completa de información',
-			category: 'Proceso',
-			defaultData: {
-				subtitle: 'Captura completa',
-				config: {
-					type: 'full_capture'
-				}
-			}
+			type: 'processNode',
+			data: {
+				icon: '📊',
+				customTypeId: 'captura-completa',
+			},
 		},
 		{
 			id: 'captura-telefonos',
 			name: 'Captura Teléfonos',
-			type: 'custom',
-			icon: '☎️',
+			subtitle: 'Captura teléfonos',
+			categoria: 'Proceso',
 			description: 'Captura de números telefónicos',
-			category: 'Proceso',
-			defaultData: {
-				subtitle: 'Captura teléfonos',
-				config: {
-					type: 'phone_capture'
-				}
-			}
+			type: 'processNode',
+			data: {
+				icon: '☎️',
+				customTypeId: 'captura-telefonos',
+			},
 		},
 		{
 			id: 'cargadocs',
 			name: 'CargaDocs',
-			type: 'custom',
-			icon: '📄',
+			subtitle: 'Carga docs',
+			categoria: 'Proceso',
 			description: 'Carga de documentos alternativa',
-			category: 'Proceso',
-			defaultData: {
-				subtitle: 'Carga docs',
-				config: {
-					type: 'docs_upload'
-				}
-			}
+			type: 'processNode',
+			data: {
+				icon: '📄',
+				customTypeId: 'cargadocs',
+			},
 		},
 		{
 			id: 'motor-1',
 			name: 'Motor 1',
-			type: 'engineNode',
-			icon: '⚙️',
+			subtitle: 'Motor 1',
+			categoria: 'Motores de decisión',
 			description: 'Motor de procesamiento 1',
-			category: 'Motores de decisión',
-			defaultData: {
-				subtitle: 'Motor 1',
-				config: {
-					type: 'engine_1'
-				}
-			}
+			type: 'engineNode',
+			data: {
+				icon: '⚙️',
+				customTypeId: 'motor-1',
+			},
 		},
 		{
 			id: 'motor-2',
 			name: 'Motor 2',
-			type: 'engineNode',
-			icon: '⚙️',
+			subtitle: 'Motor 2',
+			categoria: 'Motores de decisión',
 			description: 'Motor de procesamiento 2',
-			category: 'Motores de decisión',
-			defaultData: {
-				subtitle: 'Motor 2',
-				config: {
-					type: 'engine_2'
-				}
-			}
+			type: 'engineNode',
+			data: {
+				icon: '⚙️',
+				customTypeId: 'motor-2',
+			},
 		},
 		{
 			id: 'motor-3',
 			name: 'Motor 3',
-			type: 'engineNode',
-			icon: '⚙️',
+			subtitle: 'Motor 3',
+			categoria: 'Motores de decisión',
 			description: 'Motor de procesamiento 3',
-			category: 'Motores de decisión',
-			defaultData: {
-				subtitle: 'Motor 3',
-				config: {
-					type: 'engine_3'
-				}
-			}
+			type: 'engineNode',
+			data: {
+				icon: '⚙️',
+				customTypeId: 'motor-3',
+			},
 		},
 		{
 			id: 'alta-vision',
 			name: 'Alta Producto',
-			type: 'custom',
-			icon: '🏦',
+			subtitle: 'Alta producto',
+			categoria: 'Proceso',
 			description: 'Sistema de visión avanzada',
-			category: 'Proceso',
-			defaultData: {
-				subtitle: 'Alta producto',
-				config: {
-					type: 'high_vision'
-				}
-			}
-		}
+			type: 'processNode',
+			data: {
+				icon: '🏦',
+				customTypeId: 'alta-vision',
+			},
+		},
 	];
 
 	// Computed para obtener nodos por categoría
 	const nodesByCategory = computed(() => {
 		const categories: Record<string, NodeTemplate[]> = {};
 		nodeTemplates.value.forEach(template => {
-			const category = template.category || 'Sin categoría';
+			const category = template.categoria || 'Sin categoría';
 			if (!categories[category]) {
 				categories[category] = [];
 			}
@@ -205,7 +189,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 
 	// Función para obtener templates por categoría
 	function getTemplatesByCategory(category: string): NodeTemplate[] {
-		return nodeTemplates.value.filter(template => template.category === category);
+		return nodeTemplates.value.filter(template => template.categoria === category);
 	}
 
 	// Función para agregar un nuevo template

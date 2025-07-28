@@ -71,8 +71,8 @@ export function useNodeValidation(options: {
 				}
 			}
 			
-			// Para nodos CUSTOM, ENGINE y MINIMAL: deben tener al menos una conexión (entrada o salida)
-			if (nodeType === 'custom' || nodeType === 'engineNode' || nodeType === 'minimal') {
+			// Para nodos PROCESSNODE, ENGINE y MINIMAL: deben tener al menos una conexión (entrada o salida)
+			if (nodeType === 'processNode' || nodeType === 'engineNode' || nodeType === 'minimal') {
 				if (nodeConnections.length === 0) {
 					return true;
 				}

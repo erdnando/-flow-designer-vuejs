@@ -529,6 +529,7 @@ const nodeTypes = {
 	default: markRaw(CustomNode),
 	error: markRaw(CustomNode),
 	minimal: markRaw(MinimalNode),
+	processNode: markRaw(CustomNode), // Tipo de nodo para procesos
 	engineNode: markRaw(EngineNode), // Nuevo tipo de nodo para motores
 	// Primero el spread, luego sobrescribes condition, start y end:
 	...Object.fromEntries(Object.keys(nodeTypeMeta).map((type) => [type, markRaw(CustomNode)])),
@@ -911,14 +912,14 @@ function processNodeDrop(position: { x: number; y: number }, type: string | null
 		console.log('🎯 Procesando nodo del catálogo:', { templateId, type, label, defaultData });
 		
 		// Validar si se puede agregar este tipo de nodo
-		if (!canAddNodeType(type || 'custom')) {
+		if (!canAddNodeType(type || 'processNode')) {
 			console.log(`No se puede agregar nodo del catálogo debido a reglas de validación`);
 			return;
 		}
 		
 		// Crear nodo usando los datos del catálogo
 		flowStore.addNode({
-			type: type || 'custom',
+			type: type || 'processNode',
 			label: label || defaultData.subtitle || 'Nodo',
 			position,
 			data: {
@@ -948,7 +949,7 @@ function processNodeDrop(position: { x: number; y: number }, type: string | null
 		// Nodo personalizado: los datos vienen serializados en JSON
 		try {
 			const customType = JSON.parse(customNodeTypeRaw);
-			const nodeType = customType.type || customType.id || customType.name || 'custom';
+			const nodeType = customType.type || customType.id || customType.name || 'processNode';
 			
 			// Validar si se puede agregar este tipo de nodo
 			if (!canAddNodeType(nodeType)) {
