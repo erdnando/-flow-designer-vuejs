@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="custom-node"
+		class="engine-node"
 		:class="{ 'node-selected': isNodeSelected }"
 		tabindex="0"
 		style="pointer-events: auto"
@@ -82,8 +82,7 @@
 			</div>
 			<div class="node-labels">
 				<div class="node-title">{{ nodeLabel }}</div>
-				<div class="node-type-badge">{{ nodeTypeDisplay }}</div>
-
+				<div class="node-type-badge">negocio</div>
 			</div>
 		</div>
 		<Handle type="source" :position="Position.Right" id="output" />
@@ -173,55 +172,36 @@ const rawData = computed(() => {
 
 // Computed properties que resuelven en cascada según prioridad
 const nodeLabel = computed(
-	() => rawData.value.nodeLabel || rawData.value.dataLabel || rawData.value.nodeDataLabel || 'Nodo',
+	() => rawData.value.nodeLabel || rawData.value.dataLabel || rawData.value.nodeDataLabel || 'Motor',
 );
 
 // Para el tipo, implementamos una solución robusta que siempre refleja el tipo actual
 const nodeType = computed(() => {
-	// LOGGING: Información completa para diagnóstico
-	console.log('Recalculando tipo de nodo. Node:', nodeInstance?.node);
-
 	// Prioridad 1: Tipo directo del nodo (la fuente más confiable)
 	const directNodeType = nodeInstance?.node?.type;
-	console.log('Tipo directo del nodo:', directNodeType);
 
 	// Prioridad 2: Tipo almacenado en data del nodo (para nodos personalizados)
 	const dataTypeFromNode = nodeInstance?.node?.data?.type;
-	console.log('Tipo desde node.data:', dataTypeFromNode);
 
 	// Prioridad 3: Tipo de las props directas (para compatibilidad)
 	const dataTypeFromProps = props.data?.type;
-	console.log('Tipo desde props.data:', dataTypeFromProps);
 
 	// Elegimos el primer tipo válido siguiendo la prioridad establecida
-	// Esta lógica es crucial para reflejar correctamente los cambios de tipo
-	const finalType = directNodeType || dataTypeFromNode || dataTypeFromProps || 'default';
-	console.log('Tipo final determinado:', finalType);
+	const finalType = directNodeType || dataTypeFromNode || dataTypeFromProps || 'engineNode';
 
 	return finalType;
 });
 
-// Computed para mostrar el tipo de nodo en el badge (solo para nodos custom)
-const nodeTypeDisplay = computed(() => {
-	const type = nodeType.value;
-	// Los nodos custom siempre muestran 'step'
-	// Los engineNode tienen su propio componente que muestra 'negocio'
-	return type === 'custom' ? 'step' : type;
-});
-
 // El icono se actualiza automáticamente cuando cambia nodeType
 const nodeIcon = computed(() => {
-	// FORZAR ACTUALIZACIÓN: Siempre recalcular el icono basado en el tipo actual
 	// Intentar obtener el tipo más actualizado posible
 	const currentType = nodeType.value;
-	console.log('Actualizando ícono para tipo:', currentType);
 
 	// Prioridad 1: Si el nodo tiene templateId, buscar el icono en el catálogo
 	const templateId = rawData.value.templateId;
 	if (templateId) {
 		const template = nodeCatalogStore.getTemplateById(templateId);
 		if (template && template.icon) {
-			console.log('Usando icono del template:', template.icon, 'para templateId:', templateId);
 			return template.icon;
 		}
 	}
@@ -231,8 +211,8 @@ const nodeIcon = computed(() => {
 		return nodeTypeMeta[currentType].icon;
 	}
 
-	// Prioridad 3: Usar el icono por defecto
-	return nodeTypeMeta.default.icon;
+	// Prioridad 3: Usar el icono por defecto de engineNode
+	return nodeTypeMeta.engineNode?.icon || nodeTypeMeta.default.icon;
 });
 
 // Usar el sistema de validación unificado
@@ -245,8 +225,7 @@ const isNodeSelected = computed(() => nodeInstance?.node?.selected || false);
 watch(
 	() => nodeInstance?.node?.selected,
 	(newValue) => {
-		console.log('Cambio en selección de nodo:', newValue);
-		// Esto nos permitirá ver en consola cuando cambia el estado de selección
+		console.log('Cambio en selección de nodo engine:', newValue);
 	},
 );
 
@@ -299,8 +278,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.custom-node {
-	background: #23272e !important;
+.engine-node {
+	background: #2a1810 !important; /* Fondo más cálido para motores de negocio */
 	color: #fff;
 	border-radius: 14px;
 	padding: 16px 32px 16px 20px;
@@ -313,7 +292,7 @@ onBeforeUnmount(() => {
 	font-size: 1rem;
 	z-index: 1;
 	box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.22) inset;
-	border: 2.5px solid transparent; /* Cambiado de #23272e a transparente */
+	border: 2.5px solid transparent;
 	transition:
 		box-shadow 0.2s,
 		border 0.2s;
@@ -334,7 +313,7 @@ onBeforeUnmount(() => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: #23272e;
+	background: #3d2511; /* Fondo más oscuro para el icono */
 	border-radius: 10px;
 	margin-right: 10px;
 	position: relative;
@@ -361,17 +340,10 @@ onBeforeUnmount(() => {
 	line-height: 1.2;
 	margin-bottom: 5px;
 }
-.node-subtitle {
-	font-size: 0.92rem;
-	color: #b0b0b0;
-	font-weight: 500;
-	letter-spacing: 0.01em;
-	line-height: 1.1;
-}
 .node-type-badge {
 	display: inline-block;
-	background: #363a40;
-	color: #ffb84d;
+	background: #8b4513; /* Color marrón para el badge de negocio */
+	color: #ffd700; /* Color dorado para el texto */
 	font-size: 0.85rem;
 	font-weight: 600;
 	border-radius: 6px;
@@ -384,61 +356,61 @@ onBeforeUnmount(() => {
 	animation: type-badge-flash 1.5s 1;
 }
 
-/* Handlers grandes y visibles específicos para CustomNode - ESPECIFICIDAD MÁXIMA */
-.custom-node.custom-node :deep(.vue-flow__handle) {
+/* Handlers grandes y visibles específicos para EngineNode */
+.engine-node.engine-node :deep(.vue-flow__handle) {
 	width: 18px !important;
 	height: 18px !important;
 	min-width: 18px !important;
 	min-height: 18px !important;
-	border: 2.5px solid #fff !important;
-	background: #222 !important;
+	border: 2.5px solid #ffd700 !important; /* Bordes dorados para motores */
+	background: #8b4513 !important; /* Fondo marrón */
 	z-index: 10 !important;
 	border-radius: 50%;
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 	transform-origin: center center !important;
 }
 
-/* Posicionamiento correcto para handlers de CustomNode - ESPECIFICIDAD MÁXIMA */
-.custom-node.custom-node :deep(.vue-flow__handle[data-handlepos="left"]) {
-	left: -20px !important; /* Mitad del ancho del handler (18px/2) = 9px */
+/* Posicionamiento correcto para handlers de EngineNode */
+.engine-node.engine-node :deep(.vue-flow__handle[data-handlepos="left"]) {
+	left: -20px !important;
 }
 
-.custom-node.custom-node :deep(.vue-flow__handle[data-handlepos="right"]) {
-	right: -30px !important; /* Mitad del ancho del handler (18px/2) = 9px */
+.engine-node.engine-node :deep(.vue-flow__handle[data-handlepos="right"]) {
+	right: -30px !important;
 }
 
-/* Efecto hover específico para CustomNode - ESPECIFICIDAD MÁXIMA */
-.custom-node.custom-node :deep(.vue-flow__handle:hover) {
+/* Efecto hover específico para EngineNode */
+.engine-node.engine-node :deep(.vue-flow__handle:hover) {
 	width: 22px !important;
 	height: 22px !important;
-	border: 3px solid #fff !important;
-	background: #1faaff !important;
+	border: 3px solid #ffd700 !important;
+	background: #ff8c00 !important; /* Color naranja al hover */
 	box-shadow: 
-		0 0 0 2px rgba(31, 170, 255, 0.3),
-		0 0 12px rgba(31, 170, 255, 0.6) !important;
+		0 0 0 2px rgba(255, 215, 0, 0.3),
+		0 0 12px rgba(255, 215, 0, 0.6) !important;
 }
 
-/* Ajustar posición en hover para mantener centrado - ESPECIFICIDAD MÁXIMA */
-.custom-node.custom-node :deep(.vue-flow__handle[data-handlepos="left"]:hover) {
-	left: -20px !important; /* Mitad del ancho hover (22px/2) = 11px */
+/* Ajustar posición en hover para mantener centrado */
+.engine-node.engine-node :deep(.vue-flow__handle[data-handlepos="left"]:hover) {
+	left: -20px !important;
 }
 
-.custom-node.custom-node :deep(.vue-flow__handle[data-handlepos="right"]:hover) {
-	right: -30px !important; /* Mitad del ancho hover (22px/2) = 11px */
+.engine-node.engine-node :deep(.vue-flow__handle[data-handlepos="right"]:hover) {
+	right: -30px !important;
 }
 
-/* Estilo para nodo seleccionado usando clase directa - HOMOLOGADO CON STARNODE */
-.custom-node.node-selected {
+/* Estilo para nodo seleccionado usando clase directa */
+.engine-node.node-selected {
 	border-color: transparent !important;
 	border-width: 0px !important;
 	outline: none !important;
 	box-shadow:
-		0 0 0 2px #1faaff,
+		0 0 0 2px #ffd700,
 		0 0 0 4px #fff,
-		0 0 20px 8px #1faaff66,
-		0 2px 12px 0 #1faaff44,
-		0 4px 24px 0 #1faaff22;
-	animation: custom-node-glow 2s infinite alternate;
+		0 0 20px 8px #ffd70066,
+		0 2px 12px 0 #ffd70044,
+		0 4px 24px 0 #ffd70022;
+	animation: engine-node-glow 2s infinite alternate;
 	transform: scale(1.03);
 	transition:
 		box-shadow 0.2s ease,
@@ -446,22 +418,22 @@ onBeforeUnmount(() => {
 	z-index: 20;
 }
 
-@keyframes custom-node-glow {
+@keyframes engine-node-glow {
 	0% {
 		box-shadow:
-			0 0 0 2px #1faaff,
+			0 0 0 2px #ffd700,
 			0 0 0 2px #fff,
-			0 0 20px 8px #1faaff66,
-			0 2px 12px 0 #1faaff44,
-			0 4px 24px 0 #1faaff22;
+			0 0 20px 8px #ffd70066,
+			0 2px 12px 0 #ffd70044,
+			0 4px 24px 0 #ffd70022;
 	}
 	100% {
 		box-shadow:
-			0 0 0 2px #1faaffdd,
+			0 0 0 2px #ffd700dd,
 			0 0 0 3px #fff,
-			0 0 25px 12px #1faaff88,
-			0 2px 14px 0 #1faaff66,
-			0 4px 28px 0 #1faaff33;
+			0 0 25px 12px #ffd70088,
+			0 2px 14px 0 #ffd70066,
+			0 4px 28px 0 #ffd70033;
 	}
 }
 
@@ -487,50 +459,33 @@ onBeforeUnmount(() => {
 	}
 }
 
-@keyframes flash {
-	0% {
-		background-color: #363a40;
-	}
-	25% {
-		background-color: #e14d43;
-		color: white;
-	}
-	75% {
-		background-color: #e14d43;
-		color: white;
-	}
-	100% {
-		background-color: #363a40;
-	}
-}
-
 @keyframes type-badge-flash {
 	0% {
-		background-color: #363a40;
+		background-color: #8b4513;
 		transform: scale(1);
 	}
 	20% {
-		background-color: #e9a946;
-		color: #23272e;
+		background-color: #cd853f;
+		color: #2a1810;
 		transform: scale(1.1);
 	}
 	40% {
-		background-color: #ffb84d;
-		color: #23272e;
+		background-color: #ffd700;
+		color: #2a1810;
 		transform: scale(1.1);
 	}
 	80% {
-		background-color: #e9a946;
-		color: #23272e;
+		background-color: #cd853f;
+		color: #2a1810;
 		transform: scale(1.05);
 	}
 	100% {
-		background-color: #363a40;
+		background-color: #8b4513;
 		transform: scale(1);
 	}
 }
 
-/* Estilos para la toolbar inline */
+/* Estilos para la toolbar inline - Reutilizamos los estilos de CustomNode */
 .node-toolbar-inline {
 	position: absolute;
 	top: -45px;
@@ -597,10 +552,8 @@ onBeforeUnmount(() => {
 }
 
 .copy-btn:hover img {
-	filter: brightness(0.2); /* Oscurecer la imagen para que sea visible en el fondo claro */
+	filter: brightness(0.2);
 }
-
-/* Ya no necesitamos estos estilos para SVG */
 
 .duplicate-btn:hover {
 	background: rgba(168, 85, 247, 0.9);
@@ -608,10 +561,8 @@ onBeforeUnmount(() => {
 }
 
 .duplicate-btn:hover img {
-	filter: brightness(0.2); /* Oscurecer la imagen para que sea visible en el fondo claro */
+	filter: brightness(0.2);
 }
-
-/* Ya no necesitamos estos estilos para SVG */
 
 .delete-btn:hover {
 	background: rgba(239, 68, 68, 0.9);
@@ -619,10 +570,8 @@ onBeforeUnmount(() => {
 }
 
 .delete-btn:hover img {
-	filter: brightness(0.2); /* Oscurecer la imagen para que sea visible en el fondo claro */
+	filter: brightness(0.2);
 }
-
-/* Ya no necesitamos estos estilos para SVG */
 
 .menu-btn:hover {
 	background: rgba(59, 130, 246, 0.9);
@@ -630,10 +579,8 @@ onBeforeUnmount(() => {
 }
 
 .menu-btn:hover img {
-	filter: brightness(0.2); /* Oscurecer la imagen para que sea visible en el fondo claro */
+	filter: brightness(0.2);
 }
-
-/* Ya no necesitamos estos estilos para SVG */
 
 .toolbar-btn img {
 	pointer-events: none;

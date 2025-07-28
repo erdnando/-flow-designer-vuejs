@@ -179,6 +179,7 @@ import NodePropertiesPanel from './NodePropertiesPanel.vue';
 import { reactive, markRaw, ref, watch, onMounted, onBeforeUnmount, nextTick, provide } from 'vue';
 import type { Connection, Node, NodeTypesObject, Edge } from '@vue-flow/core';
 import CustomNode from './CustomNode.vue';
+import EngineNode from './EngineNode.vue';
 import MinimalNode from './MinimalNode.vue';
 import ConditionNode from './ConditionNode.vue';
 import StartNode from './StartNode.vue';
@@ -528,6 +529,7 @@ const nodeTypes = {
 	default: markRaw(CustomNode),
 	error: markRaw(CustomNode),
 	minimal: markRaw(MinimalNode),
+	engineNode: markRaw(EngineNode), // Nuevo tipo de nodo para motores
 	// Primero el spread, luego sobrescribes condition, start y end:
 	...Object.fromEntries(Object.keys(nodeTypeMeta).map((type) => [type, markRaw(CustomNode)])),
 	condition: markRaw(ConditionNode), // Esto asegura que 'condition' SIEMPRE sea diamante

@@ -40,6 +40,10 @@ export const nodeTypeMeta: Record<string, { icon: string; subtitle: string }> = 
 		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e" stroke="#e14d43" stroke-width="2.5"/><g><path d="M12 12 Q19 19 26 12" stroke="#4285F4" stroke-width="2.5" fill="none" /><path d="M12 26 Q19 19 26 26" stroke="#34A853" stroke-width="2.5" fill="none" /></g></svg>`,
 		subtitle: 'merge: data',
 	},
+	engineNode: {
+		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#2a1810" stroke="#ffd700" stroke-width="2.5"/><g><circle cx="19" cy="19" r="8" stroke="#ffd700" stroke-width="2.5" fill="none" /><circle cx="19" cy="19" r="3" fill="#ffd700" /><path d="M11 19 h16 M19 11 v16" stroke="#8b4513" stroke-width="1.5" /></g></svg>`,
+		subtitle: 'Motor de negocio',
+	},
 	default: {
 		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e" stroke="#e14d43" stroke-width="2.5"/><g><circle cx="19" cy="19" r="8" stroke="#4285F4" stroke-width="2.5" fill="none" /></g></svg>`,
 		subtitle: 'default',

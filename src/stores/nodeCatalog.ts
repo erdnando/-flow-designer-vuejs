@@ -5,7 +5,7 @@ import { ref, computed, readonly } from 'vue';
 export interface NodeTemplate {
 	id: string;
 	name: string;
-	type: 'custom'; // Siempre será custom (que se mapea a customnode)
+	type: 'custom' | 'engineNode'; // Ahora admite tanto custom como engineNode
 	icon: string;
 	color?: string;
 	defaultData?: any;
@@ -108,7 +108,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 		{
 			id: 'motor-1',
 			name: 'Motor 1',
-			type: 'custom',
+			type: 'engineNode',
 			icon: '⚙️',
 			description: 'Motor de procesamiento 1',
 			category: 'Motores de decisión',
@@ -122,7 +122,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 		{
 			id: 'motor-2',
 			name: 'Motor 2',
-			type: 'custom',
+			type: 'engineNode',
 			icon: '⚙️',
 			description: 'Motor de procesamiento 2',
 			category: 'Motores de decisión',
@@ -136,7 +136,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 		{
 			id: 'motor-3',
 			name: 'Motor 3',
-			type: 'custom',
+			type: 'engineNode',
 			icon: '⚙️',
 			description: 'Motor de procesamiento 3',
 			category: 'Motores de decisión',
