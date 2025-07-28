@@ -27,7 +27,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '🆔',
 			description: 'Nodo para validación de INE',
-			category: 'Validación',
+			category: 'Captura',
 			defaultData: {
 				subtitle: 'Validación de INE',
 				config: {
@@ -60,48 +60,6 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 				subtitle: 'Firma digital',
 				config: {
 					type: 'signature_capture'
-				}
-			}
-		},
-		{
-			id: 'motor-1',
-			name: 'Motor 1',
-			type: 'custom',
-			icon: '⚙️',
-			description: 'Motor de procesamiento 1',
-			category: 'Procesamiento',
-			defaultData: {
-				subtitle: 'Motor 1',
-				config: {
-					type: 'engine_1'
-				}
-			}
-		},
-		{
-			id: 'motor-2',
-			name: 'Motor 2',
-			type: 'custom',
-			icon: '🔧',
-			description: 'Motor de procesamiento 2',
-			category: 'Procesamiento',
-			defaultData: {
-				subtitle: 'Motor 2',
-				config: {
-					type: 'engine_2'
-				}
-			}
-		},
-		{
-			id: 'motor-3',
-			name: 'Motor 3',
-			type: 'custom',
-			icon: '🛠️',
-			description: 'Motor de procesamiento 3',
-			category: 'Procesamiento',
-			defaultData: {
-				subtitle: 'Motor 3',
-				config: {
-					type: 'engine_3'
 				}
 			}
 		},
@@ -139,11 +97,53 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '📄',
 			description: 'Carga y gestión de documentos',
-			category: 'Documentos',
+			category: 'Captura',
 			defaultData: {
 				subtitle: 'Carga documentos',
 				config: {
 					type: 'document_upload'
+				}
+			}
+		},
+		{
+			id: 'motor-1',
+			name: 'Motor 1',
+			type: 'custom',
+			icon: '⚙️',
+			description: 'Motor de procesamiento 1',
+			category: 'Motores de decisión',
+			defaultData: {
+				subtitle: 'Motor 1',
+				config: {
+					type: 'engine_1'
+				}
+			}
+		},
+		{
+			id: 'motor-2',
+			name: 'Motor 2',
+			type: 'custom',
+			icon: '🔧',
+			description: 'Motor de procesamiento 2',
+			category: 'Motores de decisión',
+			defaultData: {
+				subtitle: 'Motor 2',
+				config: {
+					type: 'engine_2'
+				}
+			}
+		},
+		{
+			id: 'motor-3',
+			name: 'Motor 3',
+			type: 'custom',
+			icon: '🛠️',
+			description: 'Motor de procesamiento 3',
+			category: 'Motores de decisión',
+			defaultData: {
+				subtitle: 'Motor 3',
+				config: {
+					type: 'engine_3'
 				}
 			}
 		},
@@ -153,7 +153,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '🔄',
 			description: 'Sistema de recuperación',
-			category: 'Sistema',
+			category: 'Control',
 			defaultData: {
 				subtitle: 'Recuperación',
 				config: {
@@ -181,7 +181,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '👁️',
 			description: 'Sistema de visión avanzada',
-			category: 'Análisis',
+			category: 'Alta Producto',
 			defaultData: {
 				subtitle: 'Alta visión',
 				config: {
@@ -195,7 +195,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			type: 'custom',
 			icon: '🏷️',
 			description: 'Sistema de embozado',
-			category: 'Producción',
+			category: 'Alta Producto',
 			defaultData: {
 				subtitle: 'Embozado',
 				config: {
