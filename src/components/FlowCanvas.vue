@@ -2,17 +2,6 @@
 	<div class="flow-canvas-wrapper" @drop="onDrop" @dragover.prevent @click="onCanvasClick">
 		<!-- Botones para test y publicación -->
 		<div :class="['actions-bar', { 'actions-bar-shifted': !panelCollapsed }]">
-			<!-- Dropdown de versiones -->
-			<div class="version-dropdown" title="Seleccionar versión del flujo">
-				<select v-model="selectedVersion" @change="onVersionChange" class="version-select">
-					<option v-for="version in flowVersions" :key="version.value" :value="version.value">
-						{{ version.label }}
-					</option>
-				</select>
-				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" class="dropdown-arrow">
-					<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				</svg>
-			</div>
 			<button @click.stop="testFlow" title="Ejecutar test del flujo" class="text-button test-button">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
 					<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
@@ -30,7 +19,7 @@
 			</button>
 		</div>
 		
-		<!-- Título del flujo -->
+		<!-- Título del flujo con dropdown de versiones -->
 		<div 
 			:class="['flow-title-label', { 'flow-title-collapsed': panelCollapsed }]"
 			:title="flowTitle && flowTitle.length > 44 ? flowTitle : ''"
@@ -38,6 +27,17 @@
 			<span style="color: #fff; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
 				{{ flowTitle && flowTitle.length > 44 ? flowTitle.substring(0, 44) + '...' : flowTitle }}
 			</span>
+			<!-- Dropdown de versiones -->
+			<div class="version-dropdown-title" title="Seleccionar versión del flujo">
+				<select v-model="selectedVersion" @change="onVersionChange" class="version-select-title">
+					<option v-for="version in flowVersions" :key="version.value" :value="version.value">
+						{{ version.label }}
+					</option>
+				</select>
+				<svg width="10" height="10" viewBox="0 0 24 24" fill="none" class="dropdown-arrow-title">
+					<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</div>
 		</div>
 		
 		<!-- Animación de nodos con transition-group -->
@@ -207,6 +207,22 @@
 		confirm-button-type="danger"
 		@confirm="confirmDeleteEdge"
 		@cancel="cancelDeleteEdge"
+	/>
+	
+	<SimpleDialog 
+		v-model="showPublishDialog"
+		title="Confirmar publicación"
+		message="¿Estás seguro de que deseas publicar este flujo?"
+		warning="La publicación creará una nueva versión y hará el flujo disponible para su uso en producción."
+		note="Esta acción ejecutará validaciones completas antes de proceder."
+		type="warning"
+		:show-icon="true"
+		:show-cancel-button="true"
+		cancel-button-text="Cancelar"
+		confirm-button-text="Sí, publicar"
+		confirm-button-type="primary"
+		@confirm="confirmPublishFlow"
+		@cancel="cancelPublishFlow"
 	/>
 </template>
 
@@ -1927,6 +1943,9 @@ const nodeIndexToDelete = ref<number>(-1);
 const showDeleteEdgeDialog = ref(false);
 const edgeToDelete = ref<Edge | null>(null);
 
+// Estado para el diálogo de confirmación de publicación
+const showPublishDialog = ref(false);
+
 // Proveer funciones a los componentes hijos
 provide('deleteNode', onNodeDelete);
 provide('copyNode', onNodeCopy);
@@ -2285,7 +2304,15 @@ function testFlow() {
 
 // Función para publicar el flujo
 function publishFlow() {
-	console.log('Publicando flujo...');
+	console.log('Solicitando confirmación para publicar flujo...');
+	
+	// Mostrar diálogo de confirmación antes de publicar
+	showPublishDialog.value = true;
+}
+
+// Función para confirmar la publicación
+function confirmPublishFlow() {
+	console.log('Confirmando publicación del flujo...');
 	
 	// Validar que el flujo esté completo antes de publicar
 	const isValid = runNodeValidations(false);
@@ -2342,6 +2369,11 @@ function publishFlow() {
 		projectProperties.value.updatedAt = new Date().toLocaleDateString();
 		triggerAutoSave();
 	}, 2500);
+}
+
+// Función para cancelar la publicación
+function cancelPublishFlow() {
+	showPublishDialog.value = false;
 }
 
 // Función para manejar cambio de versión
@@ -2589,62 +2621,6 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .actions-bar .publish-button:hover {
 	background: #2557a6 !important;
 	box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3) !important;
-}
-
-/* Estilos para dropdown de versiones */
-.actions-bar .version-dropdown {
-	position: relative;
-	display: flex;
-	align-items: center;
-	background: #2d5016;
-	border: 1px solid #4caf50;
-	border-radius: 6px;
-	height: 41px;
-	padding: 0 12px;
-	min-width: 80px;
-	cursor: pointer;
-	font-size: 13px;
-	font-weight: 600;
-}
-
-.actions-bar .version-dropdown:hover {
-	background: #3d6b1f;
-	border-color: #66bb6a;
-	box-shadow: 0 2px 6px rgba(76, 175, 80, 0.25);
-}
-
-.actions-bar .version-select {
-	background: transparent;
-	border: none;
-	color: #fff;
-	font-size: 13px;
-	font-weight: 600;
-	cursor: pointer;
-	outline: none;
-	appearance: none;
-	padding-right: 16px;
-	width: 100%;
-	letter-spacing: 0.5px;
-}
-
-.actions-bar .version-select option {
-	background: #2d5016;
-	color: #fff;
-	padding: 6px;
-	font-weight: 500;
-}
-
-.actions-bar .dropdown-arrow {
-	position: absolute;
-	right: 6px;
-	pointer-events: none;
-	color: #a5d6a7;
-	width: 10px;
-	height: 10px;
-}
-
-.actions-bar .version-dropdown:hover .dropdown-arrow {
-	color: #c8e6c9;
 }
 
 /* Estilos para la toolbar inferior izquierda */
@@ -2902,6 +2878,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	height: 44px !important;
 	display: flex !important;
 	align-items: center !important;
+	justify-content: space-between !important;
 	background: rgba(35, 39, 46, 0.9) !important;
 	border: 1px solid rgba(255, 255, 255, 0.1) !important;
 	border-radius: 8px !important;
@@ -2910,7 +2887,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	letter-spacing: 0.3px !important;
 	text-align: left !important;
 	min-width: 200px !important;
-	max-width: 380px !important;
+	max-width: 420px !important;
 	width: auto !important;
 	user-select: none !important;
 	pointer-events: auto !important;
@@ -2918,10 +2895,69 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	white-space: nowrap !important;
 	overflow: hidden !important;
 	cursor: default !important;
+	gap: 12px !important;
 }
 
 .flow-title-collapsed {
 	left: 20px !important;
-	max-width: 280px !important;
+	max-width: 320px !important;
+}
+
+/* Estilos para dropdown de versiones en el título */
+.version-dropdown-title {
+	position: relative;
+	display: flex;
+	align-items: center;
+	background: #2d5016;
+	border: 1px solid #4caf50;
+	border-radius: 4px;
+	height: 28px;
+	padding: 0 8px;
+	margin-left: 12px;
+	min-width: 60px;
+	cursor: pointer;
+	font-size: 11px;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+.version-dropdown-title:hover {
+	background: #3d6b1f;
+	border-color: #66bb6a;
+	box-shadow: 0 1px 4px rgba(76, 175, 80, 0.25);
+}
+
+.version-select-title {
+	background: transparent;
+	border: none;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+	cursor: pointer;
+	outline: none;
+	appearance: none;
+	padding-right: 12px;
+	width: 100%;
+	letter-spacing: 0.3px;
+}
+
+.version-select-title option {
+	background: #2d5016;
+	color: #fff;
+	padding: 4px;
+	font-weight: 500;
+}
+
+.dropdown-arrow-title {
+	position: absolute;
+	right: 4px;
+	pointer-events: none;
+	color: #a5d6a7;
+	width: 8px;
+	height: 8px;
+}
+
+.version-dropdown-title:hover .dropdown-arrow-title {
+	color: #c8e6c9;
 }
 </style>
