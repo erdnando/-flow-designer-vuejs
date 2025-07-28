@@ -853,6 +853,19 @@ function onDrop(e: DragEvent) {
 	const customNodeTypeRawData = e.dataTransfer?.getData('application/custom-node-type');
 	const customNodeTypeRaw: string | null = customNodeTypeRawData || null;
 
+	// Nuevos datos del catálogo de nodos
+	const templateId = e.dataTransfer?.getData('application-template-id') || null;
+	const defaultDataRaw = e.dataTransfer?.getData('application-default-data') || null;
+	let defaultData = null;
+	
+	if (defaultDataRaw) {
+		try {
+			defaultData = JSON.parse(defaultDataRaw);
+		} catch (err) {
+			console.error('Error parsing default data:', err);
+		}
+	}
+
 	// Calcular posición antes de cualquier operación asíncrona
 	const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect();
 	const position = {
@@ -879,17 +892,55 @@ function onDrop(e: DragEvent) {
 			});
 			// Pequeño delay para que el viewport se actualice
 			setTimeout(() => {
-				processNodeDrop(position, type, label, customNodeTypeRaw);
+				processNodeDrop(position, type, label, customNodeTypeRaw, templateId, defaultData);
 			}, 50);
 			return;
 		}
 	}
 	
 	// Procesar el nodo normalmente
-	processNodeDrop(position, type, label, customNodeTypeRaw);
+	processNodeDrop(position, type, label, customNodeTypeRaw, templateId, defaultData);
 }
 
-function processNodeDrop(position: { x: number; y: number }, type: string | null, label: string | null, customNodeTypeRaw: string | null) {
+function processNodeDrop(position: { x: number; y: number }, type: string | null, label: string | null, customNodeTypeRaw: string | null, templateId?: string | null, defaultData?: any) {
+
+	// Si hay templateId, es un nodo del catálogo
+	if (templateId && defaultData) {
+		console.log('🎯 Procesando nodo del catálogo:', { templateId, type, label, defaultData });
+		
+		// Validar si se puede agregar este tipo de nodo
+		if (!canAddNodeType(type || 'custom')) {
+			console.log(`No se puede agregar nodo del catálogo debido a reglas de validación`);
+			return;
+		}
+		
+		// Crear nodo usando los datos del catálogo
+		flowStore.addNode({
+			type: type || 'custom',
+			label: label || defaultData.subtitle || 'Nodo',
+			position,
+			data: {
+				...defaultData,
+				templateId: templateId,
+				isFromCatalog: true
+			},
+		});
+		
+		const lastNode = nodes.value[nodes.value.length - 1];
+		selectedNodeId.value = lastNode.id;
+		showingProjectProps.value = false;
+		if (panelCollapsed.value) {
+			panelCollapsed.value = false;
+		}
+		
+		// Ejecutar validaciones después de agregar el nodo
+		setTimeout(() => runNodeValidations(), 100);
+		
+		// Guardar inmediatamente después de agregar nodo del catálogo
+		console.log('Nodo del catálogo agregado, guardando...');
+		triggerAutoSave();
+		return;
+	}
 
 	if (customNodeTypeRaw) {
 		// Nodo personalizado: los datos vienen serializados en JSON

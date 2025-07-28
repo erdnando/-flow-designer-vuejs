@@ -83,12 +83,13 @@ const path = computed(() => {
 		});
 		return pathString;
 	} else if (type === 'straight') {
-		return getStraightPath({
+		const [pathString] = getStraightPath({
 			sourceX,
 			sourceY,
 			targetX,
 			targetY,
 		});
+		return pathString;
 	} else {
 		// Bezier por defecto
 		const [pathString] = getBezierPath({

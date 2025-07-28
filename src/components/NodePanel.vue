@@ -53,14 +53,14 @@
 					<ul class="node-list">
 						<li
 							v-for="node in cat.nodes"
-							:key="node.type"
+							:key="(node as any).templateId || node.type"
 							class="node-item"
 							draggable="true"
-							@dragstart="onDragStart(node, $event)"
+							@dragstart="onDragStart(node as any, $event)"
 						>
-							<span
+							<span 
 								class="node-icon"
-								v-html="nodeTypeMeta[node.type]?.icon || nodeTypeMeta.default.icon"
+								v-html="(node as any).icon || (nodeTypeMeta[node.type]?.icon || nodeTypeMeta.default.icon)"
 							></span>
 							<span>{{ node.label }}</span>
 						</li>
@@ -72,39 +72,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
+import { useNodeCatalogStore } from '../stores/nodeCatalog';
 
 const collapsed = ref(false);
 const search = ref('');
 
-// CRUD node types store
-// Ya no necesitamos la store de nodos personalizados
-// const nodeTypesStore = useNodeTypesStore();
+// Usar el store del catálogo de nodos
+const nodeCatalogStore = useNodeCatalogStore();
 
-// Estructura de categorías (estática + custom)
-const nodeCategories = computed(() => [
-	{
-		name: 'Control de flujo',
-		nodes: [
-			{ type: 'start', label: 'START' },
-			{ type: 'end', label: 'END' },
-		],
-	},
-	{
-		name: 'Negocio',
-		nodes: [
-			{ type: 'webhook', label: 'Webhook' },
-			{ type: 'http', label: 'HTTP Request' },
-		],
-	},
-	{
-		name: 'Lógica',
-		nodes: [
-			{ type: 'condition', label: 'Condición (If)' }, // Diamond node
-		],
-	},
-]);
+// Inicializar el catálogo cuando se monta el componente
+onMounted(() => {
+	nodeCatalogStore.initializeCatalog();
+});
+
+// Estructura de categorías (combinando estáticos + dinámicos del catálogo)
+const nodeCategories = computed(() => {
+	const staticCategories = [
+		{
+			name: 'Control de flujo',
+			nodes: [
+				{ type: 'start', label: 'START' },
+				{ type: 'end', label: 'END' },
+			],
+		},
+		{
+			name: 'Lógica',
+			nodes: [
+				{ type: 'condition', label: 'Condición (If)' },
+			],
+		},
+	];
+
+	// Agregar categorías dinámicas del catálogo
+	const dynamicCategories = Object.entries(nodeCatalogStore.nodesByCategory).map(([categoryName, templates]) => ({
+		name: categoryName,
+		nodes: templates.map(template => ({
+			type: template.type,
+			label: template.name,
+			templateId: template.id,
+			icon: template.icon,
+			defaultData: template.defaultData
+		}))
+	}));
+
+	return [...staticCategories, ...dynamicCategories];
+});
 
 const filteredCategories = computed(() => {
 	if (!search.value) return nodeCategories.value;
@@ -124,11 +138,20 @@ function onDragStart(
 	node: {
 		type: string;
 		label: string;
+		templateId?: string;
+		icon?: string;
+		defaultData?: any;
 	},
 	e: DragEvent,
 ) {
 	e.dataTransfer?.setData('application/node-type', node.type);
 	e.dataTransfer?.setData('text/plain', node.label);
+	
+	// Para nodos del catálogo, pasar información adicional
+	if (node.templateId) {
+		e.dataTransfer?.setData('application-template-id', node.templateId);
+		e.dataTransfer?.setData('application-default-data', JSON.stringify(node.defaultData || {}));
+	}
 }
 </script>
 
@@ -258,6 +281,13 @@ function onDragStart(
 	width: 28px;
 	height: 28px;
 	font-size: 1.2rem;
+	text-align: center;
+	line-height: 28px;
+}
+.node-icon svg {
+	width: 20px;
+	height: 20px;
+	fill: currentColor;
 }
 .add-node-type-btn {
 	width: 100%;
