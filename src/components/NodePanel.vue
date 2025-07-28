@@ -55,7 +55,6 @@
 						:class="{ 'active': isCategoryExpanded(cat.name) }"
 					>
 						<div class="accordion-title">
-							<span class="category-icon">{{ getCategoryIcon(cat.name) }}</span>
 							<span class="category-name">{{ cat.name }}</span>
 							<span class="node-count">({{ cat.nodes.length }})</span>
 						</div>
@@ -164,20 +163,6 @@ function toggleCategory(categoryName: string) {
 
 function isCategoryExpanded(categoryName: string): boolean {
 	return expandedCategories.value.has(categoryName);
-}
-
-function getCategoryIcon(categoryName: string): string {
-	const iconMap: Record<string, string> = {
-		'Control de flujo': '🔀',
-		'Proceso': '📋',
-		'Procesamiento': '⚙️',
-		'Motores': '⚙️',
-		'Documentos': '📑',
-		'Sistema': '🔧',
-		'Análisis': '📊',
-		'Producción': '🏭'
-	};
-	return iconMap[categoryName] || '📁';
 }
 
 function onDragStart(
@@ -355,10 +340,6 @@ function onDragStart(
 	color: #fff;
 }
 
-.category-icon {
-	font-size: 1.1rem;
-}
-
 .category-name {
 	color: #ffb84d;
 }
@@ -426,13 +407,13 @@ function onDragStart(
 }
 
 .node-card-icon {
-	font-size: 1.1rem;
+	font-size: 1.4rem;
 	line-height: 1;
 }
 
 .node-card-icon svg {
-	width: 16px;
-	height: 16px;
+	width: 20px;
+	height: 20px;
 	fill: #ffb84d;
 }
 

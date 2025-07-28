@@ -100,7 +100,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			version: '1.0.0',
 			type: 'processNode',
 			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M18 6H12c-1.5 0-2.5 1-2.5 2.5v21c0 1.5 1 2.5 2.5 2.5h6c1.5 0 2.5-1 2.5-2.5v-8l-6-6zm4 18H12v-20h7v5h5v15z" fill="white"/></svg>',
+				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M10 12h5l2-2h9c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H10c-1.1 0-2-.9-2-2V14c0-1.1.9-2 2-2z" fill="white"/><circle cx="19" cy="18" r="3" fill="#23272e"/><path d="M19 21c-2.2 0-4 1.8-4 4h8c0-2.2-1.8-4-4-4z" fill="#23272e"/></svg>',
 				customTypeId: 'cargadocs',
 			},
 		},
@@ -113,7 +113,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			version: '1.0.0',
 			type: 'engineNode',
 			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><circle cx="19" cy="19" r="12" fill="none"/><path d="m13.5 21.5 9.5-9.5-2-2-7.5 7.5-3.5-3.5-2 2 5.5 5.5z" fill="white"/></svg>',
+				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><g transform="translate(19,19)"><circle r="6" fill="white"/><circle r="3" fill="#23272e"/><path d="M0,-8 L2,-6 L0,-4 L-2,-6 Z" fill="white"/><path d="M8,0 L6,2 L4,0 L6,-2 Z" fill="white"/><path d="M0,8 L-2,6 L0,4 L2,6 Z" fill="white"/><path d="M-8,0 L-6,-2 L-4,0 L-6,2 Z" fill="white"/><path d="M5.7,-5.7 L7.1,-4.3 L5.7,-2.9 L4.3,-4.3 Z" fill="white"/><path d="M5.7,5.7 L4.3,7.1 L2.9,5.7 L4.3,4.3 Z" fill="white"/><path d="M-5.7,5.7 L-7.1,4.3 L-5.7,2.9 L-4.3,4.3 Z" fill="white"/><path d="M-5.7,-5.7 L-4.3,-7.1 L-2.9,-5.7 L-4.3,-4.3 Z" fill="white"/></g></svg>',
 				customTypeId: 'motor-1',
 			},
 		},
@@ -126,7 +126,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			version: '1.0.0',
 			type: 'engineNode',
 			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><circle cx="19" cy="19" r="12" fill="white" fill-opacity="0.2"/><path d="m13.5 21.5 9.5-9.5-2-2-7.5 7.5-3.5-3.5-2 2 5.5 5.5z" fill="white"/></svg>',
+				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><g transform="translate(19,19)"><circle r="7" fill="white"/><circle r="4" fill="#23272e"/><path d="M0,-9 L1.5,-7 L0,-5 L-1.5,-7 Z" fill="white"/><path d="M9,0 L7,1.5 L5,0 L7,-1.5 Z" fill="white"/><path d="M0,9 L-1.5,7 L0,5 L1.5,7 Z" fill="white"/><path d="M-9,0 L-7,-1.5 L-5,0 L-7,1.5 Z" fill="white"/><path d="M6.4,-6.4 L7.8,-5 L6.4,-3.6 L5,-5 Z" fill="white"/><path d="M6.4,6.4 L5,7.8 L3.6,6.4 L5,5 Z" fill="white"/><path d="M-6.4,6.4 L-7.8,5 L-6.4,3.6 L-5,5 Z" fill="white"/><path d="M-6.4,-6.4 L-5,-7.8 L-3.6,-6.4 L-5,-5 Z" fill="white"/></g></svg>',
 				customTypeId: 'motor-2',
 			},
 		},
@@ -139,7 +139,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			version: '1.0.0',
 			type: 'engineNode',
 			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><circle cx="19" cy="19" r="12" fill="white"/><path d="m13.5 21.5 9.5-9.5-2-2-7.5 7.5-3.5-3.5-2 2 5.5 5.5z" fill="#23272e"/></svg>',
+				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><g transform="translate(19,19)"><circle r="8" fill="white"/><circle r="4.5" fill="#23272e"/><path d="M0,-10 L1,-8.5 L0,-7 L-1,-8.5 Z" fill="white"/><path d="M8.7,-5 L7.2,-4 L5.7,-5 L7.2,-6 Z" fill="white"/><path d="M8.7,5 L7.2,6 L5.7,5 L7.2,4 Z" fill="white"/><path d="M0,10 L-1,8.5 L0,7 L1,8.5 Z" fill="white"/><path d="M-8.7,5 L-7.2,4 L-5.7,5 L-7.2,6 Z" fill="white"/><path d="M-8.7,-5 L-7.2,-6 L-5.7,-5 L-7.2,-4 Z" fill="white"/></g></svg>',
 				customTypeId: 'motor-3',
 			},
 		},
