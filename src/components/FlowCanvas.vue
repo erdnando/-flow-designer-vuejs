@@ -107,6 +107,66 @@
 				<CustomEdge v-bind="edgeProps" @delete="onEdgeDelete" />
 			</template>
 		</VueFlow>
+		
+		<!-- Copia de la toolbar en la parte inferior izquierda -->
+		<div :class="['actions-bar-bottom', { 'actions-bar-bottom-shifted': !panelCollapsed }]">
+			<button @click.stop="zoomIn" title="Acercar">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+					<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2" />
+					<path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+				</svg>
+			</button>
+			<button @click.stop="zoomOut" title="Alejar">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+					<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2" />
+					<path d="M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+				</svg>
+			</button>
+			<button @click.stop="() => centerNodes()" title="Centrar nodos">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+					<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+					<circle cx="12" cy="12" r="3" fill="currentColor" />
+					<path d="M12 6v2M12 16v2M6 12h2M16 12h2" stroke="currentColor" stroke-width="1" />
+				</svg>
+			</button>
+			<button @click.stop="exportFlow" title="Exportar flujo">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+					<path
+						d="M12 3v12m0 0l-4-4m4 4l4-4"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+					<rect x="4" y="17" width="16" height="4" rx="2" fill="currentColor" />
+				</svg>
+			</button>
+			<label class="import-label" title="Importar flujo" @click.stop>
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+					<path
+						d="M12 21V9m0 0l-4 4m4-4l4 4"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+					<rect x="4" y="3" width="16" height="4" rx="2" fill="currentColor" />
+				</svg>
+				<input type="file" accept="application/json" @change="importFlow" style="display: none" />
+			</label>
+			<button @click.stop="clearFlow" title="Limpiar flujo">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+					<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2" />
+					<path
+						d="M8 8l8 8M16 8l-8 8"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+					/>
+				</svg>
+			</button>
+		</div>
+		
 		<ContextMenu
 			:visible="contextMenu.visible"
 			:x="contextMenu.x"
@@ -303,20 +363,6 @@ function canAddNodeType(nodeType: string): boolean {
 	return true;
 }
 
-// Función para verificar si hay viewport guardado
-function hasSavedViewport(): boolean {
-	try {
-		const savedData = localStorage.getItem(AUTOSAVE_KEY);
-		if (savedData) {
-			const data = JSON.parse(savedData);
-			return !!(data.viewport);
-		}
-	} catch (err) {
-		console.error('Error al verificar viewport guardado:', err);
-	}
-	return false;
-}
-
 // Implementación directa del auto-guardado
 function setupAutoSave() {
 	console.log('Auto-guardado configurado para eventos manuales y cambios de viewport');
@@ -349,18 +395,17 @@ function triggerAutoSave() {
 
 // Función para guardar el estado actual en localStorage
 function saveToLocalStorage() {
-	// Obtener el estado actual del viewport (zoom y posición)
-	const viewport = getViewport();
+	// NO guardar el viewport - siempre usar zoom por defecto al cargar
 	
 	const dataToSave = {
 		nodes: sanitizeNodesForSave(nodes.value as ExtendedNode[]),
 		edges: edges.value,
 		flowProps: projectProperties.value,
-		viewport
+		// NO incluir viewport para mantener zoom consistente
 	};
 	
 	localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(dataToSave));
-	console.log('Flow guardado en localStorage con viewport:', viewport);
+	console.log('Flow guardado en localStorage sin viewport (zoom por defecto al cargar)');
 	
 	// Ejecutar validaciones silenciosamente para actualizar estado
 	runNodeValidations(false);
@@ -391,17 +436,12 @@ function loadFromLocalStorage() {
 		if (savedData.flowProps) {
 			projectProperties.value = { ...projectProperties.value, ...savedData.flowProps };
 		}
-		if (savedData.viewport) {
-			// Restaurar el viewport después de un delay para asegurar que Vue Flow esté listo
-			setTimeout(() => {
-				setViewport(savedData.viewport);
-			}, 50);
-		}
+		// NO restaurar viewport - siempre usar zoom por defecto
 		
 		console.log('Flow cargado desde localStorage:', {
 			nodes: nodes.value.length,
 			edges: edges.value.length,
-			viewport: savedData.viewport || 'no viewport'
+			viewport: 'usando zoom por defecto (no restaurado)'
 		});
 		
 		// Después de cargar, verificar validaciones y mostrar resumen si hay errores
@@ -472,8 +512,6 @@ onMounted(() => {
 	
 	// Esperar múltiples ciclos para asegurar que Vue Flow esté completamente inicializado
 	setTimeout(() => {
-		const hasViewport = hasSavedViewport();
-		
 		if (nodes.value.length > 0 && !autoCenterApplied) {
 			console.log(`Primera carga detectada, aplicando centrado automático para ${nodes.value.length} nodos...`);
 			autoCenterApplied = true;
@@ -481,45 +519,23 @@ onMounted(() => {
 			// Ejecutar validaciones del flujo cargado
 			setTimeout(() => runNodeValidations(false), 500); // Sin notificaciones al cargar
 			
-			if (hasViewport) {
-				// Si hay viewport guardado, usar centrado manual preservando el zoom
-				const savedData = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || '{}');
-				const savedViewport = savedData.viewport;
-				
-				if (savedViewport && savedViewport.zoom) {
-					console.log(`Aplicando centrado automático con zoom guardado: ${savedViewport.zoom}`);
-					
-					// Aplicar el viewport guardado primero
-					setViewport(savedViewport);
-					
-					// Luego centrar manualmente manteniendo el zoom
-					setTimeout(() => {
-						centerNodes(true); // Esto ahora usará el zoom guardado
-					}, 100);
-				} else {
-					// Si no hay zoom guardado, centrar normalmente con fitView
-					fitView({ 
-						padding: 50,
-						includeHiddenNodes: true,
-						minZoom: 0.2,
-						maxZoom: 1.5,
-						duration: 600
-					});
-				}
-			} else {
-				// Si no hay viewport guardado, centrar normalmente con fitView
-				fitView({ 
-					padding: 50,
-					includeHiddenNodes: true,
-					minZoom: 0.2,
-					maxZoom: 1.5,
-					duration: 600
-				});
-			}
-		} else if (nodes.value.length === 0 && !hasViewport) {
-			// Si no hay nodos ni viewport guardado, aplicar zoom inicial menor
-			vueFlowZoomOut();
-			vueFlowZoomOut();
+			// Siempre usar fitView con configuración consistente
+			console.log('Aplicando centrado automático con zoom por defecto consistente');
+			fitView({ 
+				padding: 50,
+				includeHiddenNodes: true,
+				minZoom: 0.4,
+				maxZoom: 1.2,
+				duration: 600
+			});
+		} else if (nodes.value.length === 0) {
+			// Si no hay nodos, establecer zoom por defecto
+			console.log('Canvas vacío, estableciendo zoom por defecto');
+			setViewport({
+				x: 0,
+				y: 0,
+				zoom: 0.8 // Zoom por defecto consistente
+			});
 		}
 		
 		// Configurar event listeners directos para edges existentes
@@ -556,7 +572,13 @@ const edgeTypes = {
 } as any; // Forzar tipado para evitar errores de TypeScript
 
 // Usa useVueFlow para zoom seguro y tipado
-const { zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut, fitView, getViewport, setViewport } = useVueFlow();
+const { 
+	zoomIn: vueFlowZoomIn, 
+	zoomOut: vueFlowZoomOut, 
+	fitView, 
+	getViewport, 
+	setViewport 
+} = useVueFlow();
 
 function zoomIn() {
 	vueFlowZoomIn();
@@ -880,12 +902,26 @@ function onDrop(e: DragEvent) {
 		}
 	}
 
-	// Calcular posición antes de cualquier operación asíncrona
+	// Calcular posición correcta considerando zoom y pan del canvas
+	// Usar transformación manual más confiable
 	const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect();
+	const viewport = getViewport();
+	
+	// Calcular posición relativa al canvas
+	const canvasX = e.clientX - bounds.left;
+	const canvasY = e.clientY - bounds.top;
+	
+	// Transformar a coordenadas del flow considerando zoom y pan
 	const position = {
-		x: e.clientX - bounds.left,
-		y: e.clientY - bounds.top,
+		x: (canvasX - viewport.x) / viewport.zoom,
+		y: (canvasY - viewport.y) / viewport.zoom,
 	};
+
+	console.log('🎯 Drop position - Client:', { x: e.clientX, y: e.clientY });
+	console.log('🎯 Drop position - Canvas bounds:', bounds);
+	console.log('🎯 Drop position - Canvas relative:', { x: canvasX, y: canvasY });
+	console.log('🎯 Drop position - Viewport:', viewport);
+	console.log('🎯 Drop position - Final flow position:', position);
 
 	// Verificar si será el primer nodo
 	const isFirstNode = nodes.value.length === 0;
@@ -2295,8 +2331,8 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 }
 .minimap-absolute {
 	position: absolute !important;
-	bottom: 24px;
-	right: 24px;
+	bottom: 0px;
+	right: 20px;
 	z-index: 3000;
 	background: rgba(35, 39, 46, 0.92);
 	border-radius: 10px;
@@ -2306,7 +2342,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	transition: right 0.22s cubic-bezier(0.4, 1.3, 0.6, 1);
 }
 .minimap-shifted {
-	right: 344px !important;
+	right: 340px !important;
 }
 .actions-bar {
 	position: absolute;
@@ -2344,6 +2380,50 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	background: #444b55;
 }
 .actions-bar svg {
+	display: block;
+	margin: 0;
+	color: #fff;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+}
+
+/* Estilos para la toolbar inferior izquierda */
+.actions-bar-bottom {
+	position: absolute;
+	bottom: 20px;
+	left: 20px;
+	z-index: 4000;
+	display: flex;
+	gap: 10px;
+	align-items: center;
+}
+.actions-bar-bottom-shifted {
+	left: 20px !important; /* Mantener siempre alineada a la izquierda */
+}
+.actions-bar-bottom button,
+.actions-bar-bottom .import-label {
+	background: #23272e;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 44px;
+	width: 44px;
+	font-size: 15px;
+	cursor: pointer;
+	transition: background 0.2s;
+	box-sizing: border-box;
+}
+.actions-bar-bottom button:hover,
+.actions-bar-bottom .import-label:hover {
+	background: #444b55;
+}
+.actions-bar-bottom svg {
 	display: block;
 	margin: 0;
 	color: #fff;
