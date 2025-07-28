@@ -171,7 +171,7 @@ function getCategoryIcon(categoryName: string): string {
 		'Control de flujo': '🔀',
 		'Proceso': '📋',
 		'Procesamiento': '⚙️',
-		'Motores de decisión': '⚙️',
+		'Motores': '⚙️',
 		'Documentos': '📑',
 		'Sistema': '🔧',
 		'Análisis': '📊',

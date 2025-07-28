@@ -344,8 +344,8 @@ onBeforeUnmount(() => {
 	width: 100%;
 }
 .node-icon {
-	width: 30px;
-	height: 30px;
+	width: 4px;
+	height: 45px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -353,7 +353,12 @@ onBeforeUnmount(() => {
 	border-radius: 10px;
 	margin-right: 10px;
 	position: relative;
-	font-size: 2.3rem; /* Hacer el emoji más grande */
+	font-size: 2.5rem; /* Hacer el emoji más grande */
+}
+
+.node-icon svg {
+	width: 38px !important;
+	height: 38px !important;
 }
 .node-warning {
 	position: absolute;
