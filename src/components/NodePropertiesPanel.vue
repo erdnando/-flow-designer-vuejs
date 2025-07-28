@@ -56,10 +56,13 @@
 				<template v-if="showProject">
 					<label>
 						Nombre del flujo
-						<input
+						<textarea
 							:value="projectProps.name"
-							@input="(e) => updateProjectProp('name', (e.target as HTMLInputElement).value)"
+							@input="(e) => { updateProjectProp('name', (e.target as HTMLTextAreaElement).value); autoResize(e) }"
 							:disabled="disabled"
+							rows="1"
+							class="flow-title-input auto-resize"
+							ref="titleTextarea"
 						/>
 					</label>
 					<label>
@@ -67,10 +70,12 @@
 						<textarea
 							:value="projectProps.description"
 							@input="
-								(e) => updateProjectProp('description', (e.target as HTMLTextAreaElement).value)
+								(e) => { updateProjectProp('description', (e.target as HTMLTextAreaElement).value); autoResize(e) }
 							"
 							:disabled="disabled"
-							rows="2"
+							rows="3"
+							class="flow-description-input auto-resize"
+							ref="descriptionTextarea"
 						/>
 					</label>
 					<label>
@@ -220,6 +225,10 @@ const props = defineProps<{
 
 const emit = defineEmits(['close', 'update', 'toggle-collapsed', 'update-project']);
 
+// Referencias para los textareas
+const titleTextarea = ref<HTMLTextAreaElement | null>(null);
+const descriptionTextarea = ref<HTMLTextAreaElement | null>(null);
+
 // Store del catálogo de nodos
 const nodeCatalogStore = useNodeCatalogStore();
 
@@ -338,6 +347,55 @@ function toggleCollapse() {
 	collapsed.value = !collapsed.value;
 	emit('toggle-collapsed', collapsed.value);
 }
+
+// Función para auto-redimensionar textareas
+function autoResize(event: Event) {
+	const textarea = event.target as HTMLTextAreaElement;
+	if (!textarea) return;
+	
+	// Resetear la altura para obtener la altura real del contenido
+	textarea.style.height = 'auto';
+	
+	// Calcular la nueva altura basada en el scrollHeight
+	// Agregar solo 1px de padding extra para evitar el scroll sin que se vea excesivo
+	const newHeight = textarea.scrollHeight + 0.2;
+	
+	// Aplicar la nueva altura
+	textarea.style.height = newHeight + 'px';
+}
+
+// Función auxiliar para redimensionar un textarea específico
+function resizeTextarea(textarea: HTMLTextAreaElement) {
+	if (!textarea) return;
+	
+	// Resetear la altura para obtener la altura real del contenido
+	textarea.style.height = 'auto';
+	
+	// Calcular la nueva altura basada en el scrollHeight
+	const newHeight = textarea.scrollHeight + 1;
+	
+	// Aplicar la nueva altura
+	textarea.style.height = newHeight + 'px';
+}
+
+// Observar cambios en las propiedades del proyecto para redimensionar
+watch(
+	() => props.projectProps?.name,
+	() => {
+		if (titleTextarea.value) {
+			setTimeout(() => resizeTextarea(titleTextarea.value!), 10);
+		}
+	}
+);
+
+watch(
+	() => props.projectProps?.description,
+	() => {
+		if (descriptionTextarea.value) {
+			setTimeout(() => resizeTextarea(descriptionTextarea.value!), 10);
+		}
+	}
+);
 
 // Objeto para mantener un seguimiento de las propiedades modificadas
 const modifiedProjectProps = ref<Record<string, any>>({});
@@ -488,13 +546,66 @@ label {
 	gap: 6px;
 }
 input,
-select {
+select,
+textarea {
 	background: #181c20;
 	color: #fff;
 	border: 1px solid #363a40;
 	border-radius: 6px;
 	padding: 7px 10px;
 	font-size: 1rem;
+	resize: none;
+	font-family: inherit;
+}
+
+/* Estilo específico para el campo del título del flujo */
+.flow-title-input {
+	min-height: 38px;
+	resize: none;
+	overflow-y: hidden;
+	line-height: 1.4;
+	background: #181c20 !important;
+	border: 1px solid #363a40 !important;
+	border-radius: 8px !important;
+	padding: 10px 12px !important;
+	font-size: 1rem !important;
+	font-weight: 600 !important;
+	color: #fff !important;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease, height 0.1s ease !important;
+}
+
+.flow-title-input:focus {
+	border-color: #5078ff !important;
+	box-shadow: 0 0 0 2px rgba(80, 120, 255, 0.2) !important;
+	outline: none !important;
+}
+
+/* Estilo específico para el campo de descripción */
+.flow-description-input {
+	background: #181c20 !important;
+	border: 1px solid #363a40 !important;
+	border-radius: 8px !important;
+	padding: 10px 12px !important;
+	font-size: 0.95rem !important;
+	color: #fff !important;
+	line-height: 1.5 !important;
+	resize: none !important;
+	min-height: 84px !important;
+	overflow-y: hidden !important;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease, height 0.1s ease !important;
+}
+
+.flow-description-input:focus {
+	border-color: #5078ff !important;
+	box-shadow: 0 0 0 2px rgba(80, 120, 255, 0.2) !important;
+	outline: none !important;
+}
+
+/* Estilo común para textareas con auto-resize */
+.auto-resize {
+	transition: height 0.1s ease !important;
 }
 .empty-panel {
 	color: #b0b0b0;
