@@ -74,7 +74,7 @@
 
 		<div class="start-node-content">
 			<div class="start-icon">
-				<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+				<svg width="30" height="30" viewBox="0 0 24 24" fill="none">
 					<circle cx="12" cy="12" r="10" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
 					<polygon points="10,8 16,12 10,16" fill="white"/>
 				</svg>
@@ -82,6 +82,7 @@
 			<div class="start-text">
 				<div class="start-title">INICIO</div>
 				<div class="start-subtitle">{{ subtitle || 'Inicio del flujo' }}</div>
+				<div class="node-version">1.0.0</div>
 			</div>
 		</div>
 		<!-- Solo handle de salida (derecha) -->
@@ -227,8 +228,8 @@ onBeforeUnmount(() => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 32px;
-	height: 32px;
+	width: 36px;
+	height: 36px;
 	background: rgba(255, 255, 255, 0.2);
 	border-radius: 50%;
 }
@@ -249,6 +250,20 @@ onBeforeUnmount(() => {
 	opacity: 0.9;
 	font-weight: 400;
 	line-height: 1.2;
+}
+
+.node-version {
+	display: inline-block;
+	background: #2a4c2a;
+	color: #90ee90;
+	font-size: 0.7rem;
+	font-weight: 500;
+	border-radius: 4px;
+	padding: 1px 6px;
+	margin: 2px 0;
+	letter-spacing: 0.01em;
+	max-width: fit-content;
+	border: 1px solid #4a6b4a;
 }
 
 /* Estilos para la toolbar inline */

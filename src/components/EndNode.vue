@@ -62,7 +62,7 @@
 
 		<div class="end-node-content">
 			<div class="end-icon">
-				<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+				<svg width="30" height="30" viewBox="0 0 24 24" fill="none">
 					<circle cx="12" cy="12" r="10" fill="#F44336" stroke="#C62828" stroke-width="2"/>
 					<rect x="8" y="8" width="8" height="8" fill="white" rx="1"/>
 				</svg>
@@ -70,6 +70,7 @@
 			<div class="end-text">
 				<div class="end-title">FIN</div>
 				<div class="end-subtitle">{{ subtitle || 'Fin del flujo' }}</div>
+				<div class="node-version">1.0.0</div>
 			</div>
 		</div>
 		<!-- Solo handle de entrada (izquierda) -->
@@ -219,8 +220,8 @@ onBeforeUnmount(() => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 32px;
-	height: 32px;
+	width: 36px;
+	height: 36px;
 	background: rgba(255, 255, 255, 0.2);
 	border-radius: 50%;
 }
@@ -241,6 +242,20 @@ onBeforeUnmount(() => {
 	opacity: 0.9;
 	font-weight: 400;
 	line-height: 1.2;
+}
+
+.node-version {
+	display: inline-block;
+	background: #2a4c2a;
+	color: #90ee90;
+	font-size: 0.7rem;
+	font-weight: 500;
+	border-radius: 4px;
+	padding: 1px 6px;
+	margin: 2px 0;
+	letter-spacing: 0.01em;
+	max-width: fit-content;
+	border: 1px solid #4a6b4a;
 }
 
 /* Estilos para la toolbar inline */

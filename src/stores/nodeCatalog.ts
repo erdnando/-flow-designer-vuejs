@@ -8,6 +8,7 @@ export interface NodeTemplate {
 	subtitle: string;
 	categoria: string;
 	description: string;
+	version: string; // Versión del nodo
 	type: 'processNode' | 'engineNode'; // Ahora admite tanto processNode como engineNode
 	// Estas propiedades se asignarán al data del nodo cuando se agregue al canvas
 	data?: {
@@ -31,6 +32,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Validación de INE',
 			categoria: 'Proceso',
 			description: 'Nodo para validación de INE',
+			version: '1.0.0',
 			type: 'processNode',
 			data: {
 				icon: '🪪',
@@ -43,6 +45,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Captura rápida',
 			categoria: 'Proceso',
 			description: 'Captura rápida de datos',
+			version: '1.0.0',
 			type: 'processNode',
 			data: {
 				icon: '📋',
@@ -55,6 +58,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Firma digital',
 			categoria: 'Proceso',
 			description: 'Captura de firma digital',
+			version: '1.0.0',
 			type: 'processNode',
 			data: {
 				icon: '📝',
@@ -67,6 +71,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Captura completa',
 			categoria: 'Proceso',
 			description: 'Captura completa de información',
+			version: '1.0.0',
 			type: 'processNode',
 			data: {
 				icon: '📊',
@@ -79,6 +84,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Captura teléfonos',
 			categoria: 'Proceso',
 			description: 'Captura de números telefónicos',
+			version: '1.0.0',
 			type: 'processNode',
 			data: {
 				icon: '☎️',
@@ -91,6 +97,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Carga docs',
 			categoria: 'Proceso',
 			description: 'Carga de documentos alternativa',
+			version: '1.0.0',
 			type: 'processNode',
 			data: {
 				icon: '📄',
@@ -103,6 +110,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Motor 1',
 			categoria: 'Motores de decisión',
 			description: 'Motor de procesamiento 1',
+			version: '1.0.0',
 			type: 'engineNode',
 			data: {
 				icon: '⚙️',
@@ -115,6 +123,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Motor 2',
 			categoria: 'Motores de decisión',
 			description: 'Motor de procesamiento 2',
+			version: '1.0.0',
 			type: 'engineNode',
 			data: {
 				icon: '⚙️',
@@ -127,6 +136,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Motor 3',
 			categoria: 'Motores de decisión',
 			description: 'Motor de procesamiento 3',
+			version: '1.0.0',
 			type: 'engineNode',
 			data: {
 				icon: '⚙️',
@@ -139,6 +149,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			subtitle: 'Alta producto',
 			categoria: 'Proceso',
 			description: 'Sistema de visión avanzada',
+			version: '1.0.0',
 			type: 'processNode',
 			data: {
 				icon: '🏦',

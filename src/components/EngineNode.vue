@@ -83,6 +83,7 @@
 			<div class="node-labels">
 				<div class="node-title">{{ nodeLabel }}</div>
 				<div class="node-type-badge">negocio</div>
+				<div class="node-version">{{ nodeVersion }}</div>
 			</div>
 		</div>
 		<Handle type="source" :position="Position.Right" id="output" />
@@ -190,6 +191,21 @@ const nodeType = computed(() => {
 	const finalType = directNodeType || dataTypeFromNode || dataTypeFromProps || 'engineNode';
 
 	return finalType;
+});
+
+// Computed para mostrar la versión del nodo
+const nodeVersion = computed(() => {
+	// Prioridad 1: Si el nodo tiene templateId, buscar la versión en el catálogo
+	const templateId = rawData.value.templateId;
+	if (templateId) {
+		const template = nodeCatalogStore.getTemplateById(templateId);
+		if (template && template.version) {
+			return template.version;
+		}
+	}
+	
+	// Prioridad 2: Versión por defecto
+	return '1.0.0';
 });
 
 // El icono se actualiza automáticamente cuando cambia nodeType
@@ -354,6 +370,20 @@ onBeforeUnmount(() => {
 	max-width: fit-content;
 	transition: all 0.3s ease;
 	animation: type-badge-flash 1.5s 1;
+}
+
+.node-version {
+	display: inline-block;
+	background: #2a4c2a;
+	color: #90ee90;
+	font-size: 0.75rem;
+	font-weight: 500;
+	border-radius: 4px;
+	padding: 1px 6px;
+	margin: 2px 0;
+	letter-spacing: 0.01em;
+	max-width: fit-content;
+	border: 1px solid #4a6b4a;
 }
 
 /* Handlers grandes y visibles específicos para EngineNode */
