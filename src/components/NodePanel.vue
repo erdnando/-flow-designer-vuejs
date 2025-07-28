@@ -1,7 +1,6 @@
 <template>
 	<div class="node-panel" :class="{ collapsed }">
-		<div v-if="collapsed" class="collapsed-t// Estado del acordeón - categorías expandidas
-const expandedCategories = ref<Set<string>>(new Set(['Control de flujo', 'Lógica', 'Captura', 'Procesamiento'])); // Categorías principales expandidas por defecto">
+		<div v-if="collapsed" class="collapsed-top">
 			<button class="collapse-btn" @click.stop="toggle">
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
 					<g>
@@ -102,7 +101,7 @@ const collapsed = ref(false);
 const search = ref('');
 
 // Estado del acordeón - categorías expandidas
-const expandedCategories = ref<Set<string>>(new Set(['Control de flujo', 'Lógica'])); // Por defecto expandidas
+const expandedCategories = ref<Set<string>>(new Set(['Control de flujo', 'Lógica', 'Captura', 'Procesamiento'])); // Categorías principales expandidas por defecto
 
 // Usar el store del catálogo de nodos
 const nodeCatalogStore = useNodeCatalogStore();
@@ -274,6 +273,8 @@ function onDragStart(
 	display: flex;
 	flex-direction: column;
 	padding: 10px 8px 0 8px;
+	overflow: hidden; /* Evitar overflow en el contenedor padre */
+	min-height: 0; /* Permitir que flex funcione correctamente */
 }
 .search {
 	width: 100%;
@@ -298,6 +299,27 @@ function onDragStart(
 	padding: 0;
 	flex: 1;
 	overflow-y: auto;
+	overflow-x: hidden;
+	min-height: 0; /* Permitir que flex funcione correctamente */
+}
+
+/* Personalizar scrollbar para mejor apariencia */
+.accordion-container::-webkit-scrollbar {
+	width: 6px;
+}
+
+.accordion-container::-webkit-scrollbar-track {
+	background: #1a1d23;
+	border-radius: 3px;
+}
+
+.accordion-container::-webkit-scrollbar-thumb {
+	background: #404040;
+	border-radius: 3px;
+}
+
+.accordion-container::-webkit-scrollbar-thumb:hover {
+	background: #555;
 }
 
 .accordion-section {
@@ -368,37 +390,38 @@ function onDragStart(
 }
 
 .accordion-content.expanded {
-	max-height: 500px; /* Ajusta según necesites */
+	max-height: 1000px; /* Valor más alto para manejar categorías con muchos nodos */
 }
 
-/* Grid de nodos mejorado */
+/* Grid de nodos mejorado - 2 columnas */
 .node-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-	gap: 6px;
-	padding: 12px;
+	grid-template-columns: 1fr 1fr; /* Forzar exactamente 2 columnas */
+	gap: 4px;
+	padding: 6px 10px 10px 10px;
 }
 
 .node-card {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 6px;
-	padding: 10px 6px;
-	border-radius: 6px;
-	background: #2a2d35;
-	border: 1px solid #404040;
+	gap: 3px;
+	padding: 6px 3px;
+	border-radius: 4px;
+	background: transparent;
+	border: 0px solid #404040;
 	cursor: grab;
 	transition: all 0.2s ease;
-	min-height: 75px;
+	min-height: 55px;
 	justify-content: center;
+	font-size: 0.8rem;
 }
 
 .node-card:hover {
 	background: #31353c;
 	border-color: #555;
 	transform: translateY(-1px);
-	box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .node-card:active {
@@ -407,25 +430,28 @@ function onDragStart(
 }
 
 .node-card-icon {
-	font-size: 1.4rem;
+	font-size: 1.1rem;
 	line-height: 1;
 }
 
 .node-card-icon svg {
-	width: 22px;
-	height: 22px;
+	width: 16px;
+	height: 16px;
 	fill: #ffb84d;
 }
 
 .node-card-label {
-	font-size: 0.75rem;
+	font-size: 0.65rem;
 	font-weight: 500;
 	color: #fff;
 	text-align: center;
-	line-height: 1.1;
+	line-height: 0.9;
 	word-break: break-word;
 	hyphens: auto;
 	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-height: 2.4em; /* Limitar a máximo 2 líneas */
 }
 .add-node-type-btn {
 	width: 100%;

@@ -12,10 +12,12 @@ Se implementó un nuevo diseño tipo acordeón para el panel de nodos del Flow D
 - **Contador de Nodos**: Muestra el número de nodos en cada categoría
 
 ### 🎨 Diseño Mejorado
-- **Grid Responsivo**: Los nodos se organizan en tarjetas dentro de un grid adaptable
-- **Tarjetas de Nodo**: Cada nodo tiene su propia tarjeta con icono y etiqueta
+- **Grid de 2 Columnas**: Los nodos se organizan en exactamente 2 columnas por categoría
+- **Tarjetas Compactas**: Nodos más pequeños para optimizar el espacio del panel
+- **Scroll Vertical**: Panel scrolleable para manejar múltiples categorías expandidas
+- **Scrollbar Personalizada**: Diseño elegante que se integra con el tema oscuro
 - **Efectos Visuales**: Hover effects y transiciones suaves
-- **Mejor Espaciado**: Distribución optimizada basada en el diseño de referencia
+- **Espaciado Optimizado**: Distribución eficiente basada en el diseño de referencia
 
 ### 📱 Funcionalidad
 - **Drag & Drop**: Mantiene toda la funcionalidad de arrastrar nodos al canvas
@@ -76,10 +78,42 @@ const iconMap: Record<string, string> = {
 };
 ```
 
-### Grid Responsivo
-- Columnas mínimas: 110px
-- Gap entre tarjetas: 6px
-- Altura mínima de tarjeta: 75px
+### Grid de 2 Columnas
+```css
+.node-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Exactamente 2 columnas */
+  gap: 4px;
+  padding: 6px 10px 10px 10px;
+}
+```
+
+### Scroll Vertical Optimizado
+```css
+.panel-content {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0; /* Clave para flex funcionamiento */
+}
+
+.accordion-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+/* Scrollbar personalizada */
+.accordion-container::-webkit-scrollbar {
+  width: 6px;
+}
+```
+
+### Tarjetas Compactas
+- Altura mínima: 55px
+- Gap entre elementos: 3px
+- Padding reducido: 6px 3px
+- Font size del label: 0.65rem
 
 ## 📝 Notas de Desarrollo
 
