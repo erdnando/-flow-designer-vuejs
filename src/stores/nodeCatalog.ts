@@ -123,7 +123,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'motor-2',
 			name: 'Motor 2',
 			type: 'custom',
-			icon: '🔧',
+			icon: '⚙️',
 			description: 'Motor de procesamiento 2',
 			category: 'Motores de decisión',
 			defaultData: {
@@ -137,7 +137,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'motor-3',
 			name: 'Motor 3',
 			type: 'custom',
-			icon: '🛠️',
+			icon: '⚙️',
 			description: 'Motor de procesamiento 3',
 			category: 'Motores de decisión',
 			defaultData: {
@@ -177,13 +177,13 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 		},
 		{
 			id: 'alta-vision',
-			name: 'Alta Visión',
+			name: 'Alta Producto',
 			type: 'custom',
 			icon: '🏦',
 			description: 'Sistema de visión avanzada',
 			category: 'Alta Producto',
 			defaultData: {
-				subtitle: 'Alta visión',
+				subtitle: 'Alta producto',
 				config: {
 					type: 'high_vision'
 				}
@@ -200,20 +200,6 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 				subtitle: 'Embozado',
 				config: {
 					type: 'embossing'
-				}
-			}
-		},
-		{
-			id: 'condicion',
-			name: 'Condición (If)',
-			type: 'custom',
-			icon: '❓',
-			description: 'Condición lógica que determina el flujo',
-			category: 'Control de flujo',
-			defaultData: {
-				subtitle: 'Condición (If)',
-				config: {
-					type: 'condition'
 				}
 			}
 		}
