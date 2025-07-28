@@ -225,7 +225,7 @@ function onDragStart(
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding-top: 12px;
+	padding-top: 32px;
 	height: 100%;
 }
 .panel-header {
@@ -237,6 +237,9 @@ function onDragStart(
 	background: #23272e;
 	cursor: pointer;
 	border-bottom: 1px solid #23272e;
+	margin-top: 20px;
+	height: 44px;
+	box-sizing: border-box;
 }
 .collapse-btn {
 	background: none;

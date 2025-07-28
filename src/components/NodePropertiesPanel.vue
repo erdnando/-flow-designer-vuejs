@@ -428,7 +428,7 @@ const allNodeTypes = computed(() => {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding-top: 12px;
+	padding-top: 32px;
 	height: 100%;
 }
 .panel-header {
@@ -436,11 +436,12 @@ const allNodeTypes = computed(() => {
 	align-items: center;
 	justify-content: space-between;
 	padding: 0 12px 0 20px;
-	min-height: 48px;
-	height: 48px;
+	min-height: 44px;
+	height: 44px;
 	border-bottom: 1px solid #363a40;
 	background: transparent;
 	box-sizing: border-box;
+	margin-top: 20px;
 }
 .panel-title {
 	font-size: 1.08rem;

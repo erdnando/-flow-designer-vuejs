@@ -6,6 +6,9 @@ export const useFlowStore = defineStore('flow', () => {
 	// Estado reactivo para nodos y edges
 	const nodes = ref<Node[]>([]);
 	const edges = ref<Edge[]>([]);
+	
+	// Título del flujo
+	const flowTitle = ref<string>('Mi Flujo de Trabajo');
 
 	// Método para agregar nodos
 	function addNode(opts?: { type?: string; label?: string; position?: XYPosition; data?: any }) {
@@ -72,5 +75,5 @@ export const useFlowStore = defineStore('flow', () => {
 		nodes.value[index] = updatedNode;
 	}
 
-	return { nodes, edges, addNode, addEdge, updateNode };
+	return { nodes, edges, flowTitle, addNode, addEdge, updateNode };
 });

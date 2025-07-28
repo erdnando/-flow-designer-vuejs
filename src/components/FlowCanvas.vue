@@ -58,6 +58,17 @@
 				</svg>
 			</button>
 		</div>
+		
+		<!-- Título del flujo -->
+		<div 
+			:class="['flow-title-label', { 'flow-title-collapsed': panelCollapsed }]"
+			:title="flowTitle && flowTitle.length > 44 ? flowTitle : ''"
+		>
+			<span style="color: #fff; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+				{{ flowTitle && flowTitle.length > 44 ? flowTitle.substring(0, 44) + '...' : flowTitle }}
+			</span>
+		</div>
+		
 		<!-- Animación de nodos con transition-group -->
 		<VueFlow
 			v-model:nodes="nodes"
@@ -197,7 +208,7 @@ interface ExtendedNode extends Node {
 }
 
 const flowStore = useFlowStore();
-const { nodes, edges } = storeToRefs(flowStore);
+const { nodes, edges, flowTitle } = storeToRefs(flowStore);
 
 // Auto-guardar en localStorage
 const AUTOSAVE_KEY = 'n8n_standalone_flow_data';
@@ -1142,7 +1153,7 @@ const panelCollapsed = ref(true);
 
 // Estado para propiedades del proyecto
 const projectProperties = ref({
-	name: 'Mi Flujo',
+	name: flowTitle.value, // Inicializar con el valor del store
 	description: 'Descripción del flujo',
 	status: 'Activo',
 	owner: 'Usuario',
@@ -1150,6 +1161,11 @@ const projectProperties = ref({
 	updatedAt: new Date().toLocaleDateString(),
 });
 const showingProjectProps = ref(false);
+
+// Sincronizar projectProperties cuando cambie flowTitle
+watch(flowTitle, (newTitle) => {
+	projectProperties.value.name = newTitle;
+});
 
 // Detectar selección de nodo (click) de forma optimizada
 function onNodeClick({ node }: { node: Node }) {
@@ -1247,7 +1263,11 @@ function updateProjectProperties(val: any) {
 	if (!val) return;
 
 	// Evitar mutaciones directas actualizando solo propiedades específicas
-	if (val.name !== undefined) projectProperties.value.name = val.name;
+	if (val.name !== undefined) {
+		projectProperties.value.name = val.name;
+		// Sincronizar con el store del flujo
+		flowTitle.value = val.name;
+	}
 	if (val.description !== undefined) projectProperties.value.description = val.description;
 	if (val.status !== undefined) projectProperties.value.status = val.status;
 	if (val.owner !== undefined) projectProperties.value.owner = val.owner;
@@ -2223,6 +2243,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	display: flex;
 	cursor: url('https://cdn.jsdelivr.net/gh/rdnando/cursors@main/material-hand.cur'), grab;
 }
+
 .custom-vue-flow {
 	width: 100%;
 	height: 100%;
@@ -2289,12 +2310,13 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 }
 .actions-bar {
 	position: absolute;
-	top: 18px;
+	top: 20px;
 	right: 60px;
 	z-index: 4000;
 	display: flex;
 	gap: 10px;
 	transition: right 0.22s cubic-bezier(0.4, 1.3, 0.6, 1);
+	align-items: center;
 }
 .actions-bar-shifted {
 	right: 380px !important;
@@ -2304,14 +2326,14 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	background: #23272e;
 	color: #fff;
 	border: none;
-	border-radius: 6px;
+	border-radius: 8px;
 	padding: 0;
 	margin: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	height: 40px;
-	width: 40px;
+	height: 44px;
+	width: 44px;
 	font-size: 15px;
 	cursor: pointer;
 	transition: background 0.2s;
@@ -2526,5 +2548,41 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	display: flex;
 	justify-content: flex-end;
 	gap: 10px;
+}
+
+/* Estilos del título del flujo - CSS global para evitar interferencias */
+.flow-title-label {
+	position: absolute !important;
+	top: 20px !important;
+	left: 20px !important;
+	z-index: 1000 !important;
+	color: #fff !important;
+	font-size: 1.1rem !important;
+	font-weight: 600 !important;
+	padding: 0 20px !important;
+	height: 44px !important;
+	display: flex !important;
+	align-items: center !important;
+	background: rgba(35, 39, 46, 0.9) !important;
+	border: 1px solid rgba(255, 255, 255, 0.1) !important;
+	border-radius: 8px !important;
+	backdrop-filter: blur(8px) !important;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+	letter-spacing: 0.3px !important;
+	text-align: left !important;
+	min-width: 200px !important;
+	max-width: 380px !important;
+	width: auto !important;
+	user-select: none !important;
+	pointer-events: auto !important;
+	transition: left 0.22s cubic-bezier(0.4, 1.3, 0.6, 1) !important;
+	white-space: nowrap !important;
+	overflow: hidden !important;
+	cursor: default !important;
+}
+
+.flow-title-collapsed {
+	left: 20px !important;
+	max-width: 280px !important;
 }
 </style>
