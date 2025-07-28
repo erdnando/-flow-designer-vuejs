@@ -2,11 +2,15 @@
 export const nodeTypeMeta: Record<string, { icon: string; subtitle: string }> = {
 	start: {
 		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><circle cx="19" cy="19" r="16" fill="#4CAF50" stroke="#2E7D32" stroke-width="3"/><polygon points="15,11 25,19 15,27" fill="white"/></svg>`,
-		subtitle: 'Inicio del flujo',
+		subtitle: 'Inicio solicitud',
 	},
 	end: {
 		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><circle cx="19" cy="19" r="16" fill="#F44336" stroke="#C62828" stroke-width="3"/><rect x="13" y="13" width="12" height="12" fill="white" rx="2"/></svg>`,
-		subtitle: 'Fin del flujo',
+		subtitle: 'Fin proceso',
+	},
+	condition: {
+		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><polygon points="19,4 32,19 19,34 6,19" fill="#FF9800" stroke="#E65100" stroke-width="3"/><text x="19" y="23" text-anchor="middle" fill="white" font-size="16" font-weight="bold">?</text></svg>`,
+		subtitle: 'Decisión crediticia',
 	},
 	gmail: {
 		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e" stroke="#e14d43" stroke-width="2.5"/><g><path d="M8 12 L19 21 L30 12" stroke="#4285F4" stroke-width="2.5" fill="none" /><path d="M8 12 V26 Q8 28 10 28 H28 Q30 28 30 26 V12" stroke="#34A853" stroke-width="2.5" fill="none" /><path d="M8 12 L19 21 L30 12" stroke="#FBBC05" stroke-width="2.5" fill="none" /><path d="M8 12 L19 21 L30 12" stroke="#EA4335" stroke-width="2.5" fill="none" /></g></svg>`,
@@ -35,14 +39,6 @@ export const nodeTypeMeta: Record<string, { icon: string; subtitle: string }> = 
 	merge: {
 		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e" stroke="#e14d43" stroke-width="2.5"/><g><path d="M12 12 Q19 19 26 12" stroke="#4285F4" stroke-width="2.5" fill="none" /><path d="M12 26 Q19 19 26 26" stroke="#34A853" stroke-width="2.5" fill="none" /></g></svg>`,
 		subtitle: 'merge: data',
-	},
-	if: {
-		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e" stroke="#e14d43" stroke-width="2.5"/><g><path d="M12 19 h14" stroke="#4285F4" stroke-width="2.5" /><path d="M19 12 v14" stroke="#34A853" stroke-width="2.5" /></g></svg>`,
-		subtitle: 'if: condition',
-	},
-	condition: {
-		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e" stroke="#e14d43" stroke-width="2.5"/><g><path d="M12 19 h14" stroke="#4285F4" stroke-width="2.5" /><path d="M19 12 v14" stroke="#34A853" stroke-width="2.5" /></g></svg>`,
-		subtitle: 'if: condition',
 	},
 	default: {
 		icon: `<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e" stroke="#e14d43" stroke-width="2.5"/><g><circle cx="19" cy="19" r="8" stroke="#4285F4" stroke-width="2.5" fill="none" /></g></svg>`,

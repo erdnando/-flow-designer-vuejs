@@ -169,15 +169,15 @@ function isCategoryExpanded(categoryName: string): boolean {
 function getCategoryIcon(categoryName: string): string {
 	const iconMap: Record<string, string> = {
 		'Control de flujo': '🔀',
-		'Captura': '📝',
+		'Captura': '📋',
 		'Procesamiento': '⚙️',
-		'Motores de decisión': '🚀',
-		'Documentos': '📄',
+		'Motores de decisión': '⚙️',
+		'Documentos': '📑',
 		'Sistema': '🔧',
-		'Control': '🎛️',
+		'Control': '🖥️',
 		'Análisis': '📊',
 		'Producción': '🏭',
-		'Alta Producto': '💎'
+		'Alta Producto': '💳'
 	};
 	return iconMap[categoryName] || '📁';
 }

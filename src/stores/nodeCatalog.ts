@@ -25,7 +25,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'ine',
 			name: 'INE',
 			type: 'custom',
-			icon: '🆔',
+			icon: '🪪',
 			description: 'Nodo para validación de INE',
 			category: 'Captura',
 			defaultData: {
@@ -39,7 +39,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'captura-rapida',
 			name: 'Captura Rápida',
 			type: 'custom',
-			icon: '⚡',
+			icon: '📋',
 			description: 'Captura rápida de datos',
 			category: 'Captura',
 			defaultData: {
@@ -53,7 +53,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'firma',
 			name: 'Firma',
 			type: 'custom',
-			icon: '✍️',
+			icon: '📝',
 			description: 'Captura de firma digital',
 			category: 'Captura',
 			defaultData: {
@@ -67,7 +67,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'captura-completa',
 			name: 'Captura Completa',
 			type: 'custom',
-			icon: '📋',
+			icon: '📊',
 			description: 'Captura completa de información',
 			category: 'Captura',
 			defaultData: {
@@ -81,7 +81,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'captura-telefonos',
 			name: 'Captura Teléfonos',
 			type: 'custom',
-			icon: '📞',
+			icon: '☎️',
 			description: 'Captura de números telefónicos',
 			category: 'Captura',
 			defaultData: {
@@ -95,7 +95,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'carga-documentos',
 			name: 'Carga de Documentos',
 			type: 'custom',
-			icon: '📄',
+			icon: '📑',
 			description: 'Carga y gestión de documentos',
 			category: 'Captura',
 			defaultData: {
@@ -151,7 +151,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'recuperacion',
 			name: 'Recuperación',
 			type: 'custom',
-			icon: '🔄',
+			icon: '💰',
 			description: 'Sistema de recuperación',
 			category: 'Control',
 			defaultData: {
@@ -165,7 +165,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'mesa-control',
 			name: 'Mesa de Control',
 			type: 'custom',
-			icon: '🎛️',
+			icon: '🖥️',
 			description: 'Panel de control principal',
 			category: 'Control',
 			defaultData: {
@@ -179,7 +179,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'alta-vision',
 			name: 'Alta Visión',
 			type: 'custom',
-			icon: '👁️',
+			icon: '🏦',
 			description: 'Sistema de visión avanzada',
 			category: 'Alta Producto',
 			defaultData: {
@@ -193,7 +193,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			id: 'embozado',
 			name: 'Embozado',
 			type: 'custom',
-			icon: '🏷️',
+			icon: '💳',
 			description: 'Sistema de embozado',
 			category: 'Alta Producto',
 			defaultData: {
@@ -250,41 +250,21 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 		return nodeTemplates.value.filter(template => template.category === category);
 	}
 
-	// Función preparada para futuro uso con API
-	async function fetchFromAPI(): Promise<void> {
-		isLoading.value = true;
-		error.value = null;
-		
-		try {
-			// TODO: Implementar llamada real a la API
-			// const response = await axios.get('/api/node-templates');
-			// nodeTemplates.value = response.data;
-			
-			// Por ahora usar datos locales
-			nodeTemplates.value = [...initialNodeTemplates];
-			isLoading.value = false;
-		} catch (err) {
-			error.value = 'Error al obtener datos de la API';
-			isLoading.value = false;
-			console.error('Error fetching from API:', err);
-		}
-	}
-
-	// Función para agregar un nuevo template (para futuro uso)
-	function addTemplate(template: NodeTemplate): void {
+	// Función para agregar un nuevo template
+	function addTemplate(template: NodeTemplate) {
 		nodeTemplates.value.push(template);
 	}
 
-	// Función para actualizar un template (para futuro uso)
-	function updateTemplate(id: string, updates: Partial<NodeTemplate>): void {
+	// Función para actualizar un template existente
+	function updateTemplate(id: string, updates: Partial<NodeTemplate>) {
 		const index = nodeTemplates.value.findIndex(t => t.id === id);
 		if (index !== -1) {
 			nodeTemplates.value[index] = { ...nodeTemplates.value[index], ...updates };
 		}
 	}
 
-	// Función para eliminar un template (para futuro uso)
-	function removeTemplate(id: string): void {
+	// Función para eliminar un template
+	function removeTemplate(id: string) {
 		const index = nodeTemplates.value.findIndex(t => t.id === id);
 		if (index !== -1) {
 			nodeTemplates.value.splice(index, 1);
@@ -301,11 +281,10 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 		nodesByCategory,
 		categories,
 		
-		// Métodos
+		// Acciones
 		initializeCatalog,
 		getTemplateById,
 		getTemplatesByCategory,
-		fetchFromAPI,
 		addTemplate,
 		updateTemplate,
 		removeTemplate
