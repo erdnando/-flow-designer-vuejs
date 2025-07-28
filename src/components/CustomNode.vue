@@ -95,9 +95,13 @@ import { Handle, Position, useNode } from '@vue-flow/core';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { useNodeValidation } from '../composables/useNodeValidation';
+import { useNodeCatalogStore } from '../stores/nodeCatalog';
 import NodeWarning from './NodeWarning.vue';
 
 const props = defineProps<{ data: { label?: string; type?: string; subtitle?: string } }>();
+
+// Store del catálogo de nodos
+const nodeCatalogStore = useNodeCatalogStore();
 const nodeInstance = useNode ? useNode() : undefined;
 
 // Estado para la toolbar
@@ -161,6 +165,9 @@ const rawData = computed(() => {
 		nodeDataLabel: nodeData.label,
 		nodeDataType: nodeData.type,
 		nodeDataSubtitle: nodeData.subtitle,
+		// Propiedades del catálogo
+		templateId: nodeData.templateId,
+		isFromCatalog: nodeData.isFromCatalog,
 	};
 });
 
@@ -201,12 +208,22 @@ const nodeIcon = computed(() => {
 	const currentType = nodeType.value;
 	console.log('Actualizando ícono para tipo:', currentType);
 
-	// Si el tipo existe en nodeTypeMeta, usar su icono
+	// Prioridad 1: Si el nodo tiene templateId, buscar el icono en el catálogo
+	const templateId = rawData.value.templateId;
+	if (templateId) {
+		const template = nodeCatalogStore.getTemplateById(templateId);
+		if (template && template.icon) {
+			console.log('Usando icono del template:', template.icon, 'para templateId:', templateId);
+			return template.icon;
+		}
+	}
+
+	// Prioridad 2: Si el tipo existe en nodeTypeMeta, usar su icono
 	if (nodeTypeMeta[currentType]) {
 		return nodeTypeMeta[currentType].icon;
 	}
 
-	// Si no, usar el icono por defecto
+	// Prioridad 3: Usar el icono por defecto
 	return nodeTypeMeta.default.icon;
 });
 
@@ -336,6 +353,7 @@ onBeforeUnmount(() => {
 	border-radius: 10px;
 	margin-right: 10px;
 	position: relative;
+	font-size: 2.3rem; /* Hacer el emoji más grande */
 }
 .node-warning {
 	position: absolute;
