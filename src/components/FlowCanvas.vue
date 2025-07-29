@@ -17,6 +17,18 @@
 				</svg>
 				<span>Publicar</span>
 			</button>
+			<button @click.stop="clearFlow" title="Limpiar flujo" class="text-button clear-button">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+					<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2" />
+					<path
+						d="M8 8l8 8M16 8l-8 8"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+					/>
+				</svg>
+				<span>Limpiar</span>
+			</button>
 		</div>
 		
 		<!-- Título del flujo con dropdown de versiones -->
@@ -125,17 +137,6 @@
 				</svg>
 				<input type="file" accept="application/json" @change="importFlow" style="display: none" />
 			</label>
-			<button @click.stop="clearFlow" title="Limpiar flujo">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-					<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2" />
-					<path
-						d="M8 8l8 8M16 8l-8 8"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-					/>
-				</svg>
-			</button>
 		</div>
 		
 		<ContextMenu
@@ -3293,6 +3294,17 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .actions-bar .publish-button:hover {
 	background: #2557a6 !important;
 	box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3) !important;
+}
+
+/* Estilos específicos para botón de limpiar */
+.actions-bar .clear-button {
+	background: #dc3545 !important;
+	border: 1px solid #dc3545 !important;
+}
+
+.actions-bar .clear-button:hover {
+	background: #c82333 !important;
+	box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3) !important;
 }
 
 /* Estilos para la toolbar inferior izquierda */
