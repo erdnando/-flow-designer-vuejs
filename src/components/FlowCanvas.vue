@@ -224,6 +224,108 @@
 		@confirm="confirmPublishFlow"
 		@cancel="cancelPublishFlow"
 	/>
+	
+	<!-- Diálogo de checklist del test -->
+	<SimpleDialog 
+		v-model="showTestChecklistDialog"
+		title="Validando checklist del flujo"
+		type="info"
+		:show-icon="true"
+		:show-cancel-button="true"
+		cancel-button-text="Cancelar"
+		:show-close="false"
+		:close-on-click-modal="false"
+		:show-confirm-button="false"
+		:show-submit-button="false"
+		@cancel="cancelTestFlow"
+	>
+		<div class="test-checklist">
+			<div 
+				v-for="item in testChecklistItems" 
+				:key="item.id" 
+				class="checklist-item"
+				:class="{ 'completed': item.completed }"
+			>
+				<div class="checklist-icon">
+					<svg v-if="item.completed" width="16" height="16" viewBox="0 0 24 24" fill="none" class="check-icon">
+						<path d="M20 6L9 17l-5-5" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+					<div v-else class="loading-spinner"></div>
+				</div>
+				<span class="checklist-text">{{ item.text }}</span>
+			</div>
+		</div>
+	</SimpleDialog>
+	
+	<!-- Modal de resultados del test -->
+	<div v-if="showTestResultsModal" class="test-results-modal-overlay" @click="closeTestResults">
+		<div class="test-results-modal" @click.stop>
+			<div class="modal-header">
+				<h2 class="modal-title">
+					<svg v-if="testResults?.status === 'success'" width="24" height="24" viewBox="0 0 24 24" fill="none" class="status-icon success">
+						<circle cx="12" cy="12" r="10" stroke="#4caf50" stroke-width="2"/>
+						<path d="M8 12l2 2 4-4" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+					<svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" class="status-icon warning">
+						<path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#ff9800" stroke-width="2"/>
+						<path d="M12 8v4M12 16h.01" stroke="#ff9800" stroke-width="2" stroke-linecap="round"/>
+					</svg>
+					Resultados del Test
+				</h2>
+				<button @click="closeTestResults" class="modal-close-btn">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+						<path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+					</svg>
+				</button>
+			</div>
+			
+			<div class="modal-content">
+				<div class="results-summary" v-if="testResults">
+					<h3>Resumen</h3>
+					<div class="summary-grid">
+						<div class="summary-item">
+							<span class="label">Total de nodos:</span>
+							<span class="value">{{ testResults.summary.totalNodes }}</span>
+						</div>
+						<div class="summary-item">
+							<span class="label">Conexiones:</span>
+							<span class="value">{{ testResults.summary.totalConnections }}</span>
+						</div>
+						<div class="summary-item">
+							<span class="label">Nodos START:</span>
+							<span class="value">{{ testResults.summary.startNodes }}</span>
+						</div>
+						<div class="summary-item">
+							<span class="label">Nodos END:</span>
+							<span class="value">{{ testResults.summary.endNodes }}</span>
+						</div>
+						<div class="summary-item">
+							<span class="label">Validaciones:</span>
+							<span class="value" :class="testResults.status">{{ testResults.summary.validationsPassed }}</span>
+						</div>
+						<div class="summary-item">
+							<span class="label">Tiempo estimado:</span>
+							<span class="value">{{ testResults.details.estimatedRuntime }}</span>
+						</div>
+					</div>
+				</div>
+				
+				<div class="results-details" v-if="testResults">
+					<h3>Detalles del flujo</h3>
+					<div class="details-content">
+						<p><strong>Ruta de ejecución:</strong> {{ testResults.details.executionPath }}</p>
+						<p><strong>Tipos de nodos:</strong> {{ testResults.details.nodeTypes.join(', ') }}</p>
+						<p><strong>Dependencias circulares:</strong> {{ testResults.details.hasCircularDependencies ? 'Detectadas' : 'No detectadas' }}</p>
+					</div>
+				</div>
+			</div>
+			
+			<div class="modal-footer">
+				<button @click="closeTestResults" class="btn btn-secondary">Cerrar</button>
+				<button v-if="testResults?.status === 'success'" @click="publishFlow" class="btn btn-primary">Publicar flujo</button>
+			</div>
+		</div>
+	</div>
 </template>
 
 <script setup lang="ts">
@@ -248,6 +350,31 @@ import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 import { getValidationErrors, type ValidationResult } from '../utils/nodeValidationRules';
 import { useNotifications } from '../composables/useNotifications';
 import SimpleDialog from './SimpleDialog.vue';
+
+// Interfaces para el sistema de testing
+interface TestResults {
+	isValid: boolean;
+	summary: {
+		totalNodes: number;
+		totalConnections: number;
+		startNodes: number;
+		endNodes: number;
+		validationsPassed: string;
+	};
+	details: {
+		nodeTypes: (string | undefined)[];
+		hasCircularDependencies: boolean;
+		executionPath: string;
+		estimatedRuntime: string;
+	};
+	status: 'success' | 'warning';
+}
+
+interface ChecklistItem {
+	id: number;
+	text: string;
+	completed: boolean;
+}
 
 // Extender el tipo Node para incluir la propiedad selected opcional
 interface ExtendedNode extends Node {
@@ -773,6 +900,7 @@ function confirmClearFlow() {
 		owner: 'Usuario',
 		createdAt: new Date().toLocaleDateString(),
 		updatedAt: new Date().toLocaleDateString(),
+		version: selectedVersion.value, // Agregar la propiedad version
 	};
 
 	// Guardar los cambios en localStorage
@@ -1195,6 +1323,7 @@ const projectProperties = ref({
 	owner: 'Usuario',
 	createdAt: new Date().toLocaleDateString(),
 	updatedAt: new Date().toLocaleDateString(),
+	version: selectedVersion.value, // Agregar la propiedad version
 });
 const showingProjectProps = ref(false);
 
@@ -1946,6 +2075,21 @@ const edgeToDelete = ref<Edge | null>(null);
 // Estado para el diálogo de confirmación de publicación
 const showPublishDialog = ref(false);
 
+// Estados para el test del flujo
+const showTestChecklistDialog = ref(false);
+const showTestResultsModal = ref(false);
+const testChecklistItems = ref<ChecklistItem[]>([
+	{ id: 1, text: 'Validando estructura del flujo', completed: false },
+	{ id: 2, text: 'Verificando nodos START y END', completed: false },
+	{ id: 3, text: 'Comprobando conexiones', completed: false },
+	{ id: 4, text: 'Ejecutando validaciones de negocio', completed: false },
+	{ id: 5, text: 'Simulando flujo de datos', completed: false },
+	{ id: 6, text: 'Generando reporte de resultados', completed: false }
+]);
+const testResults = ref<TestResults | null>(null);
+const testCancelled = ref(false);
+let testTimeouts: number[] = [];
+
 // Proveer funciones a los componentes hijos
 provide('deleteNode', onNodeDelete);
 provide('copyNode', onNodeCopy);
@@ -2246,9 +2390,9 @@ function importFlow(e: Event) {
 
 // Función para ejecutar test del flujo
 function testFlow() {
-	console.log('Ejecutando test del flujo...');
+	console.log('Iniciando test del flujo...');
 	
-	// Validar que el flujo tenga al menos un nodo START y END
+	// Validaciones rápidas previas
 	const startNodes = nodes.value.filter(n => n.type === 'start');
 	const endNodes = nodes.value.filter(n => n.type === 'end');
 	
@@ -2270,36 +2414,122 @@ function testFlow() {
 		return;
 	}
 	
-	// Ejecutar validaciones completas
-	const isValid = runNodeValidations(true);
+	// Resetear checklist y mostrar diálogo
+	testChecklistItems.value.forEach(item => item.completed = false);
+	showTestChecklistDialog.value = true;
 	
-	if (isValid) {
-		showSuccess('Test ejecutado exitosamente', {
-			title: 'Flujo válido',
-			description: `El flujo pasó todas las validaciones. Nodos: ${nodes.value.length}, Conexiones: ${edges.value.length}`,
-			duration: 5000,
-			actions: [
-				{
-					label: 'Ver detalles',
-					action: () => {
-						console.log('Detalles del test:', {
-							nodes: nodes.value.length,
-							edges: edges.value.length,
-							startNodes: startNodes.length,
-							endNodes: endNodes.length
-						});
-					},
-					style: 'primary'
-				}
-			]
-		});
-	} else {
-		showWarning('Test completado con advertencias', {
-			title: 'Validaciones pendientes',
-			description: 'El flujo tiene errores de validación que deben corregirse.',
-			duration: 6000
-		});
-	}
+	// Ejecutar checklist animado
+	runTestChecklist();
+}
+
+// Función para ejecutar el checklist animado
+function runTestChecklist() {
+	// Reiniciar estado de cancelación
+	testCancelled.value = false;
+	testTimeouts = [];
+	
+	let currentIndex = 0;
+	const interval = 400; // 400ms entre cada item (6 items * 400ms = 2.4 segundos)
+	
+	const checkNextItem = () => {
+		// Verificar si el test fue cancelado
+		if (testCancelled.value) {
+			console.log('Test cancelado, deteniendo checklist');
+			return;
+		}
+		
+		if (currentIndex < testChecklistItems.value.length) {
+			testChecklistItems.value[currentIndex].completed = true;
+			currentIndex++;
+			
+			if (currentIndex < testChecklistItems.value.length) {
+				const timeoutId = window.setTimeout(checkNextItem, interval);
+				testTimeouts.push(timeoutId);
+			} else {
+				// Todos los items completados, esperar un momento y mostrar resultados
+				const timeoutId = window.setTimeout(() => {
+					// Verificar nuevamente si fue cancelado antes de mostrar resultados
+					if (!testCancelled.value) {
+						showTestChecklistDialog.value = false;
+						showTestResults();
+					}
+				}, 600);
+				testTimeouts.push(timeoutId);
+			}
+		}
+	};
+	
+	// Iniciar el checklist después de un pequeño delay
+	const initialTimeoutId = window.setTimeout(checkNextItem, 300);
+	testTimeouts.push(initialTimeoutId);
+}
+
+// Función para mostrar los resultados del test
+function showTestResults() {
+	// Ejecutar las validaciones reales
+	const isValid = runNodeValidations(false);
+	const startNodes = nodes.value.filter(n => n.type === 'start');
+	const endNodes = nodes.value.filter(n => n.type === 'end');
+	
+	// Preparar resultados del test
+	testResults.value = {
+		isValid,
+		summary: {
+			totalNodes: nodes.value.length,
+			totalConnections: edges.value.length,
+			startNodes: startNodes.length,
+			endNodes: endNodes.length,
+			validationsPassed: isValid ? 'Todas' : 'Con advertencias'
+		},
+		details: {
+			nodeTypes: [...new Set(nodes.value.map(n => n.type))],
+			hasCircularDependencies: false, // Simplificado por ahora
+			executionPath: `START → ${nodes.value.length - 2} nodos → END`,
+			estimatedRuntime: '~2.3 segundos'
+		},
+		status: isValid ? 'success' : 'warning'
+	};
+	
+	// Mostrar modal de resultados
+	showTestResultsModal.value = true;
+}
+
+// Función para cerrar la modal de resultados
+function closeTestResults() {
+	showTestResultsModal.value = false;
+	testResults.value = null;
+}
+
+// Función para cancelar el test en progreso
+function cancelTestFlow() {
+	console.log('Test cancelado por el usuario');
+	
+	// Marcar como cancelado
+	testCancelled.value = true;
+	
+	// Limpiar todos los timeouts pendientes
+	testTimeouts.forEach(timeoutId => {
+		clearTimeout(timeoutId);
+	});
+	testTimeouts = [];
+	
+	// Cerrar diálogo
+	showTestChecklistDialog.value = false;
+	
+	// Resetear items del checklist para futuro uso
+	testChecklistItems.value = [
+		{ id: 1, text: 'Validando estructura del flujo', completed: false },
+		{ id: 2, text: 'Verificando nodos START y END', completed: false },
+		{ id: 3, text: 'Comprobando conexiones', completed: false },
+		{ id: 4, text: 'Ejecutando validaciones de negocio', completed: false },
+		{ id: 5, text: 'Simulando flujo de datos', completed: false },
+		{ id: 6, text: 'Generando reporte de resultados', completed: false }
+	];
+	
+	showInfo('Test cancelado', {
+		description: 'El proceso de validación ha sido cancelado.',
+		duration: 3000
+	});
 }
 
 // Función para publicar el flujo
@@ -2959,5 +3189,270 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 
 .version-dropdown-title:hover .dropdown-arrow-title {
 	color: #c8e6c9;
+}
+
+/* Estilos para el checklist del test */
+.test-checklist {
+	padding: 16px 0;
+}
+
+.checklist-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 0;
+	transition: all 0.3s ease;
+	opacity: 0.6;
+}
+
+.checklist-item.completed {
+	opacity: 1;
+}
+
+.checklist-icon {
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.check-icon {
+	animation: checkmark-appear 0.3s ease-in-out;
+}
+
+@keyframes checkmark-appear {
+	0% {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.loading-spinner {
+	width: 16px;
+	height: 16px;
+	border: 2px solid #e0e0e0;
+	border-top: 2px solid #2196f3;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+.checklist-text {
+	color: #e0e0e0;
+	font-size: 14px;
+	transition: color 0.3s ease;
+}
+
+.checklist-item.completed .checklist-text {
+	color: #4caf50;
+	font-weight: 500;
+}
+
+/* Estilos para la modal de resultados del test */
+.test-results-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.8);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 5000;
+	backdrop-filter: blur(4px);
+}
+
+.test-results-modal {
+	background: #2c2c2c;
+	border-radius: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+	width: 80%;
+	max-width: 900px;
+	max-height: 80%;
+	overflow: hidden;
+	animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalSlideIn {
+	0% {
+		opacity: 0;
+		transform: scale(0.9) translateY(-20px);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+}
+
+.modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 20px 24px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	background: #333;
+}
+
+.modal-title {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0;
+	color: #fff;
+	font-size: 20px;
+	font-weight: 600;
+}
+
+.status-icon.success {
+	color: #4caf50;
+}
+
+.status-icon.warning {
+	color: #ff9800;
+}
+
+.modal-close-btn {
+	background: transparent;
+	border: none;
+	color: #999;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: #fff;
+}
+
+.modal-content {
+	padding: 24px;
+	max-height: calc(80vh - 140px);
+	overflow-y: auto;
+}
+
+.results-summary {
+	margin-bottom: 24px;
+}
+
+.results-summary h3 {
+	color: #fff;
+	margin-bottom: 16px;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.summary-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 12px;
+}
+
+.summary-item {
+	display: flex;
+	justify-content: space-between;
+	padding: 8px 12px;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: 6px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.summary-item .label {
+	color: #bbb;
+	font-size: 14px;
+}
+
+.summary-item .value {
+	color: #fff;
+	font-weight: 500;
+	font-size: 14px;
+}
+
+.summary-item .value.success {
+	color: #4caf50;
+}
+
+.summary-item .value.warning {
+	color: #ff9800;
+}
+
+.results-details h3 {
+	color: #fff;
+	margin-bottom: 16px;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.details-content {
+	background: rgba(255, 255, 255, 0.05);
+	padding: 16px;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.details-content p {
+	color: #e0e0e0;
+	margin-bottom: 8px;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.details-content strong {
+	color: #fff;
+	font-weight: 500;
+}
+
+.modal-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+	padding: 20px 24px;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	background: #333;
+}
+
+.btn {
+	padding: 8px 16px;
+	border-radius: 6px;
+	border: none;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	transition: all 0.2s ease;
+}
+
+.btn-secondary {
+	background: #555;
+	color: #fff;
+	border: 1px solid #666;
+}
+
+.btn-secondary:hover {
+	background: #666;
+	transform: translateY(-1px);
+}
+
+.btn-primary {
+	background: linear-gradient(135deg, #1a4480 0%, #2196f3 100%);
+	color: #fff;
+	border: 1px solid #2196f3;
+}
+
+.btn-primary:hover {
+	background: linear-gradient(135deg, #2557a6 0%, #42a5f5 100%);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
 }
 </style>

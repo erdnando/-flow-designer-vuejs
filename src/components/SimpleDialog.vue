@@ -52,6 +52,7 @@
             {{ cancelButtonText }}
           </button>
           <button 
+            v-if="showConfirmButton"
             class="simple-dialog-button simple-dialog-button-confirm"
             :class="{ 'danger': confirmButtonType === 'danger' }"
             @click="onConfirm"
@@ -100,6 +101,10 @@ const props = defineProps({
     default: true
   },
   showCancelButton: {
+    type: Boolean,
+    default: true
+  },
+  showConfirmButton: {
     type: Boolean,
     default: true
   },
