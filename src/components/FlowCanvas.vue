@@ -326,6 +326,120 @@
 			</div>
 		</div>
 	</div>
+	
+	<!-- Modal del Wizard Simulador -->
+	<div v-if="showWizardModal" class="wizard-modal-overlay" @click="closeWizard">
+		<div class="wizard-modal" @click.stop>
+			<!-- Header del wizard -->
+			<div class="wizard-header">
+				<h2 class="wizard-title">
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="wizard-icon">
+						<path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#4caf50" stroke-width="2"/>
+						<path d="M2 17l10 5 10-5" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+						<path d="M2 12l10 5 10-5" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+					Simulador de Flujo
+				</h2>
+				<button @click="closeWizard" class="wizard-close-btn">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+						<path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+					</svg>
+				</button>
+			</div>
+			
+			<!-- Progreso del wizard -->
+			<div class="wizard-progress">
+				<div class="progress-bar">
+					<div 
+						class="progress-fill" 
+						:style="{ width: `${((currentWizardStep + 1) / wizardSteps.length) * 100}%` }"
+					></div>
+				</div>
+				<div class="progress-text">
+					Paso {{ currentWizardStep + 1 }} de {{ wizardSteps.length }}
+					<span v-if="wizardSteps[currentWizardStep]"> - {{ wizardSteps[currentWizardStep].title }}</span>
+				</div>
+			</div>
+			
+			<!-- Contenido del paso actual -->
+			<div class="wizard-content">
+				<div v-if="!wizardCompleted && wizardSteps[currentWizardStep]" class="wizard-step">
+					<div class="step-header">
+						<h3>{{ wizardSteps[currentWizardStep].title }}</h3>
+						<p class="step-description">{{ wizardSteps[currentWizardStep].description }}</p>
+					</div>
+					
+					<!-- Aquí se renderizará el componente de vista específico -->
+					<div class="step-content">
+						<component 
+							:is="wizardSteps[currentWizardStep].component" 
+							v-if="wizardSteps[currentWizardStep].type === 'view'"
+							@next="nextWizardStep"
+							@previous="previousWizardStep"
+						/>
+						
+						<!-- Para componentes que no existen aún, mostrar placeholder -->
+						<div v-if="!componentExists(wizardSteps[currentWizardStep].component)" class="step-placeholder">
+							<div class="placeholder-icon">
+								<svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+									<rect x="3" y="3" width="18" height="18" rx="2" stroke="#6b7280" stroke-width="2"/>
+									<path d="M9 9h6v6H9V9z" fill="#6b7280" opacity="0.3"/>
+								</svg>
+							</div>
+							<h4>{{ wizardSteps[currentWizardStep].title }}</h4>
+							<p>{{ wizardSteps[currentWizardStep].description }}</p>
+							<p class="component-info">Componente: <code>{{ wizardSteps[currentWizardStep].component }}</code></p>
+						</div>
+					</div>
+				</div>
+				
+				<!-- Pantalla de completado -->
+				<div v-if="wizardCompleted" class="wizard-completed">
+					<div class="completion-icon">
+						<svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+							<circle cx="12" cy="12" r="10" stroke="#4caf50" stroke-width="2"/>
+							<path d="M8 12l2 2 4-4" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+					</div>
+					<h3>¡Proceso Completado!</h3>
+					<p>El flujo se ha ejecutado exitosamente a través de todos los pasos definidos.</p>
+					<div class="completion-summary">
+						<p><strong>Pasos completados:</strong> {{ wizardSteps.length }}</p>
+						<p><strong>Vistas procesadas:</strong> {{ wizardSteps.filter(s => s.type === 'view').length }}</p>
+						<p><strong>Procesos internos:</strong> {{ wizardSteps.filter(s => s.type === 'process').length }}</p>
+					</div>
+				</div>
+			</div>
+			
+			<!-- Footer con controles -->
+			<div class="wizard-footer">
+				<button 
+					v-if="!wizardCompleted"
+					@click="previousWizardStep" 
+					:disabled="currentWizardStep === 0"
+					class="btn btn-secondary"
+				>
+					Anterior
+				</button>
+				
+				<div class="wizard-footer-right">
+					<button v-if="wizardCompleted" @click="restartWizard" class="btn btn-secondary">
+						Reiniciar
+					</button>
+					<button v-if="wizardCompleted" @click="closeWizard" class="btn btn-primary">
+						Finalizar
+					</button>
+					<button 
+						v-if="!wizardCompleted"
+						@click="nextWizardStep" 
+						class="btn btn-primary"
+					>
+						{{ currentWizardStep === wizardSteps.length - 1 ? 'Finalizar' : 'Siguiente' }}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
 </template>
 
 <script setup lang="ts">
@@ -373,6 +487,16 @@ interface TestResults {
 interface ChecklistItem {
 	id: number;
 	text: string;
+	completed: boolean;
+}
+
+interface WizardStep {
+	id: string;
+	nodeId: string;
+	title: string;
+	type: 'view' | 'process';
+	component: string;
+	description: string;
 	completed: boolean;
 }
 
@@ -2090,6 +2214,22 @@ const testResults = ref<TestResults | null>(null);
 const testCancelled = ref(false);
 let testTimeouts: number[] = [];
 
+// Estados para el wizard del simulador
+const showWizardModal = ref(false);
+const wizardSteps = ref<WizardStep[]>([]);
+const currentWizardStep = ref(0);
+const wizardCompleted = ref(false);
+
+interface WizardStep {
+	id: string;
+	nodeId: string;
+	title: string;
+	type: 'view' | 'process';
+	component: string;
+	description: string;
+	completed: boolean;
+}
+
 // Proveer funciones a los componentes hijos
 provide('deleteNode', onNodeDelete);
 provide('copyNode', onNodeCopy);
@@ -2164,7 +2304,35 @@ function confirmDeleteNode() {
 	}
 };
 
-console.log('Función testNodeDeletion disponible en window.testNodeDeletion()');
+// Función para debug de nodos desde la consola
+(window as any).debugNodes = () => {
+	console.log('=== DEBUG: Todos los nodos ===');
+	nodes.value.forEach((node, index) => {
+		console.log(`Nodo ${index + 1}:`, {
+			id: node.id,
+			type: node.type,
+			label: node.label,
+			dataLabel: node.data?.label,
+			position: node.position,
+			data: node.data
+		});
+	});
+	console.log('=== FIN DEBUG ===');
+	return nodes.value;
+};
+
+// Función para debug del wizard desde la consola
+(window as any).debugWizard = () => {
+	console.log('=== DEBUG: Creando wizard de prueba ===');
+	createWizardFromFlow();
+	console.log('Pasos del wizard:', wizardSteps.value);
+	return wizardSteps.value;
+};
+
+console.log('Funciones de debug disponibles:');
+console.log('- window.testNodeDeletion() - Probar eliminación de nodo');
+console.log('- window.debugNodes() - Ver todos los nodos');
+console.log('- window.debugWizard() - Crear y ver wizard de prueba');
 
 function cancelDeleteNode() {
 	nodeToDelete.value = null;
@@ -2464,40 +2632,314 @@ function runTestChecklist() {
 	testTimeouts.push(initialTimeoutId);
 }
 
-// Función para mostrar los resultados del test
+// Función para mostrar los resultados del test (ahora inicia el simulador wizard)
 function showTestResults() {
 	// Ejecutar las validaciones reales
 	const isValid = runNodeValidations(false);
-	const startNodes = nodes.value.filter(n => n.type === 'start');
-	const endNodes = nodes.value.filter(n => n.type === 'end');
 	
-	// Preparar resultados del test
-	testResults.value = {
-		isValid,
-		summary: {
-			totalNodes: nodes.value.length,
-			totalConnections: edges.value.length,
-			startNodes: startNodes.length,
-			endNodes: endNodes.length,
-			validationsPassed: isValid ? 'Todas' : 'Con advertencias'
+	if (!isValid) {
+		// Si hay errores de validación, mostrar la modal de errores tradicional
+		const startNodes = nodes.value.filter(n => n.type === 'start');
+		const endNodes = nodes.value.filter(n => n.type === 'end');
+		
+		testResults.value = {
+			isValid,
+			summary: {
+				totalNodes: nodes.value.length,
+				totalConnections: edges.value.length,
+				startNodes: startNodes.length,
+				endNodes: endNodes.length,
+				validationsPassed: 'Con advertencias'
+			},
+			details: {
+				nodeTypes: [...new Set(nodes.value.map(n => n.type))],
+				hasCircularDependencies: false,
+				executionPath: `START → ${nodes.value.length - 2} nodos → END`,
+				estimatedRuntime: '~2.3 segundos'
+			},
+			status: 'warning'
+		};
+		
+		showTestResultsModal.value = true;
+		return;
+	}
+	
+	// Si es válido, crear y mostrar el wizard del simulador
+	createWizardFromFlow();
+	showWizardModal.value = true;
+}
+
+// Función para crear el wizard basado en el flujo de nodos
+function createWizardFromFlow() {
+	console.log('Creando wizard desde el flujo de nodos...');
+	
+	// DEBUGGING: Imprimir todos los nodos para ver sus labels exactos
+	console.log('=== DEBUGGING: Todos los nodos en el flujo ===');
+	nodes.value.forEach((node, index) => {
+		console.log(`Nodo ${index + 1}:`, {
+			id: node.id,
+			type: node.type,
+			label: node.label,
+			dataLabel: node.data?.label,
+			position: node.position
+		});
+	});
+	console.log('=== FIN DEBUGGING ===');
+	
+	// Mapeo de tipos de nodos a vistas
+	const nodeViewMapping: Record<string, { title: string; component: string; description: string }> = {
+		'start': {
+			title: 'Inicio',
+			component: 'LandingPageView',
+			description: 'Página de bienvenida del proceso'
 		},
-		details: {
-			nodeTypes: [...new Set(nodes.value.map(n => n.type))],
-			hasCircularDependencies: false, // Simplificado por ahora
-			executionPath: `START → ${nodes.value.length - 2} nodos → END`,
-			estimatedRuntime: '~2.3 segundos'
+		'processNode': {
+			title: 'Proceso',
+			component: 'ProcessView',
+			description: 'Vista de proceso'
 		},
-		status: isValid ? 'success' : 'warning'
+		'end': {
+			title: 'Fin',
+			component: 'CompletionView',
+			description: 'Proceso completado exitosamente'
+		}
 	};
 	
-	// Mostrar modal de resultados
-	showTestResultsModal.value = true;
+	// Mapeo específico por label para processNodes
+	const processNodeMapping: Record<string, { title: string; component: string; description: string }> = {
+		'INE': {
+			title: 'Identificación (INE)',
+			component: 'INECaptureView',
+			description: 'Captura de fotografía de identificación oficial'
+		},
+		'Captura Rápida': {
+			title: 'Captura Rápida',
+			component: 'QuickCaptureView',
+			description: 'Captura rápida de datos básicos'
+		},
+		'Captura rapida': {
+			title: 'Captura Rápida',
+			component: 'QuickCaptureView',
+			description: 'Captura rápida de datos básicos'
+		},
+		'Firma': {
+			title: 'Firma Digital',
+			component: 'SignatureView',
+			description: 'Captura de firma digital con cursor'
+		},
+		'Captura completa': {
+			title: 'Datos Personales',
+			component: 'PersonalDataView',
+			description: 'Captura de información personal completa'
+		},
+		'Captura Completa': {
+			title: 'Datos Personales',
+			component: 'PersonalDataView',
+			description: 'Captura de información personal completa'
+		},
+		'Captura telefonos': {
+			title: 'Números Telefónicos',
+			component: 'PhoneNumbersView',
+			description: 'Captura de números telefónicos de contacto'
+		},
+		'Captura Telefonos': {
+			title: 'Números Telefónicos',
+			component: 'PhoneNumbersView',
+			description: 'Captura de números telefónicos de contacto'
+		},
+		'Captura Teléfonos': {
+			title: 'Números Telefónicos',
+			component: 'PhoneNumbersView',
+			description: 'Captura de números telefónicos de contacto'
+		},
+		'Alta Producto': {
+			title: 'Producto Asignado',
+			component: 'ProductAssignmentView',
+			description: 'Visualización de tarjeta de crédito asignada'
+		}
+	};
+	
+	// Función para encontrar el siguiente nodo en el flujo
+	function findNextNode(currentNodeId: string, visitedNodes: Set<string>): Node | null {
+		// Buscar conexiones que salgan del nodo actual
+		const outgoingEdges = edges.value.filter(edge => edge.source === currentNodeId);
+		
+		for (const edge of outgoingEdges) {
+			const nextNode = nodes.value.find(node => node.id === edge.target);
+			if (nextNode && !visitedNodes.has(nextNode.id)) {
+				return nextNode;
+			}
+		}
+		
+		return null;
+	}
+	
+	// Función para construir la secuencia del flujo siguiendo las conexiones
+	function buildFlowSequence(): Node[] {
+		const sequence: Node[] = [];
+		const visitedNodes = new Set<string>();
+		
+		// Encontrar el nodo START
+		const startNode = nodes.value.find(node => node.type === 'start');
+		if (!startNode) {
+			console.warn('No se encontró nodo START en el flujo');
+			return [];
+		}
+		
+		// Comenzar desde el nodo START
+		let currentNode: Node | null = startNode;
+		
+		while (currentNode) {
+			// Solo agregar nodos que representen vistas del usuario (omitir engineNodes)
+			if (currentNode.type === 'start' || currentNode.type === 'processNode' || currentNode.type === 'end') {
+				sequence.push(currentNode);
+			}
+			
+			visitedNodes.add(currentNode.id);
+			currentNode = findNextNode(currentNode.id, visitedNodes);
+			
+			// Evitar bucles infinitos
+			if (sequence.length > 20) {
+				console.warn('Secuencia muy larga, posible bucle detectado');
+				break;
+			}
+		}
+		
+		console.log('Secuencia del flujo construida:', sequence.map(n => ({ 
+			id: n.id, 
+			type: n.type, 
+			label: n.data?.label || n.label 
+		})));
+		
+		return sequence;
+	}
+	
+	// Construir la secuencia correcta del flujo
+	const flowSequence = buildFlowSequence();
+	
+	// Crear los pasos del wizard basados en la secuencia del flujo
+	const steps: WizardStep[] = [];
+	
+	flowSequence.forEach((node, index) => {
+		let stepInfo;
+		
+		console.log(`Procesando nodo ${index + 1}:`, {
+			id: node.id,
+			type: node.type,
+			label: node.label,
+			dataLabel: node.data?.label,
+			allData: node.data
+		});
+		
+		if (node.type === 'processNode') {
+			// Para processNodes, usar el mapeo específico basado en el label para el componente y descripción
+			const nodeLabel = node.data?.label || node.label || 'Proceso';
+			console.log(`Buscando mapeo para label: "${nodeLabel}"`);
+			
+			const mapping = processNodeMapping[nodeLabel];
+			if (mapping) {
+				console.log(`Mapeo encontrado:`, mapping);
+				stepInfo = {
+					title: nodeLabel, // Usar el label original del nodo como título
+					component: mapping.component,
+					description: mapping.description
+				};
+			} else {
+				console.warn(`No se encontró mapeo para el label: "${nodeLabel}". Labels disponibles:`, Object.keys(processNodeMapping));
+				stepInfo = {
+					title: nodeLabel, // Usar el label original como título
+					component: 'ProcessView',
+					description: 'Vista de proceso'
+				};
+			}
+		} else {
+			// Para start y end, usar el label del nodo como título
+			const nodeLabel = node.data?.label || node.label || node.type;
+			const mapping = nodeViewMapping[node.type as keyof typeof nodeViewMapping];
+			
+			stepInfo = {
+				title: nodeLabel, // Usar el label original del nodo como título
+				component: mapping ? mapping.component : 'DefaultView',
+				description: mapping ? mapping.description : 'Vista por defecto'
+			};
+		}
+		
+		steps.push({
+			id: `step-${index + 1}`,
+			nodeId: node.id,
+			title: stepInfo.title,
+			type: 'view',
+			component: stepInfo.component,
+			description: stepInfo.description,
+			completed: false
+		});
+	});
+	
+	console.log('Pasos del wizard creados en orden correcto:', steps);
+	
+	// Configurar el estado del wizard
+	wizardSteps.value = steps;
+	currentWizardStep.value = 0;
+	wizardCompleted.value = false;
 }
 
 // Función para cerrar la modal de resultados
 function closeTestResults() {
 	showTestResultsModal.value = false;
 	testResults.value = null;
+}
+
+// Funciones para controlar el wizard
+function nextWizardStep() {
+	if (currentWizardStep.value < wizardSteps.value.length - 1) {
+		// Marcar el paso actual como completado
+		wizardSteps.value[currentWizardStep.value].completed = true;
+		
+		// Avanzar al siguiente paso
+		currentWizardStep.value++;
+		
+		console.log(`Avanzando al paso ${currentWizardStep.value + 1}:`, wizardSteps.value[currentWizardStep.value]);
+	} else {
+		// Último paso completado
+		wizardSteps.value[currentWizardStep.value].completed = true;
+		wizardCompleted.value = true;
+		console.log('Wizard completado!');
+	}
+}
+
+function previousWizardStep() {
+	if (currentWizardStep.value > 0) {
+		currentWizardStep.value--;
+		console.log(`Retrocediendo al paso ${currentWizardStep.value + 1}:`, wizardSteps.value[currentWizardStep.value]);
+	}
+}
+
+function closeWizard() {
+	showWizardModal.value = false;
+	currentWizardStep.value = 0;
+	wizardCompleted.value = false;
+	wizardSteps.value = [];
+	
+	console.log('Wizard cerrado y reseteado');
+}
+
+function restartWizard() {
+	currentWizardStep.value = 0;
+	wizardCompleted.value = false;
+	
+	// Resetear todos los pasos como no completados
+	wizardSteps.value.forEach(step => {
+		step.completed = false;
+	});
+	
+	console.log('Wizard reiniciado');
+}
+
+// Función para verificar si un componente existe (temporal)
+function componentExists(_componentName: string): boolean {
+	// Por ahora retornamos false para mostrar placeholders
+	// Más adelante se pueden registrar los componentes reales
+	return false;
 }
 
 // Función para cancelar el test en progreso
@@ -3454,5 +3896,259 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	background: linear-gradient(135deg, #2557a6 0%, #42a5f5 100%);
 	transform: translateY(-1px);
 	box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+/* Estilos para el wizard simulador */
+.wizard-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.85);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 6000;
+	backdrop-filter: blur(4px);
+}
+
+.wizard-modal {
+	background: #2c2c2c;
+	border-radius: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+	width: 90%;
+	max-width: 1000px;
+	max-height: 90%;
+	overflow: hidden;
+	animation: wizardSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+	display: flex;
+	flex-direction: column;
+}
+
+@keyframes wizardSlideIn {
+	0% {
+		opacity: 0;
+		transform: scale(0.9) translateY(-30px);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+}
+
+.wizard-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 24px 28px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	background: linear-gradient(135deg, #333 0%, #2a2a2a 100%);
+}
+
+.wizard-title {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0;
+	color: #fff;
+	font-size: 22px;
+	font-weight: 600;
+}
+
+.wizard-icon {
+	color: #4caf50;
+}
+
+.wizard-close-btn {
+	background: transparent;
+	border: none;
+	color: #999;
+	cursor: pointer;
+	padding: 6px;
+	border-radius: 6px;
+	transition: all 0.2s ease;
+}
+
+.wizard-close-btn:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: #fff;
+}
+
+.wizard-progress {
+	padding: 20px 28px;
+	background: #333;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar {
+	width: 100%;
+	height: 8px;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 4px;
+	overflow: hidden;
+	margin-bottom: 12px;
+}
+
+.progress-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #4caf50 0%, #66bb6a 100%);
+	border-radius: 4px;
+	transition: width 0.4s ease;
+}
+
+.progress-text {
+	color: #e0e0e0;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.wizard-content {
+	flex: 1;
+	padding: 28px;
+	overflow-y: auto;
+	min-height: 400px;
+}
+
+.wizard-step {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.step-header {
+	margin-bottom: 24px;
+}
+
+.step-header h3 {
+	color: #fff;
+	font-size: 24px;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.step-description {
+	color: #bbb;
+	font-size: 16px;
+	line-height: 1.5;
+	margin: 0;
+}
+
+.step-content {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.step-placeholder {
+	text-align: center;
+	padding: 40px;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: 12px;
+	border: 2px dashed rgba(255, 255, 255, 0.2);
+	max-width: 500px;
+	margin: 0 auto;
+}
+
+.placeholder-icon {
+	margin-bottom: 20px;
+	opacity: 0.6;
+}
+
+.step-placeholder h4 {
+	color: #fff;
+	font-size: 20px;
+	margin-bottom: 12px;
+}
+
+.step-placeholder p {
+	color: #bbb;
+	margin-bottom: 8px;
+	line-height: 1.5;
+}
+
+.component-info {
+	color: #999 !important;
+	font-size: 14px;
+	margin-top: 16px;
+}
+
+.component-info code {
+	background: rgba(255, 255, 255, 0.1);
+	padding: 2px 6px;
+	border-radius: 4px;
+	font-family: 'Monaco', 'Menlo', monospace;
+	color: #4caf50;
+}
+
+.wizard-completed {
+	text-align: center;
+	padding: 40px;
+}
+
+.completion-icon {
+	margin-bottom: 24px;
+}
+
+.wizard-completed h3 {
+	color: #4caf50;
+	font-size: 28px;
+	margin-bottom: 16px;
+}
+
+.wizard-completed > p {
+	color: #e0e0e0;
+	font-size: 16px;
+	margin-bottom: 24px;
+	line-height: 1.6;
+}
+
+.completion-summary {
+	background: rgba(76, 175, 80, 0.1);
+	border: 1px solid rgba(76, 175, 80, 0.3);
+	border-radius: 8px;
+	padding: 20px;
+	margin-top: 24px;
+	text-align: left;
+	max-width: 400px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.completion-summary p {
+	color: #e0e0e0;
+	margin-bottom: 8px;
+	font-size: 14px;
+}
+
+.completion-summary strong {
+	color: #4caf50;
+}
+
+.wizard-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px 28px;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	background: #333;
+}
+
+.wizard-footer-right {
+	display: flex;
+	gap: 12px;
+}
+
+.wizard-footer .btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none !important;
+}
+
+.wizard-footer .btn:disabled:hover {
+	transform: none !important;
+	box-shadow: none !important;
 }
 </style>
