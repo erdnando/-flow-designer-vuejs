@@ -27,6 +27,58 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 	// Datos iniciales del catálogo (simulando datos que vendrán de API)
 	const initialNodeTemplates: NodeTemplate[] = [
 		{
+			id: 'landing',
+			name: 'Landing',
+			subtitle: 'Landing page',
+			categoria: 'Proceso',
+			description: 'Página de inicio del proceso',
+			version: '1.0.0',
+			type: 'processNode',
+			data: {
+				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M10 8h18c1.1 0 2 .9 2 2v18c0 1.1-.9 2-2 2H10c-1.1 0-2-.9-2-2V10c0-1.1.9-2 2-2z" fill="white"/><rect x="12" y="12" width="14" height="3" fill="#23272e"/><rect x="12" y="17" width="10" height="2" fill="#23272e"/><rect x="12" y="21" width="8" height="2" fill="#23272e"/><circle cx="16" cy="26" r="1.5" fill="#23272e"/><circle cx="22" cy="26" r="1.5" fill="#23272e"/></svg>',
+				customTypeId: 'landing',
+			},
+		},
+		{
+			id: 'basicos',
+			name: 'Básicos',
+			subtitle: 'Datos básicos',
+			categoria: 'Proceso',
+			description: 'Captura de datos básicos como teléfono y email',
+			version: '1.0.0',
+			type: 'processNode',
+			data: {
+				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M12 10h14c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2H12c-1.1 0-2-.9-2-2v-4c0-1.1.9-2 2-2z" fill="white"/><circle cx="14" cy="13" r="1" fill="#23272e"/><path d="M16 13h8v1h-8v-1zm0 2h6v1h-6v-1z" fill="#23272e"/><path d="M21 20c-1.2 0-2-.2-2.8-.5-.3-.1-.6 0-.8.2l-1.2 1.6c-2.2-1-4.4-3.1-5.5-5.4l1.6-1.4c.2-.2.3-.5.2-.8-.3-.9-.4-1.8-.4-2.8 0-.4-.4-.8-.8-.8h-2.7c-.4 0-.8.2-.8.8 0 7.4 6.2 13.6 13.6 13.6.6 0 .8-.5.8-1v-2.7c0-.4-.4-.8-.8-.8z" fill="white"/></svg>',
+				customTypeId: 'basicos',
+			},
+		},
+		{
+			id: 'legales',
+			name: 'Legales',
+			subtitle: 'Términos legales',
+			categoria: 'Proceso',
+			description: 'Aceptación de términos y condiciones de privacidad',
+			version: '1.0.0',
+			type: 'processNode',
+			data: {
+				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M12 8h14c1.1 0 2 .9 2 2v18c0 1.1-.9 2-2 2H12c-1.1 0-2-.9-2-2V10c0-1.1.9-2 2-2z" fill="white"/><path d="M15 12h8v1.5h-8v-1.5zm0 3h8v1h-8v-1zm0 2.5h6v1h-6v-1zm0 2.5h7v1h-7v-1z" fill="#23272e"/><path d="M19 23c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z" fill="#23272e"/><path d="M19 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill="white"/><rect x="14" y="26" width="10" height="2" rx="1" fill="#23272e"/></svg>',
+				customTypeId: 'legales',
+			},
+		},
+		{
+			id: 'sms',
+			name: 'SMS',
+			subtitle: 'Verificación SMS',
+			categoria: 'Proceso',
+			description: 'Verificación por código SMS',
+			version: '1.0.0',
+			type: 'processNode',
+			data: {
+				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><rect x="8" y="10" width="22" height="16" rx="3" fill="white"/><path d="M10 14h16v1.5h-16v-1.5zm0 3h14v1h-14v-1zm0 2.5h10v1h-10v-1z" fill="#23272e"/><circle cx="12" cy="23" r="1" fill="#23272e"/><circle cx="16" cy="23" r="1" fill="#23272e"/><circle cx="20" cy="23" r="1" fill="#23272e"/><path d="M6 16c0-1.1.9-2 2-2h1v8h-1c-1.1 0-2-.9-2-2v-4z" fill="white"/><path d="M30 16c0-1.1-.9-2-2-2h-1v8h1c1.1 0 2-.9 2-2v-4z" fill="white"/></svg>',
+				customTypeId: 'sms',
+			},
+		},
+		{
 			id: 'ine',
 			name: 'INE',
 			subtitle: 'Validación de INE',
@@ -37,6 +89,19 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			data: {
 				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M26 11H12c-1.5 0-2.5 1-2.5 2.5v11c0 1.5 1 2.5 2.5 2.5h14c1.5 0 2.5-1 2.5-2.5v-11c0-1.5-1-2.5-2.5-2.5zm-1 13H13c-0.5 0-1-0.5-1-1v-6h14v6c0 0.5-0.5 1-1 1z" fill="white"/></svg>',
 				customTypeId: 'ine',
+			},
+		},
+		{
+			id: 'selfie',
+			name: 'Selfie',
+			subtitle: 'Captura selfie',
+			categoria: 'Proceso',
+			description: 'Captura de fotografía selfie para verificación',
+			version: '1.0.0',
+			type: 'processNode',
+			data: {
+				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><rect x="8" y="8" width="22" height="16" rx="2" fill="white"/><circle cx="19" cy="15" r="4" fill="#23272e"/><circle cx="19" cy="15" r="2.5" fill="white"/><circle cx="17.5" cy="13.5" r="0.8" fill="#23272e"/><path d="M15 19.5c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="#23272e" stroke-width="1" fill="none"/><circle cx="26" cy="11" r="1.5" fill="#23272e"/><rect x="12" y="26" width="14" height="3" rx="1.5" fill="white"/><circle cx="16" cy="27.5" r="0.8" fill="#23272e"/><circle cx="22" cy="27.5" r="0.8" fill="#23272e"/></svg>',
+				customTypeId: 'selfie',
 			},
 		},
 		{
@@ -53,19 +118,6 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			},
 		},
 		{
-			id: 'firma',
-			name: 'Firma',
-			subtitle: 'Firma digital',
-			categoria: 'Proceso',
-			description: 'Captura de firma digital',
-			version: '1.0.0',
-			type: 'processNode',
-			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M18 6H12c-1.5 0-2.5 1-2.5 2.5v21c0 1.5 1 2.5 2.5 2.5h6c1.5 0 2.5-1 2.5-2.5v-21c0-1.5-1-2.5-2.5-2.5zm-3 18l-3-3 1.5-1.5 1.5 1.5 5.5-5.5 1.5 1.5-7 7z" fill="white"/></svg>',
-				customTypeId: 'firma',
-			},
-		},
-		{
 			id: 'captura-completa',
 			name: 'Captura Completa',
 			subtitle: 'Captura completa',
@@ -76,71 +128,6 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			data: {
 				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M25 7H13c-1.5 0-2.5 1-2.5 2.5v19c0 1.5 1 2.5 2.5 2.5h12c1.5 0 2.5-1 2.5-2.5v-19c0-1.5-1-2.5-2.5-2.5zM15 23h-2v-7h2v7zm4 0h-2v-10h2v10zm4 0h-2v-4h2v4z" fill="white"/></svg>',
 				customTypeId: 'captura-completa',
-			},
-		},
-		{
-			id: 'captura-telefonos',
-			name: 'Captura Teléfonos',
-			subtitle: 'Captura teléfonos',
-			categoria: 'Proceso',
-			description: 'Captura de números telefónicos',
-			version: '1.0.0',
-			type: 'processNode',
-			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M26 19.5c-1.5 0-2.5-.25-3.5-.6-.35-.12-.75-.03-1 .25l-1.5 2c-2.8-1.3-5.5-3.9-6.9-6.8l2-1.7c.25-.25.35-.65.25-1-.35-1.1-.55-2.3-.55-3.5 0-.55-.45-1-1-1H8.2c-.55 0-1 .25-1 1 0 9.3 7.7 17 17 17 .7 0 1-.6 1-1.2v-3.4c0-.55-.45-1-1-1z" fill="white"/></svg>',
-				customTypeId: 'captura-telefonos',
-			},
-		},
-		{
-			id: 'cargadocs',
-			name: 'CargaDocs',
-			subtitle: 'Carga docs',
-			categoria: 'Proceso',
-			description: 'Carga de documentos alternativa',
-			version: '1.0.0',
-			type: 'processNode',
-			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M10 12h5l2-2h9c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H10c-1.1 0-2-.9-2-2V14c0-1.1.9-2 2-2z" fill="white"/><circle cx="19" cy="18" r="3" fill="#23272e"/><path d="M19 21c-2.2 0-4 1.8-4 4h8c0-2.2-1.8-4-4-4z" fill="#23272e"/></svg>',
-				customTypeId: 'cargadocs',
-			},
-		},
-		{
-			id: 'motor-1',
-			name: 'Motor 1',
-			subtitle: 'Motor 1',
-			categoria: 'Motores',
-			description: 'Motor de procesamiento 1',
-			version: '1.0.0',
-			type: 'engineNode',
-			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><g transform="translate(19,19)"><circle r="6" fill="white"/><circle r="3" fill="#23272e"/><path d="M0,-8 L2,-6 L0,-4 L-2,-6 Z" fill="white"/><path d="M8,0 L6,2 L4,0 L6,-2 Z" fill="white"/><path d="M0,8 L-2,6 L0,4 L2,6 Z" fill="white"/><path d="M-8,0 L-6,-2 L-4,0 L-6,2 Z" fill="white"/><path d="M5.7,-5.7 L7.1,-4.3 L5.7,-2.9 L4.3,-4.3 Z" fill="white"/><path d="M5.7,5.7 L4.3,7.1 L2.9,5.7 L4.3,4.3 Z" fill="white"/><path d="M-5.7,5.7 L-7.1,4.3 L-5.7,2.9 L-4.3,4.3 Z" fill="white"/><path d="M-5.7,-5.7 L-4.3,-7.1 L-2.9,-5.7 L-4.3,-4.3 Z" fill="white"/></g></svg>',
-				customTypeId: 'motor-1',
-			},
-		},
-		{
-			id: 'motor-2',
-			name: 'Motor 2',
-			subtitle: 'Motor 2',
-			categoria: 'Motores',
-			description: 'Motor de procesamiento 2',
-			version: '1.0.0',
-			type: 'engineNode',
-			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><g transform="translate(19,19)"><circle r="7" fill="white"/><circle r="4" fill="#23272e"/><path d="M0,-9 L1.5,-7 L0,-5 L-1.5,-7 Z" fill="white"/><path d="M9,0 L7,1.5 L5,0 L7,-1.5 Z" fill="white"/><path d="M0,9 L-1.5,7 L0,5 L1.5,7 Z" fill="white"/><path d="M-9,0 L-7,-1.5 L-5,0 L-7,1.5 Z" fill="white"/><path d="M6.4,-6.4 L7.8,-5 L6.4,-3.6 L5,-5 Z" fill="white"/><path d="M6.4,6.4 L5,7.8 L3.6,6.4 L5,5 Z" fill="white"/><path d="M-6.4,6.4 L-7.8,5 L-6.4,3.6 L-5,5 Z" fill="white"/><path d="M-6.4,-6.4 L-5,-7.8 L-3.6,-6.4 L-5,-5 Z" fill="white"/></g></svg>',
-				customTypeId: 'motor-2',
-			},
-		},
-		{
-			id: 'motor-3',
-			name: 'Motor 3',
-			subtitle: 'Motor 3',
-			categoria: 'Motores',
-			description: 'Motor de procesamiento 3',
-			version: '1.0.0',
-			type: 'engineNode',
-			data: {
-				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><g transform="translate(19,19)"><circle r="8" fill="white"/><circle r="4.5" fill="#23272e"/><path d="M0,-10 L1,-8.5 L0,-7 L-1,-8.5 Z" fill="white"/><path d="M8.7,-5 L7.2,-4 L5.7,-5 L7.2,-6 Z" fill="white"/><path d="M8.7,5 L7.2,6 L5.7,5 L7.2,4 Z" fill="white"/><path d="M0,10 L-1,8.5 L0,7 L1,8.5 Z" fill="white"/><path d="M-8.7,5 L-7.2,4 L-5.7,5 L-7.2,6 Z" fill="white"/><path d="M-8.7,-5 L-7.2,-6 L-5.7,-5 L-7.2,-4 Z" fill="white"/></g></svg>',
-				customTypeId: 'motor-3',
 			},
 		},
 		{

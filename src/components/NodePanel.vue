@@ -117,7 +117,7 @@ const nodeCategories = computed(() => {
 			name: 'Control de flujo',
 			nodes: [
 				{ type: 'start', label: 'INICIO' },
-				{ type: 'condition', label: 'Condición (If)' },
+				// { type: 'condition', label: 'Condición (If)' }, // Temporalmente oculto
 				{ type: 'end', label: 'FIN' },
 			],
 		},
