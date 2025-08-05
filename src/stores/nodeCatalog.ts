@@ -131,16 +131,16 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			},
 		},
 		{
-			id: 'alta-vision',
+			id: 'alta-producto',
 			name: 'Alta Producto',
 			subtitle: 'Alta producto',
 			categoria: 'Proceso',
-			description: 'Sistema de visión avanzada',
+			description: 'alta del producto',
 			version: '1.0.0',
 			type: 'processNode',
 			data: {
 				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M26 8H12c-1.5 0-2.5 1-2.5 2.5v15c0 1.5 1 2.5 2.5 2.5h14c1.5 0 2.5-1 2.5-2.5v-15c0-1.5-1-2.5-2.5-2.5zm-1 15H13c-.6 0-1-.5-1-1v-9h14v9c0 .5-.4 1-1 1z" fill="white"/><path d="M15 17h2v2h-2v-2zm0-4h2v2h-2v-2z" fill="white"/><path d="M11 17h2v2h-2v-2zm0-4h2v2h-2v-2z" fill="white"/></svg>',
-				customTypeId: 'alta-vision',
+				customTypeId: 'alta-producto',
 			},
 		},
 	];

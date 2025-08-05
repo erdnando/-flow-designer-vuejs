@@ -70,9 +70,10 @@ const emit = defineEmits<{
 
 // Calcular el path del edge según el tipo
 const path = computed(() => {
-	const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, type } = props;
+	const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = props;
+	const pathType = data?.pathType || 'bezier'; // Usar pathType del data, bezier por defecto
 	
-	if (type === 'step') {
+	if (pathType === 'step') {
 		const [pathString] = getSmoothStepPath({
 			sourceX,
 			sourceY,
@@ -82,7 +83,7 @@ const path = computed(() => {
 			targetPosition,
 		});
 		return pathString;
-	} else if (type === 'straight') {
+	} else if (pathType === 'straight') {
 		const [pathString] = getStraightPath({
 			sourceX,
 			sourceY,
@@ -106,9 +107,10 @@ const path = computed(() => {
 
 // Calcular la posición del botón de eliminar en el centro real de la curva
 const deleteButtonPosition = computed(() => {
-	const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, type } = props;
+	const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = props;
+	const pathType = data?.pathType || 'bezier'; // Usar pathType del data, bezier por defecto
 	
-	if (type === 'straight') {
+	if (pathType === 'straight') {
 		// Para líneas rectas, usar el punto medio simple
 		return {
 			x: (sourceX + targetX) / 2 - 16,

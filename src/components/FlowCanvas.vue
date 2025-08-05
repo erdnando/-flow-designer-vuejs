@@ -63,6 +63,7 @@
 			:zoom-on-double-click="true"
 			:pan-on-drag="true"
 			:edges-selectable="true"
+			:connection-line-type="connectionStyle === 'bezier' ? 'default' : connectionStyle"
 			:default-edge-options="{ animated: true, type: 'deletable', selectable: true, focusable: true, deletable: true }"
 			class="custom-vue-flow"
 			@connect="onConnect"
@@ -112,6 +113,18 @@
 					<path d="M12 6v2M12 16v2M6 12h2M16 12h2" stroke="currentColor" stroke-width="1" />
 				</svg>
 			</button>
+			
+			<!-- Dropdown para estilo de conexiones -->
+			<div class="connection-style-dropdown" title="Estilo de conexiones">
+				<select v-model="connectionStyle" @change="onConnectionStyleChange" class="connection-style-select">
+					<option value="bezier">Curvas</option>
+					<option value="straight">Rectas</option>
+					<option value="step">Escalones</option>
+				</select>
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" class="dropdown-arrow">
+					<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</div>
 			<button @click.stop="exportFlow" title="Exportar flujo">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
 					<path
@@ -520,6 +533,9 @@ let autoCenterApplied = false;
 // Estado para validaciones de nodos
 const validationErrors = ref<ValidationResult[]>([]);
 
+// Estado para el estilo de conexiones
+const connectionStyle = ref<'bezier' | 'straight' | 'step'>('bezier');
+
 // Sistema de versiones del flujo
 const selectedVersion = ref('1.0.0');
 const flowVersions = ref([
@@ -843,6 +859,21 @@ function zoomOut() {
 	setTimeout(() => triggerAutoSave(), 100);
 }
 
+// Función para cambiar el estilo de conexiones
+function onConnectionStyleChange() {
+	// Actualizar todas las conexiones existentes
+	edges.value = edges.value.map(edge => ({
+		...edge,
+		data: {
+			...edge.data,
+			pathType: connectionStyle.value
+		}
+	}));
+	
+	// Guardar cambios
+	triggerAutoSave();
+}
+
 function centerNodes(isAutomatic = false) {
 	if (nodes.value.length === 0) return;
 	
@@ -1059,7 +1090,10 @@ function onConnect(params: Connection) {
 		type: 'deletable', // Usar el tipo personalizado con botón de eliminar
 		selectable: true,
 		focusable: true,
-		deletable: true
+		deletable: true,
+		data: {
+			pathType: connectionStyle.value // Agregar el estilo de conexión seleccionado
+		}
 	};
 	
 	// Crear lista temporal de edges con la nueva conexión
@@ -3349,6 +3383,51 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	width: 22px;
 	height: 22px;
 	padding: 0;
+}
+
+/* Estilos para el dropdown de estilo de conexiones */
+.connection-style-dropdown {
+	position: relative;
+	background: #23272e;
+	border-radius: 8px;
+	height: 44px;
+	display: flex;
+	align-items: center;
+	padding: 0 12px;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.connection-style-dropdown:hover {
+	background: #444b55;
+}
+
+.connection-style-select {
+	background: transparent;
+	color: #fff;
+	border: none;
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	outline: none;
+	appearance: none;
+	padding-right: 20px;
+	min-width: 70px;
+}
+
+.connection-style-select option {
+	background: #23272e;
+	color: #fff;
+	padding: 8px;
+}
+
+.dropdown-arrow {
+	position: absolute;
+	right: 8px;
+	top: 50%;
+	transform: translateY(-50%);
+	pointer-events: none;
+	color: #fff;
 }
 </style>
 <style>
