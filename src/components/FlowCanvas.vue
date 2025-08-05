@@ -395,7 +395,12 @@
 						<!-- Para componentes que no existen aún, mostrar placeholder -->
 						<div v-if="!componentExists(wizardSteps[currentWizardStep].component)" class="step-placeholder">
 							<div class="placeholder-icon">
-								<svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+								<!-- Mostrar ícono del nodo si está disponible, sino mostrar ícono por defecto -->
+								<div v-if="wizardSteps[currentWizardStep].nodeData?.icon" 
+									 v-html="wizardSteps[currentWizardStep].nodeData.icon" 
+									 class="node-icon-wrapper">
+								</div>
+								<svg v-else width="48" height="48" viewBox="0 0 24 24" fill="none">
 									<rect x="3" y="3" width="18" height="18" rx="2" stroke="#6b7280" stroke-width="2"/>
 									<path d="M9 9h6v6H9V9z" fill="#6b7280" opacity="0.3"/>
 								</svg>
@@ -2263,6 +2268,7 @@ interface WizardStep {
 	component: string;
 	description: string;
 	completed: boolean;
+	nodeData?: any; // Datos del nodo original para acceder al ícono
 }
 
 // Proveer funciones a los componentes hijos
@@ -2725,8 +2731,8 @@ function createWizardFromFlow() {
 	const nodeViewMapping: Record<string, { title: string; component: string; description: string }> = {
 		'start': {
 			title: 'Inicio',
-			component: 'LandingPageView',
-			description: 'Página de bienvenida del proceso'
+			component: 'NodoInicialView',
+			description: 'Inicialización del trámite'
 		},
 		'processNode': {
 			title: 'Proceso',
@@ -2906,7 +2912,8 @@ function createWizardFromFlow() {
 			type: 'view',
 			component: stepInfo.component,
 			description: stepInfo.description,
-			completed: false
+			completed: false,
+			nodeData: node.data // Incluir datos del nodo para acceder al ícono
 		});
 	});
 	
@@ -4146,6 +4153,13 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .placeholder-icon {
 	margin-bottom: 20px;
 	opacity: 0.6;
+}
+
+.node-icon-wrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transform: scale(1.7); /* Hacer el ícono más grande */
 }
 
 .step-placeholder h4 {
