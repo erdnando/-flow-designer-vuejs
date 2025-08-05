@@ -196,6 +196,34 @@
 							placeholder="Ingrese un subtítulo"
 						/>
 					</label>
+					
+					<!-- Selector de versión para componentes externos -->
+					<template v-if="isExternalComponent">
+						<div class="external-component-section">
+							<h4 class="section-title">🔧 Componente Externo</h4>
+							<label>
+								Versión del Componente
+								<select
+									:value="nodeProperties.componentVersion"
+									@change="onComponentVersionChange($event)"
+								>
+									<option 
+										v-for="version in availableVersions"
+										:key="version.value"
+										:value="version.value"
+									>
+										{{ version.label }}
+									</option>
+								</select>
+							</label>
+							<div class="component-info">
+								<span class="component-id">ID: {{ nodeProperties.customTypeId }}</span>
+								<span class="component-status" :class="componentStatus">
+									{{ componentStatusText }}
+								</span>
+							</div>
+						</div>
+					</template>
 				</template>
 				<template v-else>
 					<div class="empty-panel">
@@ -243,6 +271,8 @@ const nodeProperties = computed(() => {
 			label: '',
 			type: 'default',
 			subtitle: '',
+			customTypeId: '',
+			componentVersion: '1.0.0',
 		};
 	}
 
@@ -250,6 +280,8 @@ const nodeProperties = computed(() => {
 		label: props.node.label || '',
 		type: props.node.type || 'default',
 		subtitle: props.node.data?.subtitle || '',
+		customTypeId: props.node.data?.customTypeId || '',
+		componentVersion: props.node.data?.componentVersion || '1.0.0',
 	};
 });
 
@@ -276,6 +308,36 @@ const nodeIcon = computed(() => {
 
 	// Prioridad 3: Usar el icono por defecto
 	return nodeTypeMeta.default.icon;
+});
+
+// Computed para determinar si es un componente externo
+const isExternalComponent = computed(() => {
+	return !!(props.node?.data?.customTypeId);
+});
+
+// Computed para obtener versiones disponibles del componente
+const availableVersions = computed(() => {
+	// Por el momento, todos los componentes externos solo tienen v1.0.0 disponible
+	// En el futuro esto vendrá del ComponentRegistry real con múltiples versiones
+	return [
+		{ value: '1.0.0', label: 'v1.0.0' }
+	];
+});
+
+// Computed para el estado del componente
+const componentStatus = computed(() => {
+	if (!isExternalComponent.value) return 'unknown';
+	
+	// Por el momento, la versión 1.0.0 se considera estable para todos los componentes
+	return 'stable';
+});
+
+// Computed para el texto del estado del componente
+const componentStatusText = computed(() => {
+	switch (componentStatus.value) {
+		case 'stable': return '✅ Estable';
+		default: return '❓ Desconocido';
+	}
 });
 
 // Solo observar el estado de collapsed
@@ -317,6 +379,13 @@ function onSubtitleChange(event: Event) {
 	// Importante: asegurarse que el valor se pasa correctamente para subtitle
 	console.log('Actualizando subtítulo:', value);
 	emit('update', { key: 'subtitle', value });
+}
+
+// Handler para cambio de versión del componente externo
+function onComponentVersionChange(event: Event) {
+	const value = (event.target as HTMLSelectElement).value;
+	console.log('Actualizando versión del componente:', value);
+	emit('update', { key: 'componentVersion', value });
 }
 
 // Handlers para las propiedades de edges/conexiones
@@ -713,6 +782,54 @@ textarea {
 	padding: 2px 6px;
 	letter-spacing: 0.02em;
 	text-transform: uppercase;
+}
+
+/* Estilos para la sección de componente externo */
+.external-component-section {
+	margin-top: 24px;
+	padding: 16px;
+	background: rgba(24, 144, 255, 0.1);
+	border-radius: 8px;
+	border-left: 3px solid #1890ff;
+}
+
+.section-title {
+	margin: 0 0 16px 0;
+	font-size: 1rem;
+	font-weight: 600;
+	color: #1890ff;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.component-info {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 12px;
+	padding: 8px;
+	background: rgba(0, 0, 0, 0.2);
+	border-radius: 4px;
+	font-size: 12px;
+}
+
+.component-id {
+	color: #b0b0b0;
+	font-family: 'Courier New', monospace;
+}
+
+.component-status {
+	font-weight: 600;
+	font-size: 11px;
+}
+
+.component-status.stable {
+	color: #52c41a;
+}
+
+.component-status.unknown {
+	color: #999;
 }
 </style>
 ```

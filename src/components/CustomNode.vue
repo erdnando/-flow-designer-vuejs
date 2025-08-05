@@ -211,17 +211,23 @@ const nodeTypeDisplay = computed(() => {
 
 // Computed para mostrar la versión del nodo
 const nodeVersion = computed(() => {
-	// Prioridad 1: Si el nodo tiene templateId, buscar la versión en el catálogo
+	// Prioridad 1: Versión específica del componente externo en node.data
+	const nodeData = nodeInstance?.node?.data;
+	if (nodeData?.componentVersion) {
+		return `v${nodeData.componentVersion}`;
+	}
+	
+	// Prioridad 2: Si el nodo tiene templateId, buscar la versión en el catálogo
 	const templateId = rawData.value.templateId;
 	if (templateId) {
 		const template = nodeCatalogStore.getTemplateById(templateId);
 		if (template && template.version) {
-			return template.version;
+			return `v${template.version}`;
 		}
 	}
 	
-	// Prioridad 2: Versión por defecto
-	return '1.0.0';
+	// Prioridad 3: Versión por defecto
+	return 'v1.0.0';
 });
 
 // El icono se actualiza automáticamente cuando cambia nodeType
@@ -303,6 +309,19 @@ watch(isNodeSelected, (selected) => {
 		showToolbar.value = false;
 	}
 });
+
+// Watcher para forzar reactividad en cambios de data del nodo
+watch(
+	() => nodeInstance?.node?.data,
+	(newData, oldData) => {
+		// Este watcher asegura que las computed properties se actualicen
+		// cuando cambian las propiedades data del nodo
+		if (newData?.componentVersion !== oldData?.componentVersion) {
+			console.log('🔄 Versión del componente cambió:', newData?.componentVersion);
+		}
+	},
+	{ deep: true, immediate: true }
+);
 
 // Cleanup al desmontar el componente
 onBeforeUnmount(() => {

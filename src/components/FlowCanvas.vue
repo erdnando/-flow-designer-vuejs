@@ -63,7 +63,6 @@
 			:zoom-on-double-click="true"
 			:pan-on-drag="true"
 			:edges-selectable="true"
-			:connection-line-type="connectionStyle === 'bezier' ? 'default' : connectionStyle"
 			:default-edge-options="{ animated: true, type: 'deletable', selectable: true, focusable: true, deletable: true }"
 			class="custom-vue-flow"
 			@connect="onConnect"
@@ -1308,6 +1307,7 @@ function processNodeDrop(position: { x: number; y: number }, type: string | null
 					customTypeId: nodeType,
 					label: nodeLabel, // Forzar label en data
 					subtitle: customType.subtitle || '', // Usar el subtítulo si existe, o cadena vacía
+					componentVersion: '1.0.0', // Inicializar versión para componentes externos
 				},
 			});
 			const lastNode = nodes.value[nodes.value.length - 1];
@@ -1743,6 +1743,20 @@ function updateNodeProperty({ key, value }: { key: string; value: string }) {
 
 		// Actualizamos el nodo seleccionado
 		selectedNode.value = nodeCopy;
+	} else if (key === 'componentVersion') {
+		// Manejo específico para versión de componente externo
+		nodeCopy.data.componentVersion = value;
+
+		// Actualizamos directamente en el array
+		nodes.value.splice(nodeIndex, 1, nodeCopy);
+
+		// Actualizamos el nodo seleccionado
+		selectedNode.value = nodeCopy;
+		
+		console.log(`Versión del componente actualizada a: ${value}`);
+		
+		// TODO: En el futuro, aquí se podría invalidar el cache del componente
+		// para forzar la recarga con la nueva versión
 	}
 }
 

@@ -37,6 +37,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 			data: {
 				icon: '<svg width="28" height="28" viewBox="0 0 38 38"><rect x="2" y="2" width="34" height="34" rx="10" fill="#23272e"/><path d="M10 8h18c1.1 0 2 .9 2 2v18c0 1.1-.9 2-2 2H10c-1.1 0-2-.9-2-2V10c0-1.1.9-2 2-2z" fill="white"/><rect x="12" y="12" width="14" height="3" fill="#23272e"/><rect x="12" y="17" width="10" height="2" fill="#23272e"/><rect x="12" y="21" width="8" height="2" fill="#23272e"/><circle cx="16" cy="26" r="1.5" fill="#23272e"/><circle cx="22" cy="26" r="1.5" fill="#23272e"/></svg>',
 				customTypeId: 'landing',
+				componentVersion: '1.0.0', // Versión por defecto del componente externo
 			},
 		},
 		{

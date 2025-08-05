@@ -4,12 +4,32 @@ Un diseñador de flujos interactivo construido con Vue 3, TypeScript y Vue Flow.
 
 ## 🚀 Inicio Rápido
 
+### **Desarrollo del Flow Designer (Vue)**
 ```bash
 npm install
 npm run dev
 ```
 
-## 📖 Documentación
+### **Desarrollo de Componentes Externos (React)**
+Ver documentación completa: **[Especificación de Componentes React](EXTERNAL-REACT-COMPONENT-SPEC.md)**
+
+```bash
+# En directorio separado (ej: ../landing-component/)
+# Seguir especificación para crear proyecto React independiente
+npm install
+npm run dev  # http://localhost:3001/demo.html
+npm run build  # dist/landing-v1.0.0.js
+```
+
+## � Documentación Estratégica
+
+### 🏗️ Arquitectura y Estrategia
+- **[📋 Arquitectura de Componentes Externos](ARQUITECTURA-COMPONENTES-EXTERNOS.md)** - ⭐ **ESTRATEGIA PRINCIPAL**: Evolución hacia arquitectura modular con componentes React externos
+- **[🔧 Decisiones Técnicas y Troubleshooting](DECISIONES-TECNICAS-TROUBLESHOOTING.md)** - ⭐ **ACERVO TÉCNICO**: Decisiones críticas, problemas conocidos y soluciones
+- **[🛣️ Roadmap de Implementación](ROADMAP-IMPLEMENTACION.md)** - ⭐ **GUÍA DE DESARROLLO**: Plan detallado paso a paso
+- **[🎯 Simulador del Wizard](WIZARD-SIMULATOR-SISTEMA.md)** - Sistema de ejecución de flujos paso a paso
+
+## �📖 Documentación Técnica
 
 ### Sistemas Principales
 - **[Sistema de Conexiones](CONEXIONES-SISTEMA.md)** - Implementación completa de selección, animación y gestión de conexiones
