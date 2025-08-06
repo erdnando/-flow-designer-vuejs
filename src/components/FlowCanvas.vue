@@ -368,14 +368,42 @@
 						:style="{ width: `${((currentWizardStep + 1) / wizardSteps.length) * 100}%` }"
 					></div>
 				</div>
-				<div class="progress-text">
-					Paso {{ currentWizardStep + 1 }} de {{ wizardSteps.length }}
-					<span v-if="wizardSteps[currentWizardStep]"> - {{ wizardSteps[currentWizardStep].title }}</span>
+				<div class="progress-info">
+					<div class="progress-text">
+						Paso {{ currentWizardStep + 1 }} de {{ wizardSteps.length }}
+						<span v-if="wizardSteps[currentWizardStep]"> - {{ wizardSteps[currentWizardStep].title }}</span>
+					</div>
+					
+					<!-- Controles de zoom -->
+					<div class="zoom-controls">
+						<button @click="zoomOutWizard" :disabled="wizardZoomLevel <= 0.5" class="zoom-btn" title="Alejar">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+								<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+								<path d="M8 11h6" stroke="currentColor" stroke-width="2"/>
+								<path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
+							</svg>
+						</button>
+						<span class="zoom-level">{{ Math.round(wizardZoomLevel * 100) }}%</span>
+						<button @click="resetWizardZoom" class="zoom-btn zoom-reset" title="Resetear zoom">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+								<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+								<path d="M11 8v6M8 11h6" stroke="currentColor" stroke-width="2"/>
+								<path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
+							</svg>
+						</button>
+						<button @click="zoomInWizard" :disabled="wizardZoomLevel >= 1.2" class="zoom-btn" title="Acercar">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+								<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+								<path d="M11 8v6M8 11h6" stroke="currentColor" stroke-width="2"/>
+								<path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
+							</svg>
+						</button>
+					</div>
 				</div>
 			</div>
 			
 			<!-- Contenido del paso actual -->
-			<div class="wizard-content">
+			<div class="wizard-content" :style="{ '--wizard-zoom': wizardZoomLevel }">
 				<div v-if="!wizardCompleted && wizardSteps[currentWizardStep]" class="wizard-step">
 					<div class="step-header">
 						<h3>{{ wizardSteps[currentWizardStep].title }}</h3>
@@ -384,30 +412,39 @@
 					
 					<!-- Aquí se renderizará el componente de vista específico -->
 					<div class="step-content">
-						<component 
-							:is="wizardComponents[wizardSteps[currentWizardStep].component as keyof typeof wizardComponents]" 
-							v-if="wizardSteps[currentWizardStep].type === 'view' && componentExists(wizardSteps[currentWizardStep].component)"
-							:wizard-step="wizardSteps[currentWizardStep]"
-							@next="nextWizardStep"
-							@previous="previousWizardStep"
-						/>
 						
-						<!-- Para componentes que no existen aún, mostrar placeholder -->
-						<div v-if="!componentExists(wizardSteps[currentWizardStep].component)" class="step-placeholder">
-							<div class="placeholder-icon">
-								<!-- Mostrar ícono del nodo si está disponible, sino mostrar ícono por defecto -->
-								<div v-if="wizardSteps[currentWizardStep].nodeData?.icon" 
-									 v-html="wizardSteps[currentWizardStep].nodeData.icon" 
-									 class="node-icon-wrapper">
+
+						<!-- Contenedor principal del componente -->
+						<div class="component-container">
+							<component 
+								:is="wizardComponents[wizardSteps[currentWizardStep].component as keyof typeof wizardComponents]" 
+								v-if="wizardSteps[currentWizardStep].type === 'view' && componentExists(wizardSteps[currentWizardStep].component)"
+								:ref="wizardSteps[currentWizardStep].component === 'ExternalComponentView' ? 'currentExternalComponentRef' : null"
+								:wizard-step="wizardSteps[currentWizardStep]"
+								:zoom-level="wizardZoomLevel"
+								@next="nextWizardStep"
+								@previous="previousWizardStep"
+								@ready="handleComponentReady"
+								@error="handleComponentError"
+							/>
+							
+							<!-- Para componentes que no existen aún, mostrar placeholder -->
+							<div v-if="!componentExists(wizardSteps[currentWizardStep].component)" class="step-placeholder">
+								<div class="placeholder-icon">
+									<!-- Mostrar ícono del nodo si está disponible, sino mostrar ícono por defecto -->
+									<div v-if="wizardSteps[currentWizardStep].nodeData?.icon" 
+										 v-html="wizardSteps[currentWizardStep].nodeData.icon" 
+										 class="node-icon-wrapper">
+									</div>
+									<svg v-else width="48" height="48" viewBox="0 0 24 24" fill="none">
+										<rect x="3" y="3" width="18" height="18" rx="2" stroke="#6b7280" stroke-width="2"/>
+										<path d="M9 9h6v6H9V9z" fill="#6b7280" opacity="0.3"/>
+									</svg>
 								</div>
-								<svg v-else width="48" height="48" viewBox="0 0 24 24" fill="none">
-									<rect x="3" y="3" width="18" height="18" rx="2" stroke="#6b7280" stroke-width="2"/>
-									<path d="M9 9h6v6H9V9z" fill="#6b7280" opacity="0.3"/>
-								</svg>
+								<h4>{{ wizardSteps[currentWizardStep].title }}</h4>
+								<p>{{ wizardSteps[currentWizardStep].description }}</p>
+								<p class="component-info">Componente: <code>{{ wizardSteps[currentWizardStep].component }}</code></p>
 							</div>
-							<h4>{{ wizardSteps[currentWizardStep].title }}</h4>
-							<p>{{ wizardSteps[currentWizardStep].description }}</p>
-							<p class="component-info">Componente: <code>{{ wizardSteps[currentWizardStep].component }}</code></p>
 						</div>
 					</div>
 				</div>
@@ -422,10 +459,41 @@
 					</div>
 					<h3>¡Proceso Completado!</h3>
 					<p>El flujo se ha ejecutado exitosamente a través de todos los pasos definidos.</p>
+					
+					<!-- Resumen de datos capturados -->
+					<div v-if="Object.keys(wizardOutputData).length > 0" class="output-data-summary">
+						<h4>📋 Datos Capturados:</h4>
+						
+						<!-- Parámetros de tiempo -->
+						<div v-if="extractTimeParameters().horaInicio || extractTimeParameters().horaFin" class="time-params">
+							<h5>⏰ Parámetros de Tiempo:</h5>
+							<div class="param-item" v-if="extractTimeParameters().horaInicio">
+								<strong>Hora de Inicio:</strong> {{ formatDateTime(extractTimeParameters().horaInicio) }}
+							</div>
+							<div class="param-item" v-if="extractTimeParameters().horaFin">
+								<strong>Hora de Fin:</strong> {{ formatDateTime(extractTimeParameters().horaFin) }}
+							</div>
+						</div>
+						
+						<!-- Otros parámetros por paso -->
+						<div class="step-params">
+							<div v-for="(stepData, stepId) in wizardOutputData" :key="stepId" class="step-data">
+								<h5>📄 {{ getStepTitle(stepId) }}:</h5>
+								<div class="params-grid">
+									<div v-for="(value, key) in stepData.outputParameters" :key="key" class="param-item">
+										<strong>{{ key }}:</strong> 
+										<span v-if="typeof value === 'object'">{{ JSON.stringify(value, null, 2) }}</span>
+										<span v-else>{{ value }}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					
 					<div class="completion-summary">
 						<p><strong>Pasos completados:</strong> {{ wizardSteps.length }}</p>
 						<p><strong>Vistas procesadas:</strong> {{ wizardSteps.filter(s => s.type === 'view').length }}</p>
-						<p><strong>Procesos internos:</strong> {{ wizardSteps.filter(s => s.type === 'process').length }}</p>
+						<p><strong>Datos capturados:</strong> {{ Object.keys(wizardOutputData).length }} pasos con datos</p>
 					</div>
 				</div>
 			</div>
@@ -2277,6 +2345,9 @@ const showWizardModal = ref(false);
 const wizardSteps = ref<WizardStep[]>([]);
 const currentWizardStep = ref(0);
 const wizardCompleted = ref(false);
+const wizardZoomLevel = ref(0.85); // Nivel de zoom para el contenido del wizard
+const wizardOutputData = ref<Record<string, any>>({}); // Almacenar datos de salida de todos los pasos
+const currentExternalComponentRef = ref<any>(null); // Referencia al componente externo actual
 
 interface WizardStep {
 	id: string;
@@ -2393,10 +2464,52 @@ function confirmDeleteNode() {
 	return wizardSteps.value;
 };
 
+// Función para debug de datos de salida desde la consola
+(window as any).debugWizardOutput = () => {
+	console.log('=== DEBUG: Datos de salida del wizard ===');
+	console.log('Todos los datos:', wizardOutputData.value);
+	console.log('Parámetros de tiempo:', extractTimeParameters());
+	console.log('Todos los parámetros:', getAllOutputParameters());
+	return wizardOutputData.value;
+};
+
+// Función para simular datos de salida desde la consola
+(window as any).simulateOutputData = (stepId?: string) => {
+	const targetStepId = stepId || `step-${currentWizardStep.value + 1}`;
+	const simulatedData = {
+		sessionId: `sim-${Date.now()}`,
+		componentId: 'landing',
+		timestamp: new Date().toISOString(),
+		outputParameters: {
+			horaInicio: new Date().toISOString(),
+			horaFin: new Date(Date.now() + 30 * 60000).toISOString(), // 30 minutos después
+			resultado: 'completado',
+			datosCapturados: {
+				nombre: 'Usuario Test',
+				email: 'test@example.com'
+			}
+		},
+		allData: {
+			action: 'form_completed',
+			status: 'success'
+		}
+	};
+	
+	console.log('🧪 Simulando datos de salida para paso:', targetStepId);
+	console.log('📤 Datos simulados:', simulatedData);
+	
+	// Simular el evento
+	nextWizardStep(simulatedData);
+	
+	return simulatedData;
+};
+
 console.log('Funciones de debug disponibles:');
 console.log('- window.testNodeDeletion() - Probar eliminación de nodo');
 console.log('- window.debugNodes() - Ver todos los nodos');
 console.log('- window.debugWizard() - Crear y ver wizard de prueba');
+console.log('- window.debugWizardOutput() - Ver datos de salida del wizard');
+console.log('- window.simulateOutputData() - Simular datos de salida');
 
 function cancelDeleteNode() {
 	nodeToDelete.value = null;
@@ -2971,7 +3084,23 @@ function closeTestResults() {
 }
 
 // Funciones para controlar el wizard
-function nextWizardStep() {
+function nextWizardStep(outputData?: any) {
+	const currentStep = wizardSteps.value[currentWizardStep.value];
+	
+	// Almacenar datos de salida si se proporcionan
+	if (outputData && currentStep) {
+		wizardOutputData.value[currentStep.id] = outputData;
+		console.log(`📋 Datos almacenados para paso ${currentStep.id}:`, outputData);
+		
+		// Log específico para parámetros de tiempo
+		if (outputData.outputParameters?.horaInicio || outputData.outputParameters?.horaFin) {
+			console.log(`⏰ Parámetros de tiempo capturados:`, {
+				horaInicio: outputData.outputParameters.horaInicio,
+				horaFin: outputData.outputParameters.horaFin
+			});
+		}
+	}
+	
 	if (currentWizardStep.value < wizardSteps.value.length - 1) {
 		// Marcar el paso actual como completado
 		wizardSteps.value[currentWizardStep.value].completed = true;
@@ -2984,7 +3113,11 @@ function nextWizardStep() {
 		// Último paso completado
 		wizardSteps.value[currentWizardStep.value].completed = true;
 		wizardCompleted.value = true;
-		console.log('Wizard completado!');
+		
+		// Log de todos los datos capturados
+		console.log('🎉 Wizard completado con todos los datos:');
+		console.log('📊 Resumen de datos capturados:', wizardOutputData.value);
+		console.log('⏰ Todos los parámetros de tiempo:', extractTimeParameters());
 	}
 }
 
@@ -3000,6 +3133,7 @@ function closeWizard() {
 	currentWizardStep.value = 0;
 	wizardCompleted.value = false;
 	wizardSteps.value = [];
+	wizardOutputData.value = {}; // Limpiar datos de salida
 	
 	console.log('Wizard cerrado y reseteado');
 }
@@ -3007,6 +3141,7 @@ function closeWizard() {
 function restartWizard() {
 	currentWizardStep.value = 0;
 	wizardCompleted.value = false;
+	wizardOutputData.value = {}; // Limpiar datos de salida
 	
 	// Resetear todos los pasos como no completados
 	wizardSteps.value.forEach(step => {
@@ -3014,6 +3149,111 @@ function restartWizard() {
 	});
 	
 	console.log('Wizard reiniciado');
+}
+
+// Funciones auxiliares para manejo de datos
+function extractTimeParameters() {
+	const timeParams: any = {};
+	
+	Object.values(wizardOutputData.value).forEach((stepData: any) => {
+		if (stepData?.outputParameters?.horaInicio) {
+			timeParams.horaInicio = stepData.outputParameters.horaInicio;
+		}
+		if (stepData?.outputParameters?.horaFin) {
+			timeParams.horaFin = stepData.outputParameters.horaFin;
+		}
+	});
+	
+	return timeParams;
+}
+
+function getAllOutputParameters() {
+	const allParams: any = {};
+	
+	Object.entries(wizardOutputData.value).forEach(([stepId, stepData]: [string, any]) => {
+		if (stepData?.outputParameters) {
+			allParams[stepId] = stepData.outputParameters;
+		}
+	});
+	
+	return allParams;
+}
+
+function getOutputParameterByStep(stepId: string, parameterName?: string) {
+	const stepData = wizardOutputData.value[stepId];
+	
+	if (!stepData?.outputParameters) {
+		return null;
+	}
+	
+	if (parameterName) {
+		return stepData.outputParameters[parameterName];
+	}
+	
+	return stepData.outputParameters;
+}
+
+// Manejadores de eventos del wizard
+function handleComponentReady(event: any) {
+	console.log('🎉 Componente del wizard listo:', event);
+	
+	// Si es un componente externo, almacenar la referencia
+	if (wizardSteps.value[currentWizardStep.value]?.component === 'ExternalComponentView') {
+		console.log('📝 Componente externo del wizard está listo');
+	}
+}
+
+function handleComponentError(event: any) {
+	console.error('🚨 Error en componente del wizard:', event);
+	showDanger('Error en el componente', {
+		title: 'Error del componente',
+		description: event?.message || 'Se produjo un error en el componente externo',
+		duration: 6000
+	});
+}
+
+// Funciones auxiliares para la pantalla de completado
+function formatDateTime(dateString: string) {
+	if (!dateString) return 'N/A';
+	
+	try {
+		const date = new Date(dateString);
+		return date.toLocaleString('es-ES', {
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit'
+		});
+	} catch (error) {
+		return dateString; // Devolver el string original si no se puede parsear
+	}
+}
+
+function getStepTitle(stepId: string) {
+	const step = wizardSteps.value.find(s => s.id === stepId);
+	return step?.title || stepId;
+}
+
+// Funciones para controlar el zoom del wizard
+function zoomInWizard() {
+	if (wizardZoomLevel.value < 1.2) {
+		wizardZoomLevel.value = Math.min(1.2, wizardZoomLevel.value + 0.1);
+		console.log('Wizard zoom in:', wizardZoomLevel.value);
+	}
+}
+
+function zoomOutWizard() {
+	if (wizardZoomLevel.value > 0.5) {
+		wizardZoomLevel.value = Math.max(0.5, wizardZoomLevel.value - 0.1);
+		console.log('Wizard zoom out:', wizardZoomLevel.value);
+	}
+}
+
+function resetWizardZoom() {
+	wizardZoomLevel.value = 0.85;
+	console.log('Wizard zoom reset:', wizardZoomLevel.value);
 }
 
 // Definir componentes para el sistema de Wizard
@@ -4059,9 +4299,10 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	border-radius: 12px;
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
-	width: 90%;
-	max-width: 1000px;
-	max-height: 90%;
+	width: 95vw; /* Usar más ancho de la pantalla */
+	max-width: 1400px; /* Aumentar el ancho máximo */
+	height: 95vh; /* Usar más alto de la pantalla */
+	max-height: 95vh;
 	overflow: hidden;
 	animation: wizardSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 	display: flex;
@@ -4083,9 +4324,10 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 24px 28px;
+	padding: 12px 20px; /* Reducir aún más el padding vertical */
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	background: linear-gradient(135deg, #333 0%, #2a2a2a 100%);
+	flex-shrink: 0; /* Evitar que se comprima */
 }
 
 .wizard-title {
@@ -4094,7 +4336,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	gap: 12px;
 	margin: 0;
 	color: #fff;
-	font-size: 22px;
+	font-size: 20px; /* Reducir tamaño del título */
 	font-weight: 600;
 }
 
@@ -4118,9 +4360,62 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 }
 
 .wizard-progress {
-	padding: 20px 28px;
+	padding: 8px 20px; /* Reducir aún más el padding */
 	background: #333;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	flex-shrink: 0; /* Evitar que se comprima */
+}
+
+.progress-info {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+}
+
+.zoom-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: rgba(255, 255, 255, 0.05);
+	padding: 6px 8px;
+	border-radius: 6px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.zoom-btn {
+	background: transparent;
+	border: none;
+	color: #e0e0e0;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.zoom-btn:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.1);
+	color: #4caf50;
+}
+
+.zoom-btn:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+
+.zoom-reset:hover:not(:disabled) {
+	color: #ff9800;
+}
+
+.zoom-level {
+	color: #4caf50;
+	font-size: 12px;
+	font-weight: 600;
+	min-width: 35px;
+	text-align: center;
 }
 
 .progress-bar {
@@ -4147,40 +4442,89 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 
 .wizard-content {
 	flex: 1;
-	padding: 28px;
-	overflow-y: auto;
-	min-height: 400px;
+	padding: 12px 20px; /* Reducir aún más el padding */
+	overflow: hidden; /* Cambiar de auto a hidden */
+	min-height: 0; /* Permitir que se comprima */
+	display: flex;
+	flex-direction: column;
 }
 
 .wizard-step {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
+	min-height: 0; /* Permitir que se comprima */
 }
 
 .step-header {
-	margin-bottom: 24px;
+	margin-bottom: 8px; /* Reducir aún más el margen */
+	flex-shrink: 0; /* Evitar que se comprima */
 }
 
 .step-header h3 {
 	color: #fff;
-	font-size: 24px;
+	font-size: 20px; /* Reducir tamaño */
 	font-weight: 600;
-	margin-bottom: 8px;
+	margin-bottom: 4px; /* Reducir margen */
 }
 
 .step-description {
 	color: #bbb;
-	font-size: 16px;
-	line-height: 1.5;
+	font-size: 14px; /* Reducir tamaño */
+	line-height: 1.4;
 	margin: 0;
 }
 
 .step-content {
 	flex: 1;
 	display: flex;
+	flex-direction: column;
+	min-height: 0; /* Permitir que se comprima */
+	overflow: hidden; /* Evitar scrollbars */
+}
+
+.step-notes {
+	background: rgba(76, 175, 80, 0.1);
+	border: 1px solid rgba(76, 175, 80, 0.3);
+	border-radius: 8px;
+	padding: 8px 12px; /* Reducir padding */
+	margin-bottom: 12px;
+	flex-shrink: 0;
+}
+
+.note-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: #e0e0e0;
+	font-size: 12px; /* Reducir tamaño de fuente */
+	margin-bottom: 4px; /* Reducir margen entre items */
+}
+
+.note-item:last-child {
+	margin-bottom: 0;
+}
+
+.note-icon {
+	flex-shrink: 0;
+}
+
+.component-container {
+	flex: 1;
+	display: flex;
 	align-items: center;
 	justify-content: center;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.component-container {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 0;
+	overflow: hidden;
 }
 
 .step-placeholder {
@@ -4190,7 +4534,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	border-radius: 12px;
 	border: 2px dashed rgba(255, 255, 255, 0.2);
 	max-width: 500px;
-	margin: 0 auto;
+	margin: auto; /* Centrar horizontalmente */
 }
 
 .placeholder-icon {
@@ -4275,13 +4619,84 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	color: #4caf50;
 }
 
+.output-data-summary {
+	background: rgba(33, 150, 243, 0.1);
+	border: 1px solid rgba(33, 150, 243, 0.3);
+	border-radius: 8px;
+	padding: 16px;
+	margin: 20px 0;
+	text-align: left;
+	max-width: 600px;
+	margin-left: auto;
+	margin-right: auto;
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.output-data-summary h4 {
+	color: #2196F3;
+	font-size: 16px;
+	margin-bottom: 12px;
+	margin-top: 0;
+}
+
+.output-data-summary h5 {
+	color: #fff;
+	font-size: 14px;
+	margin: 12px 0 6px 0;
+	padding-bottom: 4px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.time-params, .step-params {
+	margin-bottom: 16px;
+}
+
+.step-data {
+	margin-bottom: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.step-data:last-child {
+	border-bottom: none;
+	margin-bottom: 0;
+}
+
+.params-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 4px;
+	margin-left: 12px;
+}
+
+.param-item {
+	color: #e0e0e0;
+	font-size: 12px;
+	padding: 2px 0;
+}
+
+.param-item strong {
+	color: #4caf50;
+	margin-right: 8px;
+}
+
+.param-item span {
+	font-family: monospace;
+	background: rgba(255, 255, 255, 0.1);
+	padding: 1px 4px;
+	border-radius: 3px;
+	font-size: 11px;
+}
+
 .wizard-footer {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 20px 28px;
+	padding: 8px 20px; /* Reducir aún más el padding */
 	border-top: 1px solid rgba(255, 255, 255, 0.1);
 	background: #333;
+	flex-shrink: 0; /* Evitar que se comprima */
 }
 
 .wizard-footer-right {

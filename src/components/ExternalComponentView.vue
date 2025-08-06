@@ -1,7 +1,14 @@
 <template>
   <div class="external-component-container">
     <!-- Siempre tener el punto de montaje disponible pero oculto según el estado -->
-    <div id="component-mount-point" class="component-wrapper" :style="{ display: !loading && !error ? 'flex' : 'none' }">
+    <div 
+      id="component-mount-point" 
+      class="component-wrapper" 
+      :style="{ 
+        display: !loading && !error ? 'flex' : 'none',
+        '--component-zoom': zoomLevel || 0.85
+      }"
+    >
       <!-- El componente web se montará aquí -->
     </div>
     
@@ -34,6 +41,7 @@ const props = defineProps<{
       componentVersion?: string;
     };
   };
+  zoomLevel?: number; // Nivel de zoom para el componente
 }>();
 
 // Emits
@@ -44,6 +52,7 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const componentInfo = ref<any>(null);
 const componentInstance = ref<any>(null);
+const outputData = ref<any>({}); // Almacenar datos de salida del componente
 
 // Variables de sesión para simular
 const sessionId = `sim-${Date.now()}`;
@@ -164,10 +173,34 @@ async function loadExternalComponent() {
     
     componentInstance.value = element;
     
-    // Configurar atributos
+    // Configurar atributos de entrada
     element.setAttribute('session-id', sessionId);
-    element.setAttribute('flow-context', JSON.stringify(flowContext));
-    console.log(`🔧 Atributos configurados - session-id: ${sessionId}, flow-context: ${JSON.stringify(flowContext)}`);
+    element.setAttribute('user-id', `user-${sessionId.split('-')[1]}`); // Generar user-id basado en session
+    
+    // Configurar objeto config
+    const config = {
+      theme: 'dark',
+      showFooter: true,
+      simulationMode: true,
+      zoomLevel: props.zoomLevel || 0.85
+    };
+    element.setAttribute('config', JSON.stringify(config));
+    
+    // Configurar flow-context expandido
+    const expandedFlowContext = {
+      ...flowContext,
+      currentStep: 1,
+      totalSteps: 4,
+      componentId: props.wizardStep?.componentData?.customTypeId,
+      componentVersion: props.wizardStep?.componentData?.componentVersion || '1.0.0'
+    };
+    element.setAttribute('flow-context', JSON.stringify(expandedFlowContext));
+    
+    console.log('🔧 Atributos configurados:');
+    console.log('  - session-id:', sessionId);
+    console.log('  - user-id:', `user-${sessionId.split('-')[1]}`);
+    console.log('  - config:', JSON.stringify(config, null, 2));
+    console.log('  - flow-context:', JSON.stringify(expandedFlowContext, null, 2));
     
     // Añadir eventos
     element.addEventListener('component-ready', handleComponentReady);
@@ -204,8 +237,40 @@ function handleComponentReady(event: Event) {
 
 function handleOutputData(event: any) {
   console.log('📤 Datos de salida del componente:', event.detail);
-  console.log('🔄 Avanzando al siguiente paso con datos:', event.detail);
-  emit('next', event.detail);
+  
+  // Almacenar datos de salida
+  outputData.value = { ...outputData.value, ...event.detail };
+  
+  // Extraer parámetros específicos si están presentes
+  const { horaInicio, horaFin, ...otherData } = event.detail || {};
+  
+  if (horaInicio) {
+    console.log('⏰ Hora de inicio capturada:', horaInicio);
+  }
+  
+  if (horaFin) {
+    console.log('⏰ Hora de fin capturada:', horaFin);
+  }
+  
+  if (Object.keys(otherData).length > 0) {
+    console.log('📋 Otros datos capturados:', otherData);
+  }
+  
+  // Crear objeto estructurado con todos los datos
+  const structuredData = {
+    sessionId,
+    componentId: props.wizardStep?.componentData?.customTypeId,
+    timestamp: new Date().toISOString(),
+    outputParameters: {
+      horaInicio,
+      horaFin,
+      ...otherData
+    },
+    allData: event.detail
+  };
+  
+  console.log('🔄 Avanzando al siguiente paso con datos estructurados:', structuredData);
+  emit('next', structuredData);
 }
 
 function handleNavigation(event: any) {
@@ -221,6 +286,29 @@ function handleComponentError(event: any) {
   error.value = event.detail?.message || 'Error en el componente';
   emit('error', error.value);
 }
+
+// Función para obtener los datos de salida capturados
+function getOutputData() {
+  return outputData.value;
+}
+
+// Función para obtener parámetros específicos
+function getOutputParameter(key: string) {
+  return outputData.value[key];
+}
+
+// Función para limpiar los datos de salida
+function clearOutputData() {
+  outputData.value = {};
+}
+
+// Exponer funciones para uso externo
+defineExpose({
+  getOutputData,
+  getOutputParameter,
+  clearOutputData,
+  componentInstance
+});
 
 // Lifecycle hooks
 onMounted(() => {
@@ -264,12 +352,13 @@ watch(() => props.wizardStep?.componentData, () => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 500px; /* Aumentado para dar más espacio */
-  min-height: 400px;
+  height: 100%; /* Usar todo el espacio disponible */
+  min-height: 0; /* Permitir que se comprima */
   position: relative;
-  border: 1px solid #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   overflow: hidden;
+  background: #1e1e1e;
 }
 
 .loading-container {
@@ -278,14 +367,15 @@ watch(() => props.wizardStep?.componentData, () => {
   align-items: center;
   justify-content: center;
   height: 100%;
+  color: #fff;
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(0, 0, 0, 0.1);
+  border: 4px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  border-top: 4px solid #3498db;
+  border-top: 4px solid #4caf50;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
 }
@@ -301,31 +391,64 @@ watch(() => props.wizardStep?.componentData, () => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  background-color: rgba(255, 0, 0, 0.05);
-  color: #d32f2f;
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
   padding: 20px;
 }
 
 .component-wrapper {
   flex: 1;
-  min-height: 350px;
-  overflow: auto;
+  min-height: 0; /* Permitir que se comprima */
+  overflow: hidden; /* Evitar scrollbars */
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* Aplicar zoom dinámico al contenido del componente externo */
+.component-wrapper #component-mount-point {
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--component-zoom, 0.85));
+  transform-origin: top left;
+  overflow: hidden;
+  transition: transform 0.3s ease; /* Transición suave para el zoom */
+}
+
+/* Ajustar el contenedor para compensar el zoom dinámico */
+.component-wrapper #component-mount-point > * {
+  width: calc(100% / var(--component-zoom, 0.85));
+  height: calc(100% / var(--component-zoom, 0.85));
 }
 
 .component-info {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 5;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
 }
 
 .component-tag {
   background-color: #333;
   color: #fff;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 900px) {
+  .external-component-container {
+    height: 100%;
+    min-height: 300px;
+  }
+  
+  .component-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
 }
 </style>
