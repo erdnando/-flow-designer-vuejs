@@ -26,6 +26,9 @@ interface LoadingCache {
   [key: string]: Promise<any>;
 }
 
+// Importar MockComponentRegistry directamente para inicializar el registry
+import { mockComponentRegistry } from './MockComponentRegistry';
+
 /**
  * Servicio para cargar componentes externos React como Web Components
  * Versión 2.0 - Con arquitectura mejorada y mejor manejo de errores
@@ -34,6 +37,22 @@ export class ExternalComponentLoader {
   private static loadingCache: LoadingCache = {};
   private static loadedComponents = new Set<string>();
   private static componentRegistry = new Map<string, ComponentConfig>();
+
+  // Inicializar el registry con los componentes mock automáticamente
+  static {
+    try {
+      console.log('Inicializando ExternalComponentLoader...');
+      // Registrar todos los componentes del MockComponentRegistry
+      mockComponentRegistry.forEach(component => {
+        ExternalComponentLoader.componentRegistry.set(component.id, component);
+        console.log(`📋 Component auto-registered: ${component.id} v${component.version}`);
+      });
+      console.log('Registry inicializado con componentes:', 
+                 Array.from(ExternalComponentLoader.componentRegistry.keys()));
+    } catch (error) {
+      console.error('Error al inicializar el registry de componentes:', error);
+    }
+  }
 
   /**
    * Registra un componente en el registry local
@@ -394,5 +413,19 @@ export class ExternalComponentLoader {
       loadedComponents: this.loadedComponents.size,
       registeredComponents: this.componentRegistry.size
     };
+  }
+
+  /**
+   * Obtiene todos los IDs de componentes registrados
+   */
+  static getRegisteredComponentIds(): string[] {
+    return Array.from(this.componentRegistry.keys());
+  }
+  
+  /**
+   * Verifica si un componente está registrado
+   */
+  static isRegistered(id: string): boolean {
+    return this.componentRegistry.has(id);
   }
 }

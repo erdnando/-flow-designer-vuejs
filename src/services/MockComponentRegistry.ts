@@ -12,7 +12,7 @@ export const mockComponentRegistry: ComponentConfig[] = [
     id: 'landing',
     name: 'Landing Page Component',
     version: '1.0.0',
-    cdnUrl: 'http://localhost:3001/dist/landing-v1.0.0.js',
+    cdnUrl: 'http://localhost:3001/landing-v1.0.0.js?v=' + Date.now(),
     fallbackUrl: '/local-components/landing-fallback.js',
     type: 'web-component',
     metadata: {
@@ -34,7 +34,7 @@ export const mockComponentRegistry: ComponentConfig[] = [
       }
     },
     healthcheck: {
-      url: 'http://localhost:3001/health',
+      url: 'http://localhost:3001/',
       method: 'GET',
       expectedStatus: 200
     }

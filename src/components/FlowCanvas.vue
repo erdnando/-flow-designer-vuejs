@@ -385,8 +385,9 @@
 					<!-- Aquí se renderizará el componente de vista específico -->
 					<div class="step-content">
 						<component 
-							:is="wizardSteps[currentWizardStep].component" 
-							v-if="wizardSteps[currentWizardStep].type === 'view'"
+							:is="wizardComponents[wizardSteps[currentWizardStep].component as keyof typeof wizardComponents]" 
+							v-if="wizardSteps[currentWizardStep].type === 'view' && componentExists(wizardSteps[currentWizardStep].component)"
+							:wizard-step="wizardSteps[currentWizardStep]"
 							@next="nextWizardStep"
 							@previous="previousWizardStep"
 						/>
@@ -482,6 +483,9 @@ import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 import { getValidationErrors, type ValidationResult } from '../utils/nodeValidationRules';
 import { useNotifications } from '../composables/useNotifications';
 import SimpleDialog from './SimpleDialog.vue';
+// Importar los componentes para el simulador
+import ExternalComponentView from './ExternalComponentView.vue';
+import ProcessView from './ProcessView.vue';
 
 // Interfaces para el sistema de testing
 interface TestResults {
@@ -2283,6 +2287,11 @@ interface WizardStep {
 	description: string;
 	completed: boolean;
 	nodeData?: any; // Datos del nodo original para acceder al ícono
+	componentData?: {
+		customTypeId?: string;
+		componentVersion?: string;
+		[key: string]: any;
+	}; // Datos adicionales para componentes externos
 }
 
 // Proveer funciones a los componentes hijos
@@ -2891,21 +2900,36 @@ function createWizardFromFlow() {
 			const nodeLabel = node.data?.label || node.label || 'Proceso';
 			console.log(`Buscando mapeo para label: "${nodeLabel}"`);
 			
-			const mapping = processNodeMapping[nodeLabel];
-			if (mapping) {
-				console.log(`Mapeo encontrado:`, mapping);
+			// Verificar si es un componente externo
+			if (node.data?.customTypeId) {
+				console.log(`Detectado componente externo con customTypeId: ${node.data.customTypeId}`);
 				stepInfo = {
-					title: nodeLabel, // Usar el label original del nodo como título
-					component: mapping.component,
-					description: mapping.description
+					title: nodeLabel,
+					component: 'ExternalComponentView',
+					description: 'Componente externo',
+					// Pasar información adicional para cargar el componente externo
+					componentData: {
+						customTypeId: node.data.customTypeId,
+						componentVersion: node.data.componentVersion || '1.0.0'
+					}
 				};
 			} else {
-				console.warn(`No se encontró mapeo para el label: "${nodeLabel}". Labels disponibles:`, Object.keys(processNodeMapping));
-				stepInfo = {
-					title: nodeLabel, // Usar el label original como título
-					component: 'ProcessView',
-					description: 'Vista de proceso'
-				};
+				const mapping = processNodeMapping[nodeLabel];
+				if (mapping) {
+					console.log(`Mapeo encontrado:`, mapping);
+					stepInfo = {
+						title: nodeLabel, // Usar el label original del nodo como título
+						component: mapping.component,
+						description: mapping.description
+					};
+				} else {
+					console.warn(`No se encontró mapeo para el label: "${nodeLabel}". Labels disponibles:`, Object.keys(processNodeMapping));
+					stepInfo = {
+						title: nodeLabel, // Usar el label original como título
+						component: 'ProcessView',
+						description: 'Vista de proceso'
+					};
+				}
 			}
 		} else {
 			// Para start y end, usar el label del nodo como título
@@ -2927,7 +2951,8 @@ function createWizardFromFlow() {
 			component: stepInfo.component,
 			description: stepInfo.description,
 			completed: false,
-			nodeData: node.data // Incluir datos del nodo para acceder al ícono
+			nodeData: node.data, // Incluir datos del nodo para acceder al ícono
+			componentData: (stepInfo as any).componentData // Incluir datos adicionales para componentes externos si existen
 		});
 	});
 	
@@ -2991,11 +3016,15 @@ function restartWizard() {
 	console.log('Wizard reiniciado');
 }
 
-// Función para verificar si un componente existe (temporal)
-function componentExists(_componentName: string): boolean {
-	// Por ahora retornamos false para mostrar placeholders
-	// Más adelante se pueden registrar los componentes reales
-	return false;
+// Definir componentes para el sistema de Wizard
+const wizardComponents = {
+  ProcessView,
+  ExternalComponentView
+};
+
+// Función para verificar si un componente existe
+function componentExists(componentName: string): boolean {
+	return componentName in wizardComponents;
 }
 
 // Función para cancelar el test en progreso
