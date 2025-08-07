@@ -11,14 +11,23 @@ import NotificationContainer from './components/NotificationContainer.vue'
 html,
 body,
 #app {
-	width: 100vw;
-	height: 100vh;
-	min-width: 0;
-	min-height: 0;
-	margin: 0;
-	padding: 0;
+	width: 100vw !important;
+	height: 100vh !important;
+	min-width: 0 !important;
+	min-height: 0 !important;
+	max-width: none !important; /* Sobrescribir el max-width del style.css */
+	margin: 0 !important;
+	padding: 0 !important; /* Sobrescribir el padding del style.css */
 	overflow: hidden;
 	background: #23272e;
+	text-align: left !important; /* Sobrescribir el text-align del style.css */
+}
+
+/* Asegurar que el body también use toda la altura disponible */
+body {
+	display: flex !important;
+	place-items: stretch !important; /* Cambiar de center a stretch */
+	min-height: 100vh !important;
 }
 </style>
 

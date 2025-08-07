@@ -74,9 +74,15 @@ function calculateContainerHeight() {
     const borderTop = parseInt(containerStyles.borderTopWidth) || 0;
     const borderBottom = parseInt(containerStyles.borderBottomWidth) || 0;
     
-    const calculatedHeight = parentHeight - marginTop - marginBottom - borderTop - borderBottom;
-    containerHeight.value = Math.max(calculatedHeight + 200, 400); // Agregar 200px extra y mínimo 400px
-    console.log('🔍 Altura calculada:', containerHeight.value, 'px (padre:', parentHeight, 'px, +200px extra)');
+    // Usar toda la altura disponible del padre - reducir márgenes al mínimo
+    const calculatedHeight = parentHeight - marginTop - marginBottom - borderTop - borderBottom - 5; // Solo 5px de margen de seguridad
+    containerHeight.value = Math.max(calculatedHeight, 550); // Aumentar mínimo a 550px
+    console.log('🔍 Altura calculada:', containerHeight.value, 'px (padre:', parentHeight, 'px, margen mínimo)');
+    
+    // Aplicar la altura inmediatamente al contenedor
+    if (container) {
+      container.style.height = `${containerHeight.value}px`;
+    }
   }
 }
 
@@ -220,9 +226,59 @@ async function loadExternalComponent() {
       theme: 'dark',
       showFooter: true,
       simulationMode: false, // Cambiar a false para que se vea igual que el acceso directo
-      zoomLevel: props.zoomLevel || 1.0
+      zoomLevel: props.zoomLevel || 1.0,
+      // Agregar información de dimensiones para que el componente se ajuste
+      containerDimensions: {
+        width: '100%',
+        height: '100%',
+        minHeight: '600px', // Aumentar altura mínima
+        maxWidth: '100%',   // NUEVO: Limitar ancho máximo
+        maxHeight: '100%',  // NUEVO: Limitar altura máxima
+        forceFullHeight: true,
+        containment: true,  // NUEVO: Indicar al componente que debe contenerse
+        isModal: true,      // NUEVO: Indicar que está dentro de un modal
+        parentContainer: 'wizard-modal', // NUEVO: Identificar el contenedor padre
+        // NUEVO: Información específica sobre el contexto de altura
+        heightContext: {
+          useContainerHeight: true,  // NO usar 100vh
+          respectParentDimensions: true,
+          availableHeight: `${containerHeight.value}px`,
+          viewportUsage: 'container-relative' // No viewport-relative
+        }
+      }
     };
     element.setAttribute('config', JSON.stringify(config));
+    
+    // HACK ESPECÍFICO para ine-validation-component: forzar altura via CSS inline
+    if (customElementName === 'ine-validation-component') {
+      // SOLUCIÓN RADICAL: Calcular altura exacta del contenedor disponible
+      const availableHeight = containerHeight.value - 20; // 20px de margen de seguridad
+      
+      element.style.height = `${availableHeight}px`; // Altura específica en pixels, no porcentaje
+      element.style.minHeight = `${availableHeight}px`;
+      element.style.maxHeight = `${availableHeight}px`; // Altura exacta, sin flexibilidad
+      element.style.display = 'flex';
+      element.style.flexDirection = 'column';
+      // NUEVO: Contención adicional más agresiva
+      element.style.position = 'relative';
+      element.style.overflow = 'hidden';
+      element.style.maxWidth = '100%';
+      element.style.width = '100%';
+      element.style.contain = 'strict';
+      element.style.clipPath = 'inset(0)'; // Forzar recorte visual
+      
+      // NUEVO: Forzar que NO use viewport height con valores específicos
+      element.style.setProperty('--viewport-height', `${availableHeight}px`);
+      element.style.setProperty('--container-height', `${availableHeight}px`);
+      element.style.setProperty('--max-height', `${availableHeight}px`);
+      
+      // NUEVO: Interceptar todas las variables CSS comunes que podrían usar 100vh
+      element.style.setProperty('--vh', `${availableHeight/100}px`); // 1vh = altura/100
+      element.style.setProperty('--full-height', `${availableHeight}px`);
+      element.style.setProperty('--window-height', `${availableHeight}px`);
+      
+      console.log(`🔧 APLICADO: Estilos específicos para ine-validation-component con altura FIJA: ${availableHeight}px`);
+    }
     
     // Configurar flow-context expandido
     const expandedFlowContext = {
@@ -256,6 +312,197 @@ async function loadExternalComponent() {
     // Montar componente
     finalMountPoint.appendChild(element);
     console.log(`✅ Componente montado exitosamente en #component-mount-point`);
+    
+    // SOLUCIÓN RADICAL: Crear un wrapper de contención para TODOS los componentes
+    const wrapperDiv = document.createElement('div');
+    wrapperDiv.style.cssText = `
+      width: 100%;
+      height: 100%;
+      min-height: 600px;
+      max-height: 100%;
+      overflow: hidden;
+      position: relative;
+      contain: layout style size;
+      clip-path: inset(0);
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      
+    `;
+    
+    // NUEVA JAULA DE CONTENCIÓN INTERIOR para evitar desbordamiento inferior
+    const innerContainmentDiv = document.createElement('div');
+    const exactHeight = containerHeight.value - 40; // Altura exacta menos padding
+    innerContainmentDiv.style.cssText = `
+      width: 100%;
+      height: ${exactHeight}px;
+      max-height: ${exactHeight}px;
+      min-height: ${exactHeight}px;
+      max-width: 100%;
+      overflow: hidden;
+      position: relative;
+      contain: strict;
+      clip-path: inset(0);
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      overflow-y: auto !important;
+    `;
+    
+    // Crear doble contención: wrapper exterior + jaula interior
+    innerContainmentDiv.appendChild(element);
+    wrapperDiv.appendChild(innerContainmentDiv);
+    finalMountPoint.appendChild(wrapperDiv);
+    
+    console.log(`🔒 DOBLE WRAPPER DE CONTENCIÓN aplicado para control superior e inferior`);
+    
+    // INTERCEPTOR GLOBAL: Sobrescribir cualquier CSS que use 100vh
+    const originalStyle = window.getComputedStyle;
+    const availableHeight = containerHeight.value - 20;
+    
+    // Interceptar getComputedStyle para elementos dentro del componente
+    Object.defineProperty(window, 'getComputedStyle', {
+      value: function(element: Element, pseudoElement?: string | null) {
+        const styles = originalStyle.call(this, element, pseudoElement);
+        
+        // Si el elemento está dentro de nuestro microfrontend
+        if (finalMountPoint.contains(element)) {
+          const proxy = new Proxy(styles, {
+            get(target, property) {
+              const value = target[property as keyof CSSStyleDeclaration];
+              
+              // Interceptar valores de altura que usen 100vh
+              if ((property === 'height' || property === 'minHeight' || property === 'maxHeight') && 
+                  typeof value === 'string' && value === '100vh') {
+                console.log(`🚨 INTERCEPTADO: ${property} = 100vh cambiado a ${availableHeight}px`);
+                return `${availableHeight}px`;
+              }
+              
+              return value;
+            }
+          });
+          return proxy as CSSStyleDeclaration;
+        }
+        
+        return styles;
+      },
+      configurable: true
+    });
+    
+    console.log(`🔒 INTERCEPTOR CSS aplicado para sobrescribir 100vh con ${availableHeight}px`);
+    
+    // HACK ADICIONAL: Para ine-validation-component, aplicar dimensiones después de montar
+    if (customElementName === 'ine-validation-component') {
+      setTimeout(() => {
+        const mountedElement = document.querySelector('ine-validation-component') as HTMLElement;
+        if (mountedElement) {
+          // Forzar dimensiones estrictas con altura exacta
+          const exactElementHeight = containerHeight.value - 60; // Más margen de seguridad
+          mountedElement.style.height = `${exactElementHeight}px`;
+          mountedElement.style.maxHeight = `${exactElementHeight}px`;
+          mountedElement.style.minHeight = `${exactElementHeight}px`;
+          mountedElement.style.display = 'flex';
+          mountedElement.style.flexDirection = 'column';
+          // Contención estricta
+          mountedElement.style.position = 'relative';
+          mountedElement.style.overflow = 'hidden';
+          mountedElement.style.maxWidth = '100%';
+          mountedElement.style.contain = 'strict';
+          mountedElement.style.clipPath = 'inset(0)';
+          
+          console.log(`🔧 APLICADO: Altura exacta de ${exactElementHeight}px al elemento montado`);
+          
+          // NUEVO: Interceptar y corregir cualquier elemento que se desborde
+          const observer = new MutationObserver(() => {
+            const allChildren = mountedElement.querySelectorAll('*');
+            allChildren.forEach((child: Element) => {
+              const htmlChild = child as HTMLElement;
+              const rect = htmlChild.getBoundingClientRect();
+              const parentRect = mountedElement.getBoundingClientRect();
+              
+              // Si el elemento se extiende más allá del contenedor padre
+              if (rect.bottom > parentRect.bottom + 5) { // 5px de tolerancia
+                htmlChild.style.maxHeight = '100%';
+                htmlChild.style.overflow = 'hidden';
+                htmlChild.style.position = 'relative';
+                console.log('🚨 CORREGIDO: Elemento desbordado hacia abajo:', htmlChild.tagName);
+              }
+              
+              // NUEVO: Detectar y corregir uso de 100vh
+              const computedStyle = getComputedStyle(htmlChild);
+              if (computedStyle.height === '100vh' || 
+                  computedStyle.minHeight === '100vh' ||
+                  computedStyle.maxHeight === '100vh') {
+                htmlChild.style.height = '100%';
+                htmlChild.style.minHeight = '100%';
+                htmlChild.style.maxHeight = '100%';
+                console.log('🚨 CORREGIDO: Elemento usaba 100vh, cambiado a 100%:', htmlChild.tagName, htmlChild.className);
+              }
+              
+              // También verificar estilos inline
+              if (htmlChild.style.height === '100vh' || 
+                  htmlChild.style.minHeight === '100vh') {
+                htmlChild.style.height = '100%';
+                htmlChild.style.minHeight = '100%';
+                htmlChild.style.maxHeight = '100%';
+                console.log('🚨 CORREGIDO: Estilo inline 100vh detectado y corregido:', htmlChild.tagName);
+              }
+            });
+          });
+          
+          observer.observe(mountedElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class']
+          });
+          
+          // También intentar forzar estilos en el contenido interno si es posible
+          const shadowRoot = mountedElement.shadowRoot;
+          if (shadowRoot) {
+            const allDivs = shadowRoot.querySelectorAll('div');
+            allDivs.forEach((div: HTMLElement) => {
+              div.style.height = '100%';
+              div.style.maxHeight = '100%';
+              div.style.minHeight = 'inherit';
+              div.style.position = 'relative';
+              div.style.maxWidth = '100%';
+              div.style.overflow = 'hidden';
+              div.style.boxSizing = 'border-box';
+              
+              // NUEVO: Sobrescribir cualquier uso de 100vh en shadow DOM
+              const computedStyle = getComputedStyle(div);
+              if (computedStyle.height === '100vh' || computedStyle.minHeight === '100vh') {
+                div.style.height = '100%';
+                div.style.minHeight = '100%';
+                console.log('🚨 CORREGIDO: Elemento en shadow DOM usaba 100vh, cambiado a 100%');
+              }
+            });
+            
+            // NUEVO: Inyectar CSS personalizado en el shadow DOM para sobrescribir 100vh
+            const styleElement = document.createElement('style');
+            styleElement.textContent = `
+              * {
+                height: var(--container-height, 100%) !important;
+                max-height: 100% !important;
+              }
+              *[style*="100vh"] {
+                height: 100% !important;
+                min-height: 100% !important;
+              }
+              div, main, section, article {
+                max-height: 100% !important;
+              }
+            `;
+            shadowRoot.appendChild(styleElement);
+            
+            console.log('🔧 FORZADO: Estilos internos en shadow DOM con límites estrictos y CSS anti-100vh');
+          }
+        }
+      }, 500); // Esperar medio segundo para que el componente se inicialice completamente
+    }
     
     loading.value = false;
   } catch (err: any) {
@@ -360,6 +607,42 @@ onMounted(() => {
   // Escuchar cambios de tamaño de ventana
   window.addEventListener('resize', calculateContainerHeight);
   
+  // Observador para cambios en el tamaño del elemento padre
+  const resizeObserver = new ResizeObserver(() => {
+    calculateContainerHeight();
+  });
+  
+  // Observar el elemento padre cuando esté disponible
+  const checkParent = () => {
+    const container = document.querySelector('.external-component-container') as HTMLElement;
+    if (container?.parentElement) {
+      resizeObserver.observe(container.parentElement);
+      console.log('🔍 ResizeObserver configurado en elemento padre');
+      
+      // NUEVO: Observador de mutaciones para detectar si el componente intenta escaparse
+      const mutationObserver = new MutationObserver(() => {
+        const mountedComponents = container.querySelectorAll('ine-validation-component, landing-web-component, sms-verification-component');
+        mountedComponents.forEach((component) => {
+          const htmlComponent = component as HTMLElement;
+          if (htmlComponent.style.position === 'fixed' || htmlComponent.style.position === 'absolute') {
+            htmlComponent.style.position = 'relative';
+            console.log('🚨 CORREGIDO: Componente intentó escapar usando position fixed/absolute');
+          }
+        });
+      });
+      
+      mutationObserver.observe(container, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style']
+      });
+    } else {
+      setTimeout(checkParent, 100);
+    }
+  };
+  checkParent();
+  
   setTimeout(() => {
     // Ejecutar con un pequeño delay para asegurar que el DOM está completamente renderizado
     loadExternalComponent();
@@ -369,6 +652,13 @@ onMounted(() => {
 onBeforeUnmount(() => {
   // Limpiar event listener de resize
   window.removeEventListener('resize', calculateContainerHeight);
+  
+  // Desconectar el ResizeObserver
+  const container = document.querySelector('.external-component-container') as HTMLElement;
+  if (container?.parentElement) {
+    // El ResizeObserver se desconecta automáticamente cuando el componente se desmonta
+    console.log('🔍 Limpiando ResizeObserver');
+  }
   
   // Limpiar el componente y los eventos
   if (componentInstance.value) {
@@ -412,6 +702,9 @@ watch(() => props.wizardStep?.componentData, () => {
   /* Centrar el contenido */
   justify-content: center;
   align-items: center;
+  /* NUEVO: Contener estrictamente el componente */
+  contain: layout style size; /* Contención CSS para evitar escape */
+  isolation: isolate; /* Crear contexto de apilamiento */
 }
 
 .loading-container {
@@ -464,17 +757,165 @@ watch(() => props.wizardStep?.componentData, () => {
   /* Centrar el contenido para que se vea completo */
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: stretch; /* Cambiar a stretch para que use toda la altura */
   flex-direction: column;
+  /* Remover padding para maximizar espacio disponible */
+  /* NUEVO: Contención estricta del punto de montaje */
+  contain: layout style; /* Contener layout y estilos */
+  isolation: isolate; /* Aislar el contexto de apilamiento */
 }
 
 /* Dar dimensiones apropiadas al componente web */
 .component-mount-point > * {
-  width: 400px;  /* Ancho fijo para zoom óptimo */
-  height: 650px; /* Altura suficiente para mostrar todo el contenido */
-  max-width: none; /* No limitar el tamaño máximo */
-  max-height: none; /* No limitar el tamaño máximo */
+  width: 100% !important;   /* Usar todo el ancho disponible */
+  height: 100% !important;  /* Usar toda la altura disponible */
+  min-width: 350px;  /* Ancho mínimo para asegurar legibilidad */
+  min-height: 450px; /* Altura mínima para asegurar contenido visible */
+  max-width: 100% !important; /* NUEVO: Limitar el ancho máximo */
+  max-height: 100% !important; /* NUEVO: Limitar la altura máxima */
   flex-shrink: 0; /* No permitir que se encoja */
+  box-sizing: border-box; /* Incluir padding y border en las dimensiones */
+  /* Forzar que el contenido interno también use toda la altura */
+  display: flex !important;
+  flex-direction: column !important;
+  /* NUEVO: Evitar que el componente escape de su contenedor */
+  position: relative !important; /* Forzar posición relativa */
+  overflow: hidden !important; /* Evitar scroll y desbordamiento */
+  contain: layout style size !important; /* Contención total */
+}
+
+/* Asegurar que el contenido interno del web component también se estire */
+.component-mount-point > * > *,
+.component-mount-point > * > * > * {
+  flex: 1 !important;
+  height: 100% !important;
+  min-height: inherit !important;
+}
+
+/* Estilos específicos para web components comunes */
+.component-mount-point landing-web-component,
+.component-mount-point ine-validation-component,
+.component-mount-point sms-verification-component {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* NUEVO: Interceptar y sobrescribir cualquier uso de 100vh en el microfrontend */
+.component-mount-point *[style*="100vh"],
+.component-mount-point *[style*="height: 100vh"],
+.component-mount-point *[style*="min-height: 100vh"] {
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+}
+
+/* Forzar que elementos comunes NO usen 100vh */
+.component-mount-point div,
+.component-mount-point main,
+.component-mount-point section,
+.component-mount-point article,
+.component-mount-point .container,
+.component-mount-point .wrapper {
+  max-height: 100% !important;
+}
+
+/* Estilos súper específicos para ine-validation-component que parece tener problemas */
+.component-mount-point ine-validation-component {
+  height: 100% !important; /* Cambiar de 100vh a 100% para respetar contenedor */
+  min-height: 600px !important;
+  max-height: 100% !important; /* Limitar altura máxima */
+  width: 100% !important;
+  max-width: 100% !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transform: none !important; /* Evitar transforms que puedan causar escape */
+  contain: strict !important; /* Contención más estricta */
+  clip-path: inset(0) !important; /* Forzar recorte visual */
+  box-sizing: border-box !important;
+}
+
+/* NUEVA REGLA: Forzar altura fija cuando el componente intenta usar 100vh */
+.component-mount-point ine-validation-component[style*="100vh"],
+.component-mount-point ine-validation-component * [style*="100vh"] {
+  height: calc(75vh - 100px) !important; /* Altura específica basada en el contenedor real */
+  min-height: calc(75vh - 100px) !important;
+  max-height: calc(75vh - 100px) !important;
+}
+
+/* SUPER HACK: Crear un contenedor wrapper para contener completamente el componente */
+.component-mount-point {
+  position: relative !important;
+  overflow: hidden !important;
+  clip-path: inset(0) !important; /* Forzar recorte visual */
+  max-height: 100% !important; /* NUEVO: Evitar desbordamiento inferior */
+  contain: strict !important; /* Contención más estricta */
+}
+
+/* NUEVO: Evitar que cualquier componente web escape de su contenedor */
+.component-mount-point > *,
+.component-mount-point > * *,
+.component-mount-point > * * * {
+  position: relative !important; /* Evitar position fixed/absolute que escape */
+  z-index: auto !important; /* Evitar z-index extremos */
+  transform: none !important; /* Evitar transforms que escapen */
+}
+
+/* NUEVO: Contener elementos que intenten usar posicionamiento absoluto */
+.component-mount-point > * [style*="position: fixed"],
+.component-mount-point > * [style*="position: absolute"] {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+/* Forzar altura en elementos internos del ine-validation-component */
+.component-mount-point ine-validation-component * {
+  box-sizing: border-box !important;
+}
+
+.component-mount-point ine-validation-component > div,
+.component-mount-point ine-validation-component .container,
+.component-mount-point ine-validation-component .wrapper,
+.component-mount-point ine-validation-component .main,
+.component-mount-point ine-validation-component .content,
+.component-mount-point ine-validation-component .app,
+.component-mount-point ine-validation-component .component-root {
+  height: 100% !important;
+  min-height: 100% !important;
+  flex: 1 !important;
+}
+
+/* Forzar que cualquier contenedor padre dentro del shadow DOM también use toda la altura */
+.component-mount-point ine-validation-component::shadow-root,
+.component-mount-point ine-validation-component::shadow {
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+/* Forzar altura completa en elementos internos comunes */
+.component-mount-point [class*="container"],
+.component-mount-point [class*="wrapper"],
+.component-mount-point [class*="main"],
+.component-mount-point [class*="content"] {
+  height: 100% !important;
+  min-height: 100% !important;
+  flex: 1 !important;
+}
+
+/* Estilos globales para forzar altura completa en toda la cadena de contenedores */
+.wizard-modal,
+.wizard-main-content,
+.wizard-content,
+.wizard-step,
+.step-content,
+.component-container {
+  min-height: 0 !important;
+  height: auto !important;
+  flex: 1 !important;
 }
 
 .component-info {

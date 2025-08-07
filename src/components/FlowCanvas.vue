@@ -4319,10 +4319,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	border-radius: 12px;
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
-	width: 85vw; /* Reducir el ancho para hacer mejor uso del espacio */
-	max-width: 1200px; /* Reducir el ancho máximo */
-	height: 95vh; /* Usar más alto de la pantalla */
-	max-height: 95vh;
+	width: 90vw; /* Aumentar el ancho para mejor uso del espacio */
+	max-width: 1400px; /* Aumentar el ancho máximo */
+	height: 98vh; /* Usar casi toda la altura de la pantalla */
+	max-height: 98vh;
+	min-height: 800px; /* Asegurar altura mínima adecuada */
 	overflow: hidden;
 	animation: wizardSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 	display: flex;
@@ -4344,10 +4345,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 12px 20px; /* Reducir aún más el padding vertical */
+	padding: 8px 20px; /* Reducir aún más el padding vertical a 8px */
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	background: linear-gradient(135deg, #333 0%, #2a2a2a 100%);
 	flex-shrink: 0; /* Evitar que se comprima */
+	min-height: 48px; /* Altura mínima controlada */
 }
 
 .wizard-title {
@@ -4380,10 +4382,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 }
 
 .wizard-progress {
-	padding: 8px 20px; /* Reducir aún más el padding */
+	padding: 6px 20px; /* Reducir aún más el padding a 6px */
 	background: #333;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	flex-shrink: 0; /* Evitar que se comprima */
+	min-height: 42px; /* Altura mínima controlada */
 }
 
 .progress-info {
@@ -4465,7 +4468,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 
 .wizard-content {
 	flex: 1;
-	padding: 12px 20px; /* Reducir aún más el padding */
+	padding: 8px 20px; /* Reducir aún más el padding a 8px */
 	overflow: hidden; /* Cambiar de auto a hidden */
 	min-height: 0; /* Permitir que se comprima */
 	display: flex;
@@ -4481,10 +4484,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	display: flex;
 	flex-direction: column;
 	min-height: 0; /* Permitir que se comprima */
+	flex: 1; /* Asegurar que use todo el espacio disponible */
 }
 
 .step-header {
-	margin-bottom: 8px; /* Reducir aún más el margen */
+	margin-bottom: 6px; /* Reducir aún más el margen a 6px */
 	flex-shrink: 0; /* Evitar que se comprima */
 }
 
