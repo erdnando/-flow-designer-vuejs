@@ -1,0 +1,446 @@
+<template>
+  <div class="variables-panel" :class="{ 'panel-collapsed': collapsed }">
+    <!-- Header del panel -->
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="panel-icon">
+          <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+          <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+          <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+          <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <span>Variables</span>
+        <span class="variables-count">{{ totalVariablesCount }}</span>
+      </div>
+      <div class="panel-controls">
+        <button 
+          @click="toggleSort" 
+          class="sort-btn" 
+          :class="{ active: sortAlphabetically }"
+          title="Ordenar alfabéticamente"
+        >
+          🔤
+        </button>
+        <button @click="toggleCollapsed" class="collapse-btn" :title="collapsed ? 'Expandir' : 'Contraer'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path v-if="collapsed" d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path v-else d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Contenido del panel -->
+    <div v-if="!collapsed" class="panel-content">
+      <div class="variables-container">
+        <div 
+          v-for="variable in sortedVariables" 
+          :key="variable.key"
+          class="variable-item"
+          :class="{ 'current-step': variable.isCurrentStep }"
+        >
+          <div class="variable-name">{{ variable.name }}</div>
+          <div class="variable-value">{{ formatValue(variable.value) }}</div>
+          <div class="variable-step">Paso {{ variable.step }}</div>
+        </div>
+        
+        <div v-if="sortedVariables.length === 0" class="no-variables">
+          Sin variables capturadas aún
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+      <!-- Variables de tiempo -->
+      <div v-if="timeParameters && Object.keys(timeParameters).length > 0" class="variables-section">
+        <div class="section-header">
+          <h4>⏰ Variables de Tiempo</h4>
+        </div>
+        <div class="variables-list">
+          <div v-for="(value, key) in timeParameters" :key="key" class="variable-item">
+            <div class="variable-label">{{ key }}</div>
+            <div class="variable-value">{{ formatDateTime(value) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Variables por paso -->
+      <div v-for="(stepData, stepId) in outputData" :key="stepId" class="variables-section">
+        <div class="section-header">
+          <h4>📄 {{ getStepDisplayName(stepId) }}</h4>
+          <span class="step-status" :class="stepData.status">{{ getStatusLabel(stepData.status) }}</span>
+        </div>
+        <div class="variables-list">
+          <div v-if="stepData.outputParameters && Object.keys(stepData.outputParameters).length > 0">
+            <div v-for="(value, key) in stepData.outputParameters" :key="key" class="variable-item">
+              <div class="variable-label">{{ key }}</div>
+              <div class="variable-value" :class="{ 'value-object': typeof value === 'object' }">
+                <span v-if="typeof value === 'object'">
+                  <details class="object-details">
+                    <summary>{{ getObjectSummary(value) }}</summary>
+                    <pre>{{ JSON.stringify(value, null, 2) }}</pre>
+                  </details>
+                </span>
+                <span v-else>{{ value }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="no-variables">
+            <span class="empty-state">Sin datos capturados aún</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado del paso actual si está en progreso -->
+      <div v-if="currentStepData" class="variables-section current-step-highlight">
+        <div class="section-header">
+          <h4>🔄 Estado Actual</h4>
+        </div>
+        <div class="variables-list">
+          <div class="variable-item">
+            <div class="variable-label">componente</div>
+            <div class="variable-value">{{ currentStepData.component || 'N/A' }}</div>
+          </div>
+          <div v-if="currentStepData.startTime" class="variable-item">
+            <div class="variable-label">hora_inicio_paso</div>
+            <div class="variable-value">{{ formatDateTime(currentStepData.startTime) }}</div>
+          </div>
+          <div v-if="currentStepData.lastInteraction" class="variable-item">
+            <div class="variable-label">ultima_interaccion</div>
+            <div class="variable-value">{{ formatDateTime(currentStepData.lastInteraction) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+
+interface Props {
+  outputData: Record<string, any>
+  timeParameters: Record<string, string>
+  sessionData: Record<string, any>
+  currentStep: number
+  totalSteps: number
+  currentStepTitle: string
+  currentStepData?: Record<string, any>
+  collapsed?: boolean
+}
+
+interface Emits {
+  (e: 'toggle-collapsed'): void
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  collapsed: false,
+  outputData: () => ({}),
+  timeParameters: () => ({}),
+  sessionData: () => ({}),
+  currentStepData: () => ({})
+})
+
+const emit = defineEmits<Emits>()
+
+const toggleCollapsed = () => {
+  emit('toggle-collapsed')
+}
+
+// Formatear fecha y hora
+const formatDateTime = (dateStr: string): string => {
+  if (!dateStr) return 'N/A'
+  try {
+    // Si ya está en formato dd/MM/yyyy HH:mm:ss.SSS
+    if (dateStr.includes('/')) {
+      return dateStr
+    }
+    // Si es un timestamp ISO
+    const date = new Date(dateStr)
+    return date.toLocaleString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+// Obtener nombre legible del paso
+const getStepDisplayName = (stepId: string): string => {
+  // Convertir formato stepId a nombre legible
+  if (stepId.startsWith('step-')) {
+    const parts = stepId.split('-')
+    return parts.slice(1).join(' ').replace(/\b\w/g, l => l.toUpperCase())
+  }
+  return stepId.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+}
+
+// Obtener etiqueta del estado
+const getStatusLabel = (status: string): string => {
+  const labels: Record<string, string> = {
+    'completed': 'Completado',
+    'in-progress': 'En Progreso',
+    'pending': 'Pendiente',
+    'error': 'Error'
+  }
+  return labels[status] || status
+}
+
+// Obtener resumen de objeto
+const getObjectSummary = (obj: any): string => {
+  if (Array.isArray(obj)) {
+    return `Array (${obj.length} elementos)`
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const keys = Object.keys(obj)
+    return `Objeto (${keys.length} propiedades)`
+  }
+  return String(obj)
+}
+</script>
+
+<style scoped>
+.variables-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  background: #1a1a1a;
+  border-left: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.panel-collapsed {
+  width: 40px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  border-bottom: 1px solid #333;
+  background: #2a2a2a;
+  min-height: 40px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panel-collapsed .panel-title span {
+  display: none;
+}
+
+.panel-icon {
+  color: #4caf50;
+  flex-shrink: 0;
+}
+
+.collapse-btn {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.collapse-btn:hover {
+  background: #333;
+  color: #e0e0e0;
+}
+
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.current-step-info {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #2d2d2d;
+  border-radius: 6px;
+  border-left: 3px solid #4caf50;
+}
+
+.step-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-indicator {
+  color: #4caf50;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.step-title {
+  color: #e0e0e0;
+  font-size: 13px;
+}
+
+.variables-section {
+  margin-bottom: 16px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.current-step-highlight {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.05);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #333;
+}
+
+.section-header h4 {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.step-status {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.step-status.completed {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.step-status.in-progress {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.step-status.pending {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+}
+
+.step-status.error {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.variables-list {
+  padding: 8px 10px;
+}
+
+.variable-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.variable-item:last-child {
+  margin-bottom: 0;
+}
+
+.variable-label {
+  color: #999;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.variable-value {
+  color: #e0e0e0;
+  font-size: 11px;
+  word-break: break-all;
+  text-align: right;
+  flex: 1;
+}
+
+.variable-value.value-object {
+  text-align: left;
+}
+
+.object-details {
+  cursor: pointer;
+}
+
+.object-details summary {
+  color: #4caf50;
+  font-size: 10px;
+  padding: 2px 0;
+}
+
+.object-details pre {
+  margin: 4px 0 0 0;
+  padding: 6px;
+  background: #333;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.3;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.no-variables {
+  text-align: center;
+  padding: 16px;
+}
+
+.empty-state {
+  color: #666;
+  font-style: italic;
+  font-size: 11px;
+}
+
+/* Scrollbar styling */
+.panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+</style>

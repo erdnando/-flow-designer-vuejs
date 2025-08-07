@@ -384,13 +384,6 @@
 							</svg>
 						</button>
 						<span class="zoom-level">{{ Math.round(wizardZoomLevel * 100) }}%</span>
-						<button @click="resetWizardZoom" class="zoom-btn zoom-reset" title="Resetear zoom">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-								<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-								<path d="M11 8v6M8 11h6" stroke="currentColor" stroke-width="2"/>
-								<path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
-							</svg>
-						</button>
 						<button @click="zoomInWizard" :disabled="wizardZoomLevel >= 1.2" class="zoom-btn" title="Acercar">
 							<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
 								<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
@@ -402,100 +395,113 @@
 				</div>
 			</div>
 			
-			<!-- Contenido del paso actual -->
-			<div class="wizard-content" :style="{ '--wizard-zoom': wizardZoomLevel }">
-				<div v-if="!wizardCompleted && wizardSteps[currentWizardStep]" class="wizard-step">
-					<div class="step-header">
-						<h3>{{ wizardSteps[currentWizardStep].title }}</h3>
-						<p class="step-description">{{ wizardSteps[currentWizardStep].description }}</p>
-					</div>
-					
-					<!-- Aquí se renderizará el componente de vista específico -->
-					<div class="step-content">
+			<!-- Contenido del paso actual con panel lateral -->
+			<div class="wizard-main-content">
+				<div class="wizard-content" :style="{ '--wizard-zoom': wizardZoomLevel }">
+					<div v-if="!wizardCompleted && wizardSteps[currentWizardStep]" class="wizard-step">
+						<div class="step-header">
+							<h3>{{ wizardSteps[currentWizardStep].title }}</h3>
+							<p class="step-description">{{ wizardSteps[currentWizardStep].description }}</p>
+						</div>
 						
-
-						<!-- Contenedor principal del componente -->
-						<div class="component-container">
-							<component 
-								:is="wizardComponents[wizardSteps[currentWizardStep].component as keyof typeof wizardComponents]" 
-								v-if="wizardSteps[currentWizardStep].type === 'view' && componentExists(wizardSteps[currentWizardStep].component)"
-								:ref="wizardSteps[currentWizardStep].component === 'ExternalComponentView' ? 'currentExternalComponentRef' : null"
-								:wizard-step="wizardSteps[currentWizardStep]"
-								:zoom-level="wizardZoomLevel"
-								@next="nextWizardStep"
-								@previous="previousWizardStep"
-								@ready="handleComponentReady"
-								@error="handleComponentError"
-							/>
+						<!-- Aquí se renderizará el componente de vista específico -->
+						<div class="step-content">
 							
-							<!-- Para componentes que no existen aún, mostrar placeholder -->
-							<div v-if="!componentExists(wizardSteps[currentWizardStep].component)" class="step-placeholder">
-								<div class="placeholder-icon">
-									<!-- Mostrar ícono del nodo si está disponible, sino mostrar ícono por defecto -->
-									<div v-if="wizardSteps[currentWizardStep].nodeData?.icon" 
-										 v-html="wizardSteps[currentWizardStep].nodeData.icon" 
-										 class="node-icon-wrapper">
+
+							<!-- Contenedor principal del componente -->
+							<div class="component-container">
+								<component 
+									:is="wizardComponents[wizardSteps[currentWizardStep].component as keyof typeof wizardComponents]" 
+									v-if="wizardSteps[currentWizardStep].type === 'view' && componentExists(wizardSteps[currentWizardStep].component)"
+									:ref="wizardSteps[currentWizardStep].component === 'ExternalComponentView' ? 'currentExternalComponentRef' : undefined"
+									:wizard-step="wizardSteps[currentWizardStep]"
+									:zoom-level="wizardZoomLevel"
+									@next="nextWizardStep"
+									@previous="previousWizardStep"
+									@ready="handleComponentReady"
+									@error="handleComponentError"
+								/>
+								
+								<!-- Para componentes que no existen aún, mostrar placeholder -->
+								<div v-if="!componentExists(wizardSteps[currentWizardStep].component)" class="step-placeholder">
+									<div class="placeholder-icon">
+										<!-- Mostrar ícono del nodo si está disponible, sino mostrar ícono por defecto -->
+										<div v-if="wizardSteps[currentWizardStep].nodeData?.icon" 
+											 v-html="wizardSteps[currentWizardStep].nodeData.icon" 
+											 class="node-icon-wrapper">
+										</div>
+										<svg v-else width="48" height="48" viewBox="0 0 24 24" fill="none">
+											<rect x="3" y="3" width="18" height="18" rx="2" stroke="#6b7280" stroke-width="2"/>
+											<path d="M9 9h6v6H9V9z" fill="#6b7280" opacity="0.3"/>
+										</svg>
 									</div>
-									<svg v-else width="48" height="48" viewBox="0 0 24 24" fill="none">
-										<rect x="3" y="3" width="18" height="18" rx="2" stroke="#6b7280" stroke-width="2"/>
-										<path d="M9 9h6v6H9V9z" fill="#6b7280" opacity="0.3"/>
-									</svg>
-								</div>
-								<h4>{{ wizardSteps[currentWizardStep].title }}</h4>
-								<p>{{ wizardSteps[currentWizardStep].description }}</p>
-								<p class="component-info">Componente: <code>{{ wizardSteps[currentWizardStep].component }}</code></p>
-							</div>
-						</div>
-					</div>
-				</div>
-				
-				<!-- Pantalla de completado -->
-				<div v-if="wizardCompleted" class="wizard-completed">
-					<div class="completion-icon">
-						<svg width="64" height="64" viewBox="0 0 24 24" fill="none">
-							<circle cx="12" cy="12" r="10" stroke="#4caf50" stroke-width="2"/>
-							<path d="M8 12l2 2 4-4" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
-					</div>
-					<h3>¡Proceso Completado!</h3>
-					<p>El flujo se ha ejecutado exitosamente a través de todos los pasos definidos.</p>
-					
-					<!-- Resumen de datos capturados -->
-					<div v-if="Object.keys(wizardOutputData).length > 0" class="output-data-summary">
-						<h4>📋 Datos Capturados:</h4>
-						
-						<!-- Parámetros de tiempo -->
-						<div v-if="extractTimeParameters().horaInicio || extractTimeParameters().horaFin" class="time-params">
-							<h5>⏰ Parámetros de Tiempo:</h5>
-							<div class="param-item" v-if="extractTimeParameters().horaInicio">
-								<strong>Hora de Inicio:</strong> {{ formatDateTime(extractTimeParameters().horaInicio) }}
-							</div>
-							<div class="param-item" v-if="extractTimeParameters().horaFin">
-								<strong>Hora de Fin:</strong> {{ formatDateTime(extractTimeParameters().horaFin) }}
-							</div>
-						</div>
-						
-						<!-- Otros parámetros por paso -->
-						<div class="step-params">
-							<div v-for="(stepData, stepId) in wizardOutputData" :key="stepId" class="step-data">
-								<h5>📄 {{ getStepTitle(stepId) }}:</h5>
-								<div class="params-grid">
-									<div v-for="(value, key) in stepData.outputParameters" :key="key" class="param-item">
-										<strong>{{ key }}:</strong> 
-										<span v-if="typeof value === 'object'">{{ JSON.stringify(value, null, 2) }}</span>
-										<span v-else>{{ value }}</span>
-									</div>
+									<h4>{{ wizardSteps[currentWizardStep].title }}</h4>
+									<p>{{ wizardSteps[currentWizardStep].description }}</p>
+									<p class="component-info">Componente: <code>{{ wizardSteps[currentWizardStep].component }}</code></p>
 								</div>
 							</div>
 						</div>
 					</div>
 					
-					<div class="completion-summary">
-						<p><strong>Pasos completados:</strong> {{ wizardSteps.length }}</p>
-						<p><strong>Vistas procesadas:</strong> {{ wizardSteps.filter(s => s.type === 'view').length }}</p>
-						<p><strong>Datos capturados:</strong> {{ Object.keys(wizardOutputData).length }} pasos con datos</p>
+					<!-- Pantalla de completado -->
+					<div v-if="wizardCompleted" class="wizard-completed">
+						<div class="completion-icon">
+							<svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+								<circle cx="12" cy="12" r="10" stroke="#4caf50" stroke-width="2"/>
+								<path d="M8 12l2 2 4-4" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</div>
+						<h3>¡Proceso Completado!</h3>
+						<p>El flujo se ha ejecutado exitosamente a través de todos los pasos definidos.</p>
+						
+						<!-- Resumen de datos capturados -->
+						<div v-if="Object.keys(wizardOutputData).length > 0" class="output-data-summary">
+							<h4>📋 Datos Capturados:</h4>
+							
+							<!-- Parámetros de tiempo -->
+							<div v-if="extractTimeParameters().horaInicio || extractTimeParameters().horaFin" class="time-params">
+								<h5>⏰ Parámetros de Tiempo:</h5>
+								<div class="param-item" v-if="extractTimeParameters().horaInicio">
+									<strong>Hora de Inicio:</strong> {{ formatDateTime(extractTimeParameters().horaInicio) }}
+								</div>
+								<div class="param-item" v-if="extractTimeParameters().horaFin">
+									<strong>Hora de Fin:</strong> {{ formatDateTime(extractTimeParameters().horaFin) }}
+								</div>
+							</div>
+							
+							<!-- Otros parámetros por paso -->
+							<div class="step-params">
+								<div v-for="(stepData, stepId) in wizardOutputData" :key="stepId" class="step-data">
+									<h5>📄 {{ getStepTitle(stepId) }}:</h5>
+									<div class="params-grid">
+										<div v-for="(value, key) in stepData.outputParameters" :key="key" class="param-item">
+											<strong>{{ key }}:</strong> 
+											<span v-if="typeof value === 'object'">{{ JSON.stringify(value, null, 2) }}</span>
+											<span v-else>{{ value }}</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<div class="completion-summary">
+							<p><strong>Pasos completados:</strong> {{ wizardSteps.length }}</p>
+							<p><strong>Vistas procesadas:</strong> {{ wizardSteps.filter(s => s.type === 'view').length }}</p>
+							<p><strong>Datos capturados:</strong> {{ Object.keys(wizardOutputData).length }} pasos con datos</p>
+						</div>
 					</div>
 				</div>
+
+				<!-- Panel de Variables -->
+				<VariablesPanel
+					:output-data="wizardOutputData"
+					:time-parameters="extractTimeParameters()"
+					:session-data="getSessionData()"
+					:current-step="currentWizardStep"
+					:total-steps="wizardSteps.length"
+					:current-step-title="wizardSteps[currentWizardStep]?.title || ''"
+					:current-step-data="getCurrentStepData()"
+				/>
 			</div>
 			
 			<!-- Footer con controles -->
@@ -546,6 +552,7 @@ import ConditionNode from './ConditionNode.vue';
 import StartNode from './StartNode.vue';
 import EndNode from './EndNode.vue';
 import CustomEdge from './CustomEdge.vue';
+import VariablesPanel from './VariablesPanel.vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 // ElMessageBox reemplazado por CustomDialog
 import { getValidationErrors, type ValidationResult } from '../utils/nodeValidationRules';
@@ -2345,10 +2352,10 @@ const showWizardModal = ref(false);
 const wizardSteps = ref<WizardStep[]>([]);
 const currentWizardStep = ref(0);
 const wizardCompleted = ref(false);
-const wizardZoomLevel = ref(0.85); // Nivel de zoom para el contenido del wizard
+const wizardZoomLevel = ref(1.0); // Nivel de zoom para el contenido del wizard (100% = tamaño natural)
 const wizardOutputData = ref<Record<string, any>>({}); // Almacenar datos de salida de todos los pasos
+// @ts-ignore - usado en template
 const currentExternalComponentRef = ref<any>(null); // Referencia al componente externo actual
-
 interface WizardStep {
 	id: string;
 	nodeId: string;
@@ -3179,18 +3186,30 @@ function getAllOutputParameters() {
 	return allParams;
 }
 
-function getOutputParameterByStep(stepId: string, parameterName?: string) {
-	const stepData = wizardOutputData.value[stepId];
+// Función para generar IDs únicos
+function generateId() {
+	return 'sess-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
+
+// Funciones para el panel de variables
+function getSessionData() {
+	return {
+		sessionId: generateId(), // Podríamos usar un ID de sesión real si está disponible
+		userId: 'user-demo', // Podríamos usar un ID de usuario real
+		startTime: new Date().toISOString() // Tiempo de inicio de la sesión del wizard
+	};
+}
+
+function getCurrentStepData() {
+	const currentStep = wizardSteps.value[currentWizardStep.value];
+	if (!currentStep) return {};
 	
-	if (!stepData?.outputParameters) {
-		return null;
-	}
-	
-	if (parameterName) {
-		return stepData.outputParameters[parameterName];
-	}
-	
-	return stepData.outputParameters;
+	return {
+		component: currentStep.component,
+		stepId: currentStep.id,
+		startTime: new Date().toISOString(), // Podríamos rastrear cuándo se inició este paso
+		lastInteraction: new Date().toISOString() // Última interacción del usuario
+	};
 }
 
 // Manejadores de eventos del wizard
@@ -3238,22 +3257,23 @@ function getStepTitle(stepId: string) {
 
 // Funciones para controlar el zoom del wizard
 function zoomInWizard() {
+	console.log('🔍 zoomInWizard called, current level:', wizardZoomLevel.value);
 	if (wizardZoomLevel.value < 1.2) {
 		wizardZoomLevel.value = Math.min(1.2, wizardZoomLevel.value + 0.1);
-		console.log('Wizard zoom in:', wizardZoomLevel.value);
+		console.log('✅ Wizard zoom in:', wizardZoomLevel.value);
+	} else {
+		console.log('⚠️ Already at max zoom level');
 	}
 }
 
 function zoomOutWizard() {
+	console.log('🔍 zoomOutWizard called, current level:', wizardZoomLevel.value);
 	if (wizardZoomLevel.value > 0.5) {
 		wizardZoomLevel.value = Math.max(0.5, wizardZoomLevel.value - 0.1);
-		console.log('Wizard zoom out:', wizardZoomLevel.value);
+		console.log('✅ Wizard zoom out:', wizardZoomLevel.value);
+	} else {
+		console.log('⚠️ Already at min zoom level');
 	}
-}
-
-function resetWizardZoom() {
-	wizardZoomLevel.value = 0.85;
-	console.log('Wizard zoom reset:', wizardZoomLevel.value);
 }
 
 // Definir componentes para el sistema de Wizard
@@ -4299,8 +4319,8 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	border-radius: 12px;
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
-	width: 95vw; /* Usar más ancho de la pantalla */
-	max-width: 1400px; /* Aumentar el ancho máximo */
+	width: 85vw; /* Reducir el ancho para hacer mejor uso del espacio */
+	max-width: 1200px; /* Reducir el ancho máximo */
 	height: 95vh; /* Usar más alto de la pantalla */
 	max-height: 95vh;
 	overflow: hidden;
@@ -4406,10 +4426,6 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	cursor: not-allowed;
 }
 
-.zoom-reset:hover:not(:disabled) {
-	color: #ff9800;
-}
-
 .zoom-level {
 	color: #4caf50;
 	font-size: 12px;
@@ -4440,6 +4456,13 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	font-weight: 500;
 }
 
+.wizard-main-content {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+	position: relative;
+}
+
 .wizard-content {
 	flex: 1;
 	padding: 12px 20px; /* Reducir aún más el padding */
@@ -4447,7 +4470,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	min-height: 0; /* Permitir que se comprima */
 	display: flex;
 	flex-direction: column;
+	transition: all 0.3s ease;
+	/* NO aplicar zoom aquí - se aplica solo al componente */
 }
+
+/* El panel de variables ya no necesita margin porque está en el flex layout */
 
 .wizard-step {
 	height: 100%;

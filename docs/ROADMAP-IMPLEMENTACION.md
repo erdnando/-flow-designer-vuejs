@@ -273,7 +273,7 @@ export class ComponentRegistryService {
       name: 'INE Capture',
       provider: 'fabrica-identidad',
       version: '1.0.0',
-      cdnUrl: 'http://localhost:3001/dist/ine-capture.v1.0.0.js',
+      cdnUrl: '![1754520458710](image/ROADMAP-IMPLEMENTACION/1754520458710.png)',
       contract: {
         inputs: ['userId', 'sessionId'],
         outputs: ['ineData', 'images'],

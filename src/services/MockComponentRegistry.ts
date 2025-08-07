@@ -12,7 +12,7 @@ export const mockComponentRegistry: ComponentConfig[] = [
     id: 'landing',
     name: 'Landing Page Component',
     version: '1.0.0',
-    cdnUrl: 'http://localhost:3001/landing-v1.0.0.js?v=' + Date.now(),
+    cdnUrl: 'http://localhost:3001/bundle.js?v=' + Date.now(),
     fallbackUrl: '/local-components/landing-fallback.js',
     type: 'web-component',
     metadata: {

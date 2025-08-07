@@ -1,12 +1,12 @@
 <template>
-  <div class="external-component-container">
+  <div class="external-component-container" :style="{ height: `${containerHeight}px` }">
     <!-- Siempre tener el punto de montaje disponible pero oculto según el estado -->
     <div 
       id="component-mount-point" 
-      class="component-wrapper" 
+      class="component-mount-point" 
       :style="{ 
         display: !loading && !error ? 'flex' : 'none',
-        '--component-zoom': zoomLevel || 0.85
+        '--component-zoom': props.zoomLevel || 1.0
       }"
     >
       <!-- El componente web se montará aquí -->
@@ -53,6 +53,7 @@ const error = ref<string | null>(null);
 const componentInfo = ref<any>(null);
 const componentInstance = ref<any>(null);
 const outputData = ref<any>({}); // Almacenar datos de salida del componente
+const containerHeight = ref<number>(600); // Altura calculada del contenedor
 
 // Variables de sesión para simular
 const sessionId = `sim-${Date.now()}`;
@@ -61,6 +62,43 @@ const flowContext = {
   currentStep: props.wizardStep?.componentData?.customTypeId,
   simulationMode: true
 };
+
+// Función para calcular la altura del contenedor
+function calculateContainerHeight() {
+  const container = document.querySelector('.external-component-container') as HTMLElement;
+  if (container && container.parentElement) {
+    const parentHeight = container.parentElement.clientHeight;
+    const containerStyles = getComputedStyle(container);
+    const marginTop = parseInt(containerStyles.marginTop) || 0;
+    const marginBottom = parseInt(containerStyles.marginBottom) || 0;
+    const borderTop = parseInt(containerStyles.borderTopWidth) || 0;
+    const borderBottom = parseInt(containerStyles.borderBottomWidth) || 0;
+    
+    const calculatedHeight = parentHeight - marginTop - marginBottom - borderTop - borderBottom;
+    containerHeight.value = Math.max(calculatedHeight + 200, 400); // Agregar 200px extra y mínimo 400px
+    console.log('🔍 Altura calculada:', containerHeight.value, 'px (padre:', parentHeight, 'px, +200px extra)');
+  }
+}
+
+// Watch para cambios en el zoomLevel
+watch(() => props.zoomLevel, (newZoomLevel) => {
+  console.log('🔍 ZoomLevel cambió a:', newZoomLevel);
+  // Actualizar la variable CSS directamente en el elemento
+  const mountPoint = document.getElementById('component-mount-point');
+  if (mountPoint) {
+    const zoomValue = String(newZoomLevel || 1.0);
+    mountPoint.style.setProperty('--component-zoom', zoomValue);
+    console.log('✅ Variable CSS --component-zoom actualizada a:', zoomValue);
+    console.log('🔍 Transform actual del elemento:', getComputedStyle(mountPoint).transform);
+  } else {
+    console.warn('⚠️ No se encontró el elemento component-mount-point');
+  }
+  
+  // Recalcular altura del contenedor cuando cambie el zoom
+  setTimeout(() => {
+    calculateContainerHeight();
+  }, 50); // Pequeño delay para que el transform se aplique completamente
+}, { immediate: true });
 
 // Función para cargar el componente externo
 async function loadExternalComponent() {
@@ -181,8 +219,8 @@ async function loadExternalComponent() {
     const config = {
       theme: 'dark',
       showFooter: true,
-      simulationMode: true,
-      zoomLevel: props.zoomLevel || 0.85
+      simulationMode: false, // Cambiar a false para que se vea igual que el acceso directo
+      zoomLevel: props.zoomLevel || 1.0
     };
     element.setAttribute('config', JSON.stringify(config));
     
@@ -313,6 +351,15 @@ defineExpose({
 // Lifecycle hooks
 onMounted(() => {
   console.log('🔄 ExternalComponentView montado, inicializando carga del componente');
+  
+  // Calcular altura inicial
+  setTimeout(() => {
+    calculateContainerHeight();
+  }, 50);
+  
+  // Escuchar cambios de tamaño de ventana
+  window.addEventListener('resize', calculateContainerHeight);
+  
   setTimeout(() => {
     // Ejecutar con un pequeño delay para asegurar que el DOM está completamente renderizado
     loadExternalComponent();
@@ -320,6 +367,9 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  // Limpiar event listener de resize
+  window.removeEventListener('resize', calculateContainerHeight);
+  
   // Limpiar el componente y los eventos
   if (componentInstance.value) {
     componentInstance.value.removeEventListener('component-ready', handleComponentReady);
@@ -352,13 +402,16 @@ watch(() => props.wizardStep?.componentData, () => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%; /* Usar todo el espacio disponible */
+  /* height será calculada dinámicamente via JavaScript */
   min-height: 0; /* Permitir que se comprima */
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: hidden; /* Sin scroll en el contenedor principal */
   background: #1e1e1e;
+  /* Centrar el contenido */
+  justify-content: center;
+  align-items: center;
 }
 
 .loading-container {
@@ -396,29 +449,32 @@ watch(() => props.wizardStep?.componentData, () => {
   padding: 20px;
 }
 
-.component-wrapper {
+/* Aplicar zoom dinámico al contenido del componente externo */
+.component-mount-point {
   flex: 1;
   min-height: 0; /* Permitir que se comprima */
-  overflow: hidden; /* Evitar scrollbars */
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-/* Aplicar zoom dinámico al contenido del componente externo */
-.component-wrapper #component-mount-point {
+  overflow: hidden; /* Sin scroll en el punto de montaje */
   width: 100%;
   height: 100%;
-  transform: scale(var(--component-zoom, 0.85));
-  transform-origin: top left;
-  overflow: hidden;
-  transition: transform 0.3s ease; /* Transición suave para el zoom */
+  position: relative;
+  /* Aplicar zoom solo al contenido del componente */
+  transform: scale(var(--component-zoom, 1));
+  transform-origin: center center;
+  transition: transform 0.2s ease-in-out;
+  /* Centrar el contenido para que se vea completo */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
 }
 
-/* Ajustar el contenedor para compensar el zoom dinámico */
-.component-wrapper #component-mount-point > * {
-  width: calc(100% / var(--component-zoom, 0.85));
-  height: calc(100% / var(--component-zoom, 0.85));
+/* Dar dimensiones apropiadas al componente web */
+.component-mount-point > * {
+  width: 400px;  /* Ancho fijo para zoom óptimo */
+  height: 650px; /* Altura suficiente para mostrar todo el contenido */
+  max-width: none; /* No limitar el tamaño máximo */
+  max-height: none; /* No limitar el tamaño máximo */
+  flex-shrink: 0; /* No permitir que se encoja */
 }
 
 .component-info {
@@ -439,11 +495,11 @@ watch(() => props.wizardStep?.componentData, () => {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Responsive para pantallas pequeñas */
+/* Responsive para pantallas pequeñas  height: 100%;*/
 @media (max-width: 900px) {
   .external-component-container {
-    height: 100%;
-    min-height: 300px;
+    /* height será calculada dinámicamente también en móviles */
+    min-height: 300px !important;
   }
   
   .component-tag {
