@@ -796,7 +796,7 @@ watch(() => props.wizardStep?.componentData, () => {
     <div style="font-size: 2.5rem !important; margin-bottom: 12px !important; display: block !important; opacity: 0.8 !important;">⚠️</div>
     <h3 style="color: #fff !important; margin: 0 0 12px 0 !important; font-size: 1.2rem !important; font-weight: 500 !important;">Componente no disponible</h3>
     <p style="margin-bottom: 16px !important; color: #ccc !important; font-size: 0.9rem !important; line-height: 1.4 !important;">
-      El microfrontend requerido para este paso no está disponible temporalmente.<br>
+      El microfrontend <strong style="color: #ffeb3b !important;">'{{ props.wizardStep?.componentData?.customTypeId || 'desconocido' }}'</strong> requerido para este paso no está disponible temporalmente.<br>
       <span style="color:#ffa8a8 !important;">Intente más tarde o contacte al soporte técnico.</span>
     </p>
     <div style="display: flex !important; gap: 12px !important; align-items: center !important;">
