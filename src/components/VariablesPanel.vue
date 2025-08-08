@@ -181,19 +181,20 @@ const totalVariablesCount = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px; /* Mismo padding que wizard-header */
+  padding: 8px 20px; /* Igual que wizard-header */
   background: linear-gradient(135deg, #333 0%, #2a2a2a 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0; /* Evitar que se comprima */
+  flex-shrink: 0;
+  min-height: 43px; /* Igual que wizard-header */
 }
 
 .panel-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   color: #fff;
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 20px; /* Igual que wizard-title */
   overflow: hidden;
 }
 

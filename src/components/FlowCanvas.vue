@@ -4467,14 +4467,14 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 }
 
 .wizard-content {
-	flex: 1;
-	padding: 8px 20px; /* Reducir aún más el padding a 8px */
-	overflow: hidden; /* Cambiar de auto a hidden */
-	min-height: 0; /* Permitir que se comprima */
-	display: flex;
-	flex-direction: column;
-	transition: all 0.3s ease;
-	/* NO aplicar zoom aquí - se aplica solo al componente */
+	   flex: 1;
+	   padding: 8px 0 8px 20px; /* Quitar padding derecho para alinear con VariablesPanel */
+	   overflow: hidden; /* Cambiar de auto a hidden */
+	   min-height: 0; /* Permitir que se comprima */
+	   display: flex;
+	   flex-direction: column;
+	   transition: all 0.3s ease;
+	   /* NO aplicar zoom aquí - se aplica solo al componente */
 }
 
 /* El panel de variables ya no necesita margin porque está en el flex layout */
@@ -4488,22 +4488,25 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 }
 
 .step-header {
-	margin-bottom: 6px; /* Reducir aún más el margen a 6px */
-	flex-shrink: 0; /* Evitar que se comprima */
+	   margin-bottom: 0px; /* Reducir aún más el margen */
+	   flex-shrink: 0;
+	   padding-top: 0px;
+	   padding-bottom: 0px;
 }
 
 .step-header h3 {
-	color: #fff;
-	font-size: 20px; /* Reducir tamaño */
-	font-weight: 600;
-	margin-bottom: 4px; /* Reducir margen */
+	   color: #fff;
+	   font-size: 15px; /* Más pequeño */
+	   font-weight: 600;
+	   margin-bottom: 2px; /* Menor margen */
+	   line-height: 1.1;
 }
 
 .step-description {
-	color: #bbb;
-	font-size: 14px; /* Reducir tamaño */
-	line-height: 1.4;
-	margin: 0;
+	   color: #bbb;
+	   font-size: 12px; /* Más pequeño */
+	   line-height: 1.2;
+	   margin: 0;
 }
 
 .step-content {
