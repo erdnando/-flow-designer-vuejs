@@ -19,6 +19,40 @@ const props = defineProps<{
 // Emits
 const emit = defineEmits(['next', 'previous', 'ready', 'error']);
 
+// Handler para el botón de soporte en el fallback
+function handleSupportClick() {
+  console.log('[DummySupport] Botón de soporte presionado. Aquí se podría abrir un diálogo de soporte.');
+}
+
+// Handler para el botón de refresh en el fallback
+function handleRefreshClick() {
+  console.log('[DummyRefresh] Botón de refresh presionado. Reintentando cargar componente...');
+  
+  // Limpiar caché del ExternalComponentLoader completamente
+  ExternalComponentLoader.clearCache();
+  console.log('[DummyRefresh] Caché de ExternalComponentLoader limpiado');
+  
+  // Limpiar cualquier custom element anterior del DOM
+  const mountPoint = document.getElementById('component-mount-point');
+  if (mountPoint) {
+    mountPoint.innerHTML = '';
+    console.log('[DummyRefresh] Punto de montaje limpiado');
+  }
+  
+  // Resetear estados
+  error.value = null;
+  loading.value = true;
+  componentInfo.value = null;
+  componentInstance.value = null;
+  
+  console.log('[DummyRefresh] Estados reseteados, iniciando carga fresca del componente...');
+  
+  // Intentar cargar nuevamente después de un pequeño delay
+  setTimeout(() => {
+    loadExternalComponent();
+  }, 500);
+}
+
 // Variables reactivas
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -26,7 +60,7 @@ const componentInfo = ref<any>(null);
 const componentInstance = ref<any>(null);
 const outputData = ref<any>({}); // Almacenar datos de salida del componente
 const containerHeight = ref<number>(600); // Altura calculada del contenedor
-const showDummyView = ref(false); // Mostrar vista dummy si el microfrontend no está disponible
+// const showDummyView = ref(false); // Eliminar dummy/fallback
 
 // Variables de sesión para simular
 const sessionId = `sim-${Date.now()}`;
@@ -87,34 +121,36 @@ async function loadExternalComponent() {
     error.value = 'ID de componente no especificado';
     loading.value = false;
     emit('error', 'ID de componente no especificado');
+    console.error('[LOG] customTypeId no especificado en wizardStep:', props.wizardStep);
     return;
   }
-  
+
   const customTypeId = props.wizardStep.componentData.customTypeId;
   const version = props.wizardStep.componentData.componentVersion || '1.0.0';
-  
+
   try {
     console.log(`🔄 Cargando componente externo: ${customTypeId} v${version}`);
-    
+    console.log('[LOG] wizardStep:', props.wizardStep);
     // Verificar todos los componentes disponibles en ambos registros
-    console.log('Componentes disponibles en MockComponentRegistry:', 
-                MockComponentRegistry.getAllComponents().map(c => c.id));
-    console.log('Componentes registrados en ExternalComponentLoader:', 
-                ExternalComponentLoader.getRegisteredComponentIds());
-    console.log(`¿Está registrado '${customTypeId}' en ExternalComponentLoader?:`,
-                ExternalComponentLoader.isRegistered(customTypeId));
-    
+    const allMock = MockComponentRegistry.getAllComponents();
+    const allMockIds = allMock.map(c => c.id);
+    console.log('[LOG] Componentes disponibles en MockComponentRegistry:', allMockIds);
+    const allRegistered = ExternalComponentLoader.getRegisteredComponentIds();
+    console.log('[LOG] Componentes registrados en ExternalComponentLoader:', allRegistered);
+    const isRegistered = ExternalComponentLoader.isRegistered(customTypeId);
+    console.log(`[LOG] ¿Está registrado '${customTypeId}' en ExternalComponentLoader?:`, isRegistered);
+
     // Obtener configuración del componente
     const componentConfig = MockComponentRegistry.getComponent(customTypeId);
     if (!componentConfig) {
-      // Mostrar dummy si el componente no existe
-      showDummyView.value = true;
+      console.warn(`[LOG] No se encontró el componente '${customTypeId}' en MockComponentRegistry.`);
       loading.value = false;
       error.value = `El microfrontend '${customTypeId}' no está disponible.`;
       emit('error', error.value);
       return;
     }
-    
+    console.log('[LOG] Configuración del componente encontrada:', componentConfig);
+
     // Guardar info del componente
     componentInfo.value = {
       id: componentConfig.id,
@@ -122,22 +158,34 @@ async function loadExternalComponent() {
       version: componentConfig.version,
       tagName: componentConfig.metadata.tagName
     };
-    
-    // Limpiar cualquier contenido previo
+
+    // Limpiar cualquier contenido previo y remover elementos custom anteriores
     const mountPoint = document.getElementById('component-mount-point');
     if (!mountPoint) {
-      console.error('❌ Punto de montaje component-mount-point no encontrado en el DOM');
+      console.error('[LOG] ❌ Punto de montaje component-mount-point no encontrado en el DOM');
       throw new Error('Punto de montaje no disponible para el componente');
     }
-    
+
     // Limpiar el punto de montaje antes de añadir un nuevo componente
     mountPoint.innerHTML = '';
-    console.log('✅ Punto de montaje encontrado y limpiado');
     
+    // NUEVO: También remover cualquier instancia previa del custom element del documento
+    const existingElements = document.querySelectorAll(componentConfig.metadata.tagName);
+    existingElements.forEach(element => {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element);
+        console.log(`[LOG] 🧹 Elemento custom previo removido: ${componentConfig.metadata.tagName}`);
+      }
+    });
+    
+    console.log('[LOG] ✅ Punto de montaje encontrado y limpiado completamente');
+
     // Cargar el componente web sin depender de refs
     await ExternalComponentLoader.loadComponent(customTypeId, version)
       .catch(async (err) => {
-        console.warn(`Error al cargar componente con loader, intentando registro manual:`, err);
+        console.warn(`[LOG] Error al cargar componente con loader, intentando registro manual:`, err);
+        // NUEVO: Limpiar caché antes de reintentar si hay error
+        ExternalComponentLoader.clearCache();
         // Registrar si no está registrado
         if (!ExternalComponentLoader.isRegistered(customTypeId)) {
           ExternalComponentLoader.registerComponent(componentConfig);
@@ -146,66 +194,107 @@ async function loadExternalComponent() {
         throw err;
       })
       .catch(async (err) => {
-        console.warn(`Error después del registro manual, cargando script directamente:`, err);
+        console.warn(`[LOG] Error después del registro manual, cargando script directamente:`, err);
         // Intentar cargar el script directamente como último recurso
         return new Promise<void>((resolve, reject) => {
           const script = document.createElement('script');
           script.src = componentConfig.cdnUrl;
           script.async = true;
           script.onload = () => {
-            console.log(`✅ Script cargado manualmente: ${componentConfig.cdnUrl}`);
+            console.log(`[LOG] ✅ Script cargado manualmente: ${componentConfig.cdnUrl}`);
             resolve();
           };
-          script.onerror = (e) => reject(new Error(`Error al cargar script: ${e}`));
+          script.onerror = (e) => {
+            console.error(`[LOG] ❌ Error al cargar script:`, e);
+            reject(new Error(`Error al cargar script: ${e}`));
+          };
           document.head.appendChild(script);
         });
       });
-      
+
     // Montar el componente usando el DOM API directamente
-    console.log(`🔄 Montando componente: ${componentConfig.metadata.tagName}`);
-    
+    console.log(`[LOG] 🔄 Montando componente: ${componentConfig.metadata.tagName}`);
+
     // Verificar que el elemento custom esté definido
     const customElementName = componentConfig.metadata.tagName;
-    console.log(`🔍 Verificando custom element: ${customElementName}`);
-    console.log(`🔍 customElements.get('${customElementName}'):`, customElements.get(customElementName));
-    console.log(`🔍 Lista de todos los custom elements definidos:`, 
-                Object.getOwnPropertyNames(window).filter(name => name.includes('Element')));
-    
-    if (!customElements.get(customElementName)) {
-      console.warn(`⚠️ Custom element '${customElementName}' no está registrado en customElements`);
-      // Esperar un poco y reintentar
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log(`🔍 Segundo intento - customElements.get('${customElementName}'):`, customElements.get(customElementName));
-      if (!customElements.get(customElementName)) {
-        // Mostrar dummy si el custom element no está disponible
-        showDummyView.value = true;
+    let customElementObj = customElements.get(customElementName);
+    console.log(`[LOG] 🔍 Verificando custom element: ${customElementName}`);
+    console.log(`[LOG] customElements.get('${customElementName}'):`, customElementObj);
+    console.log(`[LOG] Lista de todos los custom elements definidos:`, Object.getOwnPropertyNames(window).filter(name => name.includes('Element')));
+
+    if (!customElementObj) {
+      console.warn(`[LOG] ⚠️ Custom element '${customElementName}' no está registrado en customElements. Realizando health check adicional...`);
+      
+      // NUEVO: Realizar health check adicional antes de esperar
+      try {
+        const healthCheckResponse = await fetch(componentConfig.healthcheck.url, {
+          method: 'GET',
+          cache: 'no-cache',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        console.log(`[LOG] 🏥 Health check response status: ${healthCheckResponse.status}`);
+        
+        if (healthCheckResponse.status !== 200) {
+          console.warn(`[LOG] ❌ Health check falló: ${healthCheckResponse.status}`);
+          loading.value = false;
+          error.value = `El microfrontend '${customTypeId}' no está disponible. Servidor responde: ${healthCheckResponse.status}`;
+          emit('error', error.value);
+          return;
+        }
+        
+        console.log(`[LOG] ✅ Health check exitoso, esperando registro del custom element...`);
+      } catch (healthError) {
+        console.warn(`[LOG] ❌ Error en health check:`, healthError);
+        loading.value = false;
+        error.value = `El microfrontend '${customTypeId}' no está disponible. No se puede conectar al servidor.`;
+        emit('error', error.value);
+        return;
+      }
+      
+      // Esperar con múltiples intentos
+      let retryCount = 0;
+      const maxRetries = 10; // 5 segundos máximo
+      
+      while (!customElementObj && retryCount < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        customElementObj = customElements.get(customElementName);
+        retryCount++;
+        console.log(`[LOG] Intento ${retryCount}/${maxRetries} - customElements.get('${customElementName}'):`, customElementObj);
+      }
+      
+      if (!customElementObj) {
+        console.warn(`[LOG] ❌ Custom element '${customElementName}' no se registró después de ${maxRetries} intentos.`);
         loading.value = false;
         error.value = `El microfrontend '${customElementName}' no está disponible para este paso.`;
         emit('error', error.value);
         return;
       }
     }
-    
-    console.log(`✅ Custom element '${customElementName}' está registrado`);
-    
+
+    console.log(`[LOG] ✅ Custom element '${customElementName}' está registrado después de verificaciones`);
+
     // Crear elemento con manejo de errores
     let element;
     try {
-      console.log(`🔄 Intentando crear elemento: ${customElementName}`);
+      console.log(`[LOG] 🔄 Intentando crear elemento: ${customElementName}`);
       element = document.createElement(customElementName);
-      console.log(`✅ Elemento '${customElementName}' creado exitosamente`);
-      console.log(`📊 Tipo de elemento creado:`, typeof element, element.constructor.name);
+      console.log(`[LOG] ✅ Elemento '${customElementName}' creado exitosamente`);
+      console.log(`[LOG] 📊 Tipo de elemento creado:`, typeof element, element.constructor.name);
     } catch (createError: any) {
-      console.error(`❌ Error al crear elemento '${customElementName}':`, createError);
+      console.error(`[LOG] ❌ Error al crear elemento '${customElementName}':`, createError);
       throw new Error(`Error al crear el elemento: ${createError.message || createError}`);
     }
-    
+
     componentInstance.value = element;
-    
+
     // Configurar atributos de entrada
     element.setAttribute('session-id', sessionId);
     element.setAttribute('user-id', `user-${sessionId.split('-')[1]}`); // Generar user-id basado en session
-    
+
     // Configurar objeto config
     const config = {
       theme: 'dark',
@@ -233,7 +322,7 @@ async function loadExternalComponent() {
       }
     };
     element.setAttribute('config', JSON.stringify(config));
-    
+
     // HACK ESPECÍFICO para ine-validation-component: forzar altura via CSS inline
     if (customElementName === 'ine-validation-component') {
       // SOLUCIÓN RADICAL: Calcular altura exacta del contenedor disponible
@@ -262,9 +351,9 @@ async function loadExternalComponent() {
       element.style.setProperty('--full-height', `${availableHeight}px`);
       element.style.setProperty('--window-height', `${availableHeight}px`);
       
-      console.log(`🔧 APLICADO: Estilos específicos para ine-validation-component con altura FIJA: ${availableHeight}px`);
+      console.log(`[LOG] 🔧 APLICADO: Estilos específicos para ine-validation-component con altura FIJA: ${availableHeight}px`);
     }
-    
+
     // Configurar flow-context expandido
     const expandedFlowContext = {
       ...flowContext,
@@ -274,22 +363,22 @@ async function loadExternalComponent() {
       componentVersion: props.wizardStep?.componentData?.componentVersion || '1.0.0'
     };
     element.setAttribute('flow-context', JSON.stringify(expandedFlowContext));
-    
-    console.log('🔧 Atributos configurados:');
+
+    console.log('[LOG] 🔧 Atributos configurados:');
     console.log('  - session-id:', sessionId);
     console.log('  - user-id:', `user-${sessionId.split('-')[1]}`);
     console.log('  - config:', JSON.stringify(config, null, 2));
     console.log('  - flow-context:', JSON.stringify(expandedFlowContext, null, 2));
-    
+
     // DEBUG: Log antes de agregar listeners
-    console.log('[DEBUG] Agregando event listeners al custom element', element);
+    console.log('[LOG] [DEBUG] Agregando event listeners al custom element', element);
     element.addEventListener('component-ready', handleComponentReady);
     element.addEventListener('output-data', handleOutputData);
     element.addEventListener('next-step', handleNextStep);
     element.addEventListener('request-navigation', handleNavigation);
     element.addEventListener('node-error', handleComponentError);
     // DEBUG: Log después de agregar listeners
-    console.log('[DEBUG] Event listeners agregados. Montando el custom element...');
+    console.log('[LOG] [DEBUG] Event listeners agregados. Montando el custom element...');
 // Handler para evento next-step (emitido por microfrontends)
 function handleNextStep(event: any) {
   console.log('➡️ Evento next-step recibido:', event.detail);
@@ -314,54 +403,19 @@ function handleNextStep(event: any) {
       throw new Error('Punto de montaje no disponible después de la preparación');
     }
     
-    // Montar componente
-    finalMountPoint.appendChild(element);
-    console.log(`[DEBUG] Custom element montado en el DOM`, element);
-    console.log(`✅ Componente montado exitosamente en #component-mount-point`);
-    
-    // SOLUCIÓN RADICAL: Crear un wrapper de contención para TODOS los componentes
-    const wrapperDiv = document.createElement('div');
-    wrapperDiv.style.cssText = `
-      width: 100%;
-      height: 100%;
-      min-height: 600px;
-      max-height: 100%;
-      overflow: hidden;
-      position: relative;
-      contain: layout style size;
-      clip-path: inset(0);
-      isolation: isolate;
-      display: flex;
-      flex-direction: column;
-      box-sizing: border-box;
-      
-    `;
-    
-    // NUEVA JAULA DE CONTENCIÓN INTERIOR para evitar desbordamiento inferior
-    const innerContainmentDiv = document.createElement('div');
-    innerContainmentDiv.style.cssText = `
-      width: 100%;
-      height: 100%;
-      max-height: 100%;
-      min-height: 100%;
-      max-width: 100%;
-      overflow: hidden;
-      position: relative;
-      contain: strict;
-      clip-path: inset(0);
-      isolation: isolate;
-      display: flex;
-      flex-direction: column;
-      box-sizing: border-box;
-      overflow-y: auto !important;
-    `;
-    
-    // Crear doble contención: wrapper exterior + jaula interior
-    innerContainmentDiv.appendChild(element);
-    wrapperDiv.appendChild(innerContainmentDiv);
-    finalMountPoint.appendChild(wrapperDiv);
-    
-    console.log(`🔒 DOBLE WRAPPER DE CONTENCIÓN aplicado para control superior e inferior`);
+    // Montar el componente directamente, sin wrappers
+    // Crear un wrapper con overflow auto y height 100%
+    const wrapper = document.createElement('div');
+    wrapper.style.overflow = 'auto';
+    wrapper.style.height = '100%';
+    wrapper.style.width = '100%';
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.boxSizing = 'border-box';
+    wrapper.appendChild(element);
+    finalMountPoint.appendChild(wrapper);
+    console.log(`[DEBUG] Custom element montado en el DOM dentro de wrapper`, element);
+    console.log(`✅ Componente montado exitosamente en #component-mount-point (con wrapper)`);
     
     // INTERCEPTOR GLOBAL: Sobrescribir cualquier CSS que use 100vh
     const originalStyle = window.getComputedStyle;
@@ -514,8 +568,6 @@ function handleNextStep(event: any) {
     console.error('Error al cargar componente externo:', err);
     error.value = err?.message || 'Error al cargar componente';
     loading.value = false;
-    // Mostrar dummy si ocurre cualquier error de carga
-    showDummyView.value = true;
     emit('error', error.value);
   }
 }
@@ -701,44 +753,95 @@ watch(() => props.wizardStep?.componentData, () => {
 
 <template>
   <div class="external-component-container" :style="{ height: `${containerHeight}px` }">
-    <!-- Dummy/Fallback View -->
-    <div v-if="showDummyView" class="dummy-fallback-container">
-      <div class="dummy-icon">🚫</div>
-      <h3>Microfrontend no disponible</h3>
-      <p>El componente externo requerido para este paso no está disponible en este momento.<br>
-        Por favor, intente más tarde o contacte a soporte si el problema persiste.</p>
-      <button
-        id="dummy-support-btn"
-        class="dummy-support-btn"
-        @click.prevent
-        style="background:#ff1744 !important;color:#fff !important;border:none !important;box-shadow:0 2px 8px 0 rgba(0,0,0,0.18) !important;"
-      >Reportar a soporte</button>
+    <!-- Wrapper para scroll y control de altura -->
+    <div style="overflow: auto; height: 100%; width: 100%; display: flex; flex-direction: column; box-sizing: border-box;">
+      <!-- Siempre tener el punto de montaje disponible pero oculto según el estado -->
+      <div 
+        id="component-mount-point" 
+        class="component-mount-point" 
+        :style="{ 
+          display: !loading && !error ? 'flex' : 'none',
+          '--component-zoom': props.zoomLevel || 1.0
+        }"
+      >
+        <!-- El componente web se montará aquí -->
+      </div>
     </div>
-
-    <!-- Siempre tener el punto de montaje disponible pero oculto según el estado -->
-    <div 
-      id="component-mount-point" 
-      class="component-mount-point" 
-      :style="{ 
-        display: !loading && !error && !showDummyView ? 'flex' : 'none',
-        '--component-zoom': props.zoomLevel || 1.0
-      }"
-    >
-      <!-- El componente web se montará aquí -->
-    </div>
-    
-    <div v-if="loading && !showDummyView" class="loading-container">
+    <div v-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
       <p>Cargando componente externo...</p>
     </div>
-    
-    <div v-if="error && !showDummyView" class="error-container">
-      <h3>⚠️ Error al cargar el componente</h3>
-      <p>{{ error }}</p>
-    </div>
-    
-    <div class="component-info" v-if="componentInfo && !showDummyView">
+    <div class="component-info" v-if="componentInfo">
       <span class="component-tag">{{ componentInfo.id }} v{{ componentInfo.version }}</span>
+    </div>
+  </div>
+  <div v-if="error" 
+       style="position: fixed !important; 
+              top: 250px !important; 
+              left: 43% !important; 
+              transform: translateX(-50%) !important; 
+              width: 85% !important; 
+              max-width: 550px !important; 
+              background: rgba(40,40,40,0.96) !important; 
+              color: #fff !important; 
+              border: 1px solid #444 !important; 
+              border-radius: 8px !important; 
+              padding: 20px 28px !important; 
+              box-sizing: border-box !important; 
+              z-index: 9999 !important; 
+              pointer-events: auto !important; 
+              text-align: left !important; 
+              display: block !important; 
+              box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;">
+    <div style="font-size: 2.5rem !important; margin-bottom: 12px !important; display: block !important; opacity: 0.8 !important;">⚠️</div>
+    <h3 style="color: #fff !important; margin: 0 0 12px 0 !important; font-size: 1.2rem !important; font-weight: 500 !important;">Componente no disponible</h3>
+    <p style="margin-bottom: 16px !important; color: #ccc !important; font-size: 0.9rem !important; line-height: 1.4 !important;">
+      El microfrontend requerido para este paso no está disponible temporalmente.<br>
+      <span style="color:#ffa8a8 !important;">Intente más tarde o contacte al soporte técnico.</span>
+    </p>
+    <div style="display: flex !important; gap: 12px !important; align-items: center !important;">
+      <button @click="handleRefreshClick"
+              style="margin-top: 16px !important;
+                     padding: 8px 12px !important;
+                     background: #4caf50 !important;
+                     color: #fff !important;
+                     border: none !important;
+                     border-radius: 6px !important;
+                     font-size: 0.9rem !important;
+                     font-weight: 500 !important;
+                     cursor: pointer !important;
+                     box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2) !important;
+                     transition: background 0.2s, box-shadow 0.2s !important;
+                     outline: none !important;
+                     box-sizing: border-box !important;
+                     z-index: 10000 !important;
+                     display: flex !important;
+                     align-items: center !important;
+                     gap: 6px !important;"
+              @mouseover="($event.target as HTMLElement).style.background='#388e3c'"
+              @mouseout="($event.target as HTMLElement).style.background='#4caf50'">
+        <span style="font-size: 1rem !important;">🔄</span>
+        Reintentar
+      </button>
+      <button @click="handleSupportClick"
+              style="margin-top: 16px !important;
+                     padding: 8px 20px !important;
+                     background: #ff1744 !important;
+                     color: #fff !important;
+                     border: none !important;
+                     border-radius: 6px !important;
+                     font-size: 0.9rem !important;
+                     font-weight: 500 !important;
+                     cursor: pointer !important;
+                     box-shadow: 0 2px 6px rgba(255, 23, 68, 0.2) !important;
+                     transition: background 0.2s, box-shadow 0.2s !important;
+                     outline: none !important;
+                     box-sizing: border-box !important;
+                     z-index: 10000 !important;"
+              @mouseover="($event.target as HTMLElement).style.background='#d50000'"
+              @mouseout="($event.target as HTMLElement).style.background='#ff1744'">
+        Reportar problema
+      </button>
     </div>
   </div>
 </template>
@@ -974,54 +1077,5 @@ watch(() => props.wizardStep?.componentData, () => {
     padding: 2px 6px;
   }
 }
-  /* --- Dummy/Fallback styles --- */
-  .dummy-fallback-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    width: 100%;
-    background: rgba(30,30,30,0.95);
-    color: #fff;
-    border: 2px dashed #f44336;
-    border-radius: 10px;
-    padding: 40px 20px;
-    box-sizing: border-box;
-    z-index: 20;
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-  .dummy-icon {
-    font-size: 3rem;
-    margin-bottom: 16px;
-  }
-  #dummy-support-btn {
-    margin-top: 24px;
-    padding: 12px 28px;
-    background: #ff1744 !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-size: 1.08rem !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.18) !important;
-    transition: background 0.2s, box-shadow 0.2s, color 0.2s !important;
-    outline: none !important;
-    letter-spacing: 0.5px !important;
-    opacity: 1 !important;
-    filter: none !important;
-    text-shadow: none !important;
-    box-sizing: border-box !important;
-    appearance: none !important;
-    background-image: none !important;
-    z-index: 30 !important;
-  }
-  #dummy-support-btn:hover, #dummy-support-btn:focus {
-    background: #ff4569 !important;
-    color: #fff !important;
-    box-shadow: 0 4px 16px 0 rgba(255,23,68,0.18) !important;
-  }
+  /* --- Dummy/Fallback styles (LIMPIO - usando inline styles) --- */
 // ...existing code...

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Microfrontend Web Component</title>
+  <script type="module" src="bundle.js"></script>
+  <style>
+    body {
+      background: #f5f5f5;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    landing-web-component {
+      margin-top: 40px;
+      min-width: 375px;
+      min-height: 600px;
+      border: 1px solid #e91e63;
+      box-shadow: 0 2px 12px rgba(233,30,99,0.08);
+      border-radius: 12px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h2>Prueba de integración: landing-web-component</h2>
+  <landing-web-component
+    session-id="sim-test-12345"
+    user-id="user-test"
+    config='{"theme":"dark","showFooter":true,"simulationMode":false,"zoomLevel":1,"containerDimensions":{"width":"100%","height":"100%","minHeight":"600px","maxWidth":"100%","maxHeight":"100%","forceFullHeight":true,"containment":true,"isModal":true,"parentContainer":"wizard-modal","heightContext":{"useContainerHeight":true,"respectParentDimensions":true,"availableHeight":"944px","viewportUsage":"container-relative"}}}'
+    flow-context='{"sessionId":"sim-test-12345","currentStep":1,"simulationMode":true,"totalSteps":4,"componentId":"landing","componentVersion":"1.0.0"}'
+  ></landing-web-component>
+</body>
+</html>
