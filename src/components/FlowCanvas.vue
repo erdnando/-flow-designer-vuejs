@@ -1,3 +1,4 @@
+
 <template>
 	<div class="flow-canvas-wrapper" @drop="onDrop" @dragover.prevent @click="onCanvasClick">
 		<!-- Botones para test y publicación -->
@@ -368,31 +369,12 @@
 						:style="{ width: `${((currentWizardStep + 1) / wizardSteps.length) * 100}%` }"
 					></div>
 				</div>
-				<div class="progress-info">
-					<div class="progress-text">
-						Paso {{ currentWizardStep + 1 }} de {{ wizardSteps.length }}
-						<span v-if="wizardSteps[currentWizardStep]"> - {{ wizardSteps[currentWizardStep].title }}</span>
-					</div>
-					
-					<!-- Controles de zoom -->
-					<div class="zoom-controls">
-						<button @click="zoomOutWizard" :disabled="wizardZoomLevel <= 0.5" class="zoom-btn" title="Alejar">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-								<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-								<path d="M8 11h6" stroke="currentColor" stroke-width="2"/>
-								<path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
-							</svg>
-						</button>
-						<span class="zoom-level">{{ Math.round(wizardZoomLevel * 100) }}%</span>
-						<button @click="zoomInWizard" :disabled="wizardZoomLevel >= 1.2" class="zoom-btn" title="Acercar">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-								<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-								<path d="M11 8v6M8 11h6" stroke="currentColor" stroke-width="2"/>
-								<path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
-							</svg>
-						</button>
-					</div>
-				</div>
+			   <div class="progress-info">
+				   <div class="progress-text">
+					   Paso {{ currentWizardStep + 1 }} de {{ wizardSteps.length }}
+					   <span v-if="wizardSteps[currentWizardStep]"> - {{ wizardSteps[currentWizardStep].title }}</span>
+				   </div>
+			   </div>
 			</div>
 			
 			<!-- Contenido del paso actual con panel lateral -->
@@ -505,37 +487,77 @@
 			</div>
 			
 			<!-- Footer con controles -->
-			<div class="wizard-footer">
-				<button 
-					v-if="!wizardCompleted"
-					@click="previousWizardStep" 
-					:disabled="currentWizardStep === 0"
-					class="btn btn-secondary"
-				>
-					Anterior
-				</button>
-				
-				<div class="wizard-footer-right">
-					<button v-if="wizardCompleted" @click="restartWizard" class="btn btn-secondary">
-						Reiniciar
-					</button>
-					<button v-if="wizardCompleted" @click="closeWizard" class="btn btn-primary">
-						Finalizar
-					</button>
-					<button 
-						v-if="!wizardCompleted"
-						@click="nextWizardStep" 
-						class="btn btn-primary"
-					>
-						{{ currentWizardStep === wizardSteps.length - 1 ? 'Finalizar' : 'Siguiente' }}
-					</button>
-				</div>
-			</div>
+		   <div class="wizard-footer wizard-footer-flex" :style="{ '--zoom-center': zoomCenter }">
+			   <button 
+				   v-if="!wizardCompleted"
+				   @click="previousWizardStep" 
+				   :disabled="currentWizardStep === 0"
+				   class="btn btn-secondary"
+			   >
+				   Anterior
+			   </button>
+			   <div class="zoom-controls zoom-controls-center">
+				   <button @click="zoomOutWizard" :disabled="wizardZoomLevel <= 0.5" class="zoom-btn" title="Alejar">
+					   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+						   <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+						   <path d="M8 11h6" stroke="currentColor" stroke-width="2"/>
+						   <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
+					   </svg>
+				   </button>
+				   <span class="zoom-level">{{ Math.round(wizardZoomLevel * 100) }}%</span>
+				   <button @click="zoomInWizard" :disabled="wizardZoomLevel >= 1.2" class="zoom-btn" title="Acercar">
+					   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+						   <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+						   <path d="M11 8v6M8 11h6" stroke="currentColor" stroke-width="2"/>
+						   <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
+					   </svg>
+				   </button>
+			   </div>
+			   <div class="wizard-footer-right">
+				   <button v-if="wizardCompleted" @click="restartWizard" class="btn btn-secondary">
+					   Reiniciar
+				   </button>
+				   <button v-if="wizardCompleted" @click="closeWizard" class="btn btn-primary">
+					   Finalizar
+				   </button>
+				   <button 
+					   v-if="!wizardCompleted"
+					   @click="nextWizardStep" 
+					   class="btn btn-primary"
+				   >
+					   {{ currentWizardStep === wizardSteps.length - 1 ? 'Finalizar' : 'Siguiente' }}
+				   </button>
+			   </div>
+		   </div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
+// --- Zoom controls alignment with component view center ---
+const zoomCenter = ref('50%');
+function updateZoomCenter() {
+  nextTick(() => {
+	const container = document.querySelector('.component-container');
+	const footer = document.querySelector('.wizard-footer');
+	if (container && footer) {
+	  const containerRect = container.getBoundingClientRect();
+	  const footerRect = footer.getBoundingClientRect();
+	  // Calcula el centro relativo al footer
+	  const center = containerRect.left + containerRect.width / 2 - footerRect.left;
+	  zoomCenter.value = `${center}px`;
+	} else {
+	  zoomCenter.value = '50%';
+	}
+  });
+}
+onMounted(() => {
+  updateZoomCenter();
+  window.addEventListener('resize', updateZoomCenter);
+});
+// --- Variables globales para test flow ---
+const testCancelled = ref(false);
+let testTimeouts: number[] = [];
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { MiniMap } from '@vue-flow/minimap';
@@ -2261,7 +2283,8 @@ function handleEdgeDeleteButtonClick(element: Element, event: Event) {
 	console.log('🗑️ FlowCanvas: ID del edge a eliminar:', edgeId);
 	
 	// Llamar a la función de eliminación
-	onEdgeDelete(edgeId);
+  // Llama a la función definida más abajo
+  onEdgeDelete(edgeId);
 }
 
 // Hover effects para conexiones
@@ -2344,8 +2367,7 @@ const testChecklistItems = ref<ChecklistItem[]>([
 	{ id: 6, text: 'Generando reporte de resultados', completed: false }
 ]);
 const testResults = ref<TestResults | null>(null);
-const testCancelled = ref(false);
-let testTimeouts: number[] = [];
+// Eliminar variables no usadas
 
 // Estados para el wizard del simulador
 const showWizardModal = ref(false);
@@ -2466,7 +2488,7 @@ function confirmDeleteNode() {
 // Función para debug del wizard desde la consola
 (window as any).debugWizard = () => {
 	console.log('=== DEBUG: Creando wizard de prueba ===');
-	createWizardFromFlow();
+  createWizardFromFlow();
 	console.log('Pasos del wizard:', wizardSteps.value);
 	return wizardSteps.value;
 };
@@ -2475,7 +2497,7 @@ function confirmDeleteNode() {
 (window as any).debugWizardOutput = () => {
 	console.log('=== DEBUG: Datos de salida del wizard ===');
 	console.log('Todos los datos:', wizardOutputData.value);
-	console.log('Parámetros de tiempo:', extractTimeParameters());
+  console.log('Parámetros de tiempo:', extractTimeParameters());
 	console.log('Todos los parámetros:', getAllOutputParameters());
 	return wizardOutputData.value;
 };
@@ -2506,7 +2528,7 @@ function confirmDeleteNode() {
 	console.log('📤 Datos simulados:', simulatedData);
 	
 	// Simular el evento
-	nextWizardStep(simulatedData);
+  nextWizardStep(simulatedData);
 	
 	return simulatedData;
 };
@@ -4723,14 +4745,45 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	font-size: 11px;
 }
 
+/* Footer siempre visible y por encima de otros elementos */
 .wizard-footer {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 8px 20px; /* Reducir aún más el padding */
-	border-top: 1px solid rgba(255, 255, 255, 0.1);
-	background: #333;
-	flex-shrink: 0; /* Evitar que se comprima */
+   padding: 8px 20px;
+   border-top: 1px solid rgba(255, 255, 255, 0.1);
+   background: #333;
+   flex-shrink: 0;
+   position: fixed;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   z-index: 100;
+   width: 100vw;
+   box-shadow: 0 -2px 12px 0 rgba(0,0,0,0.18);
+}
+.wizard-footer-flex {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+   position: relative;
+   width: 100%;
+   max-width: 1400px;
+   margin: 0 auto;
+}
+.zoom-controls-center {
+   position: absolute;
+   left: 40%;
+   top: 60%;
+   transform: translate(-50%, -50%);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   z-index: 10;
+   background: rgba(34,34,34,0.98);
+   border-radius: 8px;
+   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.18);
+   padding: 6px 16px;
+   border: 1px solid rgba(255,255,255,0.08);
 }
 
 .wizard-footer-right {
