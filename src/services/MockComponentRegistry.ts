@@ -5,6 +5,7 @@ import type { ComponentConfig } from './ExternalComponentLoader';
  * 
  * Este archivo simula el Component Registry real que vendrá de un backend
  * Contiene configuraciones de ejemplo para desarrollo y testing
+ * debe corresponder con los templates de nodeCatalog.ts
  */
 
 export const mockComponentRegistry: ComponentConfig[] = [
@@ -16,7 +17,7 @@ export const mockComponentRegistry: ComponentConfig[] = [
     fallbackUrl: '/local-components/landing-fallback.js',
     type: 'web-component',
     metadata: {
-      description: 'Componente de página de aterrizaje para captura de datos básicos',
+      description: 'Componente de página de aterrizaje',
       category: 'Proceso',
       tagName: 'landing-web-component',
       inputs: {
@@ -39,18 +40,48 @@ export const mockComponentRegistry: ComponentConfig[] = [
       expectedStatus: 200
     }
   },
-  
   {
-    id: 'sms',
-    name: 'SMS Verification Component',
+    id: 'basicos',
+    name: 'Basicos Component',
     version: '1.0.0',
-    cdnUrl: 'http://localhost:3002/dist/sms-v1.0.0.js',
-    fallbackUrl: '/local-components/sms-fallback.js',
+    cdnUrl: 'http://localhost:3002/bundle.js?v=' + Date.now(),
+    fallbackUrl: '/local-components/basicos-fallback.js',
     type: 'web-component',
     metadata: {
-      description: 'Componente para verificación por SMS',
-      category: 'Verificación',
-      tagName: 'sms-verification-component',
+      description: 'Componente básico para captura de datos fundamentales',
+      category: 'Proceso',
+      tagName: 'basicos-web-component',
+      inputs: {
+        sessionId: 'string',
+        userId: 'string',
+        flowContext: 'object',
+        config: 'object',
+        inputData: 'object'
+      },
+      outputs: {
+        'basicos_data': 'object',
+        'output-data': 'object',
+        'component-ready': 'boolean',
+        'node-completed': 'object'
+      }
+    },
+    healthcheck: {
+      url: 'http://localhost:3002/',
+      method: 'GET',
+      expectedStatus: 200
+    }
+  },
+  {
+    id: 'legales',
+    name: 'Legales Component',
+    version: '1.0.0',
+    cdnUrl: 'http://localhost:3003/dist/sms-v1.0.0.js',
+    fallbackUrl: '/local-components/legales-fallback.js',
+    type: 'web-component',
+    metadata: {
+      description: 'Componente para mostrar informacion de termios legales',
+      category: 'Proceso',
+      tagName: 'legales-web-component',
       inputs: {
         phoneNumber: 'string',
         sessionId: 'string',
@@ -63,40 +94,184 @@ export const mockComponentRegistry: ComponentConfig[] = [
       }
     },
     healthcheck: {
-      url: 'http://localhost:3002/health',
+      url: 'http://localhost:3003/health',
+      method: 'GET',
+      expectedStatus: 200
+    }
+  },
+  
+  {
+    id: 'sms',
+    name: 'SMS Component',
+    version: '1.0.0',
+    cdnUrl: 'http://localhost:3004/dist/sms-v1.0.0.js',
+    fallbackUrl: '/local-components/sms-fallback.js',
+    type: 'web-component',
+    metadata: {
+      description: 'Componente para envio SMS',
+      category: 'Proceso',
+      tagName: 'sms-web-component',
+      inputs: {
+        phoneNumber: 'string',
+        sessionId: 'string',
+        flowContext: 'object'
+      },
+      outputs: {
+        'verification-code': 'string',
+        'sms-verified': 'boolean',
+        'verification-status': 'object'
+      }
+    },
+    healthcheck: {
+      url: 'http://localhost:3004/health',
+      method: 'GET',
+      expectedStatus: 200
+    }
+  },
+  {
+    id: 'ine',
+    name: 'INE Component',
+    version: '1.0.0',
+    cdnUrl: 'http://localhost:3005/dist/ine-v1.0.0.js',
+    fallbackUrl: '/local-components/ine-fallback.js',
+    type: 'web-component',
+    metadata: {
+      description: 'Componente para toma de fotografias',
+      category: 'Proceso',
+      tagName: 'ine-web-component',
+      inputs: {
+        phoneNumber: 'string',
+        sessionId: 'string',
+        flowContext: 'object'
+      },
+      outputs: {
+        'verification-code': 'string',
+        'sms-verified': 'boolean',
+        'verification-status': 'object'
+      }
+    },
+    healthcheck: {
+      url: 'http://localhost:3005/health',
+      method: 'GET',
+      expectedStatus: 200
+    }
+  },
+  {
+    id: 'selfie',
+    name: 'Selfie Component',
+    version: '1.0.0',
+    cdnUrl: 'http://localhost:3006/dist/selfie-v1.0.0.js',
+    fallbackUrl: '/local-components/selfie-fallback.js',
+    type: 'web-component',
+    metadata: {
+      description: 'Componente para selfie',
+      category: 'Proceso',
+      tagName: 'selfie-web-component',
+      inputs: {
+        phoneNumber: 'string',
+        sessionId: 'string',
+        flowContext: 'object'
+      },
+      outputs: {
+        'verification-code': 'string',
+        'sms-verified': 'boolean',
+        'verification-status': 'object'
+      }
+    },
+    healthcheck: {
+      url: 'http://localhost:3006/health',
+      method: 'GET',
+      expectedStatus: 200
+    }
+  },
+  {
+    id: 'captura-rapida',
+    name: 'Captura Rápida Component',
+    version: '1.0.0',
+    cdnUrl: 'http://localhost:3007/dist/captura-rapida-v1.0.0.js',
+    fallbackUrl: '/local-components/captura-rapida-fallback.js',
+    type: 'web-component',
+    metadata: {
+      description: 'Componente para captura rápida',
+      category: 'Proceso',
+      tagName: 'captura-rapida-web-component',
+      inputs: {
+        phoneNumber: 'string',
+        sessionId: 'string',
+        flowContext: 'object'
+      },
+      outputs: {
+        'verification-code': 'string',
+        'sms-verified': 'boolean',
+        'verification-status': 'object'
+      }
+    },
+    healthcheck: {
+      url: 'http://localhost:3007/health',
+      method: 'GET',
+      expectedStatus: 200
+    }
+  },
+  {
+    id: 'captura-completa',
+    name: 'Captura Completa Component',
+    version: '1.0.0',
+    cdnUrl: 'http://localhost:3008/dist/capturaCompleta-v1.0.0.js',
+    fallbackUrl: '/local-components/captura-completa-fallback.js',
+    type: 'web-component',
+    metadata: {
+      description: 'Componente para captura completa',
+      category: 'Proceso',
+      tagName: 'captura-completa-web-component',
+      inputs: {
+        phoneNumber: 'string',
+        sessionId: 'string',
+        flowContext: 'object'
+      },
+      outputs: {
+        'verification-code': 'string',
+        'sms-verified': 'boolean',
+        'verification-status': 'object'
+      }
+    },
+    healthcheck: {
+      url: 'http://localhost:3008/health',
+      method: 'GET',
+      expectedStatus: 200
+    }
+  },
+  {
+    id: 'alta-producto',
+    name: 'Alta Producto Component',
+    version: '1.0.0',
+    cdnUrl: 'http://localhost:3009/dist/alta-producto-v1.0.0.js',
+    fallbackUrl: '/local-components/alta-producto-fallback.js',
+    type: 'web-component',
+    metadata: {
+      description: 'Componente para alta de productos',
+      category: 'Proceso',
+      tagName: 'alta-producto-web-component',
+      inputs: {
+        phoneNumber: 'string',
+        sessionId: 'string',
+        flowContext: 'object'
+      },
+      outputs: {
+        'verification-code': 'string',
+        'sms-verified': 'boolean',
+        'verification-status': 'object'
+      }
+    },
+    healthcheck: {
+      url: 'http://localhost:3009/health',
       method: 'GET',
       expectedStatus: 200
     }
   },
 
-  {
-    id: 'ine',
-    name: 'INE Validation Component',
-    version: '1.0.0',
-    cdnUrl: 'http://localhost:3003/dist/ine-v1.0.0.js',
-    fallbackUrl: '/local-components/ine-fallback.js',
-    type: 'web-component',
-    metadata: {
-      description: 'Componente para validación de INE',
-      category: 'Identificación',
-      tagName: 'ine-validation-component',
-      inputs: {
-        sessionId: 'string',
-        userId: 'string',
-        documentData: 'object'
-      },
-      outputs: {
-        'ine-data': 'object',
-        'validation-result': 'object',
-        'document-verified': 'boolean'
-      }
-    },
-    healthcheck: {
-      url: 'http://localhost:3003/health',
-      method: 'GET',
-      expectedStatus: 200
-    }
-  }
+
+  
+
 ];
 
 /**

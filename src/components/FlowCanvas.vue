@@ -3181,18 +3181,18 @@ function closeWizard() {
 	console.log('Wizard cerrado y reseteado');
 }
 
-function restartWizard() {
-	currentWizardStep.value = 0;
-	wizardCompleted.value = false;
-	wizardOutputData.value = {}; // Limpiar datos de salida
-	
-	// Resetear todos los pasos como no completados
-	wizardSteps.value.forEach(step => {
-		step.completed = false;
-	});
-	
-	console.log('Wizard reiniciado');
-}
+// function restartWizard() {
+// 	currentWizardStep.value = 0;
+// 	wizardCompleted.value = false;
+// 	wizardOutputData.value = {}; // Limpiar datos de salida
+// 	
+// 	// Resetear todos los pasos como no completados
+// 	wizardSteps.value.forEach(step => {
+// 		step.completed = false;
+// 	});
+// 	
+// 	console.log('Wizard reiniciado');
+// }
 
 // Funciones auxiliares para manejo de datos
 function extractTimeParameters() {

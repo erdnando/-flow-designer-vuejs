@@ -25,6 +25,7 @@ export const useNodeCatalogStore = defineStore('nodeCatalog', () => {
 	const error = ref<string | null>(null);
 
 	// Datos iniciales del catálogo (simulando datos que vendrán de API)
+	// Debe corresponde contra el obj mockComponentRegistry
 	const initialNodeTemplates: NodeTemplate[] = [
 		{
 			id: 'landing',
