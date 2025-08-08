@@ -73,12 +73,14 @@ function calculateContainerHeight() {
     const marginBottom = parseInt(containerStyles.marginBottom) || 0;
     const borderTop = parseInt(containerStyles.borderTopWidth) || 0;
     const borderBottom = parseInt(containerStyles.borderBottomWidth) || 0;
-    
-    // Usar toda la altura disponible del padre - reducir márgenes al mínimo
-    const calculatedHeight = parentHeight - marginTop - marginBottom - borderTop - borderBottom - 5; // Solo 5px de margen de seguridad
-    containerHeight.value = Math.max(calculatedHeight, 550); // Aumentar mínimo a 550px
-    console.log('🔍 Altura calculada:', containerHeight.value, 'px (padre:', parentHeight, 'px, margen mínimo)');
-    
+
+    // Obtener el nivel de zoom actual
+    const zoomLevel = props.zoomLevel || 1.0;
+    // Ajustar el alto del contenedor para que el contenido escalado siempre ocupe el área máxima
+    const scaledHeight = (parentHeight - marginTop - marginBottom - borderTop - borderBottom - 5) / zoomLevel;
+    containerHeight.value = Math.max(scaledHeight, 550);
+    console.log('🔍 Altura calculada (ajustada por zoom):', containerHeight.value, 'px (padre:', parentHeight, 'px, zoom:', zoomLevel, ')');
+
     // Aplicar la altura inmediatamente al contenedor
     if (container) {
       container.style.height = `${containerHeight.value}px`;
@@ -333,12 +335,11 @@ async function loadExternalComponent() {
     
     // NUEVA JAULA DE CONTENCIÓN INTERIOR para evitar desbordamiento inferior
     const innerContainmentDiv = document.createElement('div');
-    const exactHeight = containerHeight.value - 40; // Altura exacta menos padding
     innerContainmentDiv.style.cssText = `
       width: 100%;
-      height: ${exactHeight}px;
-      max-height: ${exactHeight}px;
-      min-height: ${exactHeight}px;
+      height: 100%;
+      max-height: 100%;
+      min-height: 100%;
       max-width: 100%;
       overflow: hidden;
       position: relative;
