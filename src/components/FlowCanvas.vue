@@ -4789,6 +4789,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .wizard-footer-right {
 	display: flex;
 	gap: 12px;
+	padding-right: 32px;
 }
 
 .wizard-footer .btn:disabled {
