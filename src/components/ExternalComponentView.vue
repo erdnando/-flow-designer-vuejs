@@ -1,32 +1,4 @@
-<template>
-  <div class="external-component-container" :style="{ height: `${containerHeight}px` }">
-    <!-- Siempre tener el punto de montaje disponible pero oculto según el estado -->
-    <div 
-      id="component-mount-point" 
-      class="component-mount-point" 
-      :style="{ 
-        display: !loading && !error ? 'flex' : 'none',
-        '--component-zoom': props.zoomLevel || 1.0
-      }"
-    >
-      <!-- El componente web se montará aquí -->
-    </div>
-    
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Cargando componente externo...</p>
-    </div>
-    
-    <div v-if="error" class="error-container">
-      <h3>⚠️ Error al cargar el componente</h3>
-      <p>{{ error }}</p>
-    </div>
-    
-    <div class="component-info" v-if="componentInfo">
-      <span class="component-tag">{{ componentInfo.id }} v{{ componentInfo.version }}</span>
-    </div>
-  </div>
-</template>
+// ...existing code...
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
@@ -54,6 +26,7 @@ const componentInfo = ref<any>(null);
 const componentInstance = ref<any>(null);
 const outputData = ref<any>({}); // Almacenar datos de salida del componente
 const containerHeight = ref<number>(600); // Altura calculada del contenedor
+const showDummyView = ref(false); // Mostrar vista dummy si el microfrontend no está disponible
 
 // Variables de sesión para simular
 const sessionId = `sim-${Date.now()}`;
@@ -134,7 +107,12 @@ async function loadExternalComponent() {
     // Obtener configuración del componente
     const componentConfig = MockComponentRegistry.getComponent(customTypeId);
     if (!componentConfig) {
-      throw new Error(`Componente no encontrado en el registro: ${customTypeId}`);
+      // Mostrar dummy si el componente no existe
+      showDummyView.value = true;
+      loading.value = false;
+      error.value = `El microfrontend '${customTypeId}' no está disponible.`;
+      emit('error', error.value);
+      return;
     }
     
     // Guardar info del componente
@@ -199,7 +177,12 @@ async function loadExternalComponent() {
       await new Promise(resolve => setTimeout(resolve, 500));
       console.log(`🔍 Segundo intento - customElements.get('${customElementName}'):`, customElements.get(customElementName));
       if (!customElements.get(customElementName)) {
-        throw new Error(`Custom element '${customElementName}' no está disponible después del delay`);
+        // Mostrar dummy si el custom element no está disponible
+        showDummyView.value = true;
+        loading.value = false;
+        error.value = `El microfrontend '${customElementName}' no está disponible para este paso.`;
+        emit('error', error.value);
+        return;
       }
     }
     
@@ -531,6 +514,8 @@ function handleNextStep(event: any) {
     console.error('Error al cargar componente externo:', err);
     error.value = err?.message || 'Error al cargar componente';
     loading.value = false;
+    // Mostrar dummy si ocurre cualquier error de carga
+    showDummyView.value = true;
     emit('error', error.value);
   }
 }
@@ -695,11 +680,9 @@ onBeforeUnmount(() => {
     componentInstance.value.removeEventListener('output-data', handleOutputData);
     componentInstance.value.removeEventListener('request-navigation', handleNavigation);
     componentInstance.value.removeEventListener('node-error', handleComponentError);
-    
-    // Limpiar del DOM si está montado
-    const mountPoint = document.getElementById('component-mount-point');
-    if (mountPoint?.contains(componentInstance.value)) {
-      mountPoint.removeChild(componentInstance.value);
+    // Limpiar del DOM si está montado, solo si tiene parentNode
+    if (componentInstance.value.parentNode) {
+      componentInstance.value.parentNode.removeChild(componentInstance.value);
     }
   }
 });
@@ -716,35 +699,49 @@ watch(() => props.wizardStep?.componentData, () => {
 }, { deep: true });
 </script>
 
-<style scoped>
-.external-component-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  /* height será calculada dinámicamente via JavaScript */
-  min-height: 0; /* Permitir que se comprima */
-  position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  overflow: hidden; /* Sin scroll en el contenedor principal */
-  background: #1e1e1e;
-  /* Centrar el contenido */
-  justify-content: center;
-  align-items: center;
-  /* NUEVO: Contener estrictamente el componente */
-  contain: layout style size; /* Contención CSS para evitar escape */
-  isolation: isolate; /* Crear contexto de apilamiento */
-}
+<template>
+  <div class="external-component-container" :style="{ height: `${containerHeight}px` }">
+    <!-- Dummy/Fallback View -->
+    <div v-if="showDummyView" class="dummy-fallback-container">
+      <div class="dummy-icon">🚫</div>
+      <h3>Microfrontend no disponible</h3>
+      <p>El componente externo requerido para este paso no está disponible en este momento.<br>
+        Por favor, intente más tarde o contacte a soporte si el problema persiste.</p>
+      <button
+        id="dummy-support-btn"
+        class="dummy-support-btn"
+        @click.prevent
+        style="background:#ff1744 !important;color:#fff !important;border:none !important;box-shadow:0 2px 8px 0 rgba(0,0,0,0.18) !important;"
+      >Reportar a soporte</button>
+    </div>
 
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #fff;
-}
-
+    <!-- Siempre tener el punto de montaje disponible pero oculto según el estado -->
+    <div 
+      id="component-mount-point" 
+      class="component-mount-point" 
+      :style="{ 
+        display: !loading && !error && !showDummyView ? 'flex' : 'none',
+        '--component-zoom': props.zoomLevel || 1.0
+      }"
+    >
+      <!-- El componente web se montará aquí -->
+    </div>
+    
+    <div v-if="loading && !showDummyView" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Cargando componente externo...</p>
+    </div>
+    
+    <div v-if="error && !showDummyView" class="error-container">
+      <h3>⚠️ Error al cargar el componente</h3>
+      <p>{{ error }}</p>
+    </div>
+    
+    <div class="component-info" v-if="componentInfo && !showDummyView">
+      <span class="component-tag">{{ componentInfo.id }} v{{ componentInfo.version }}</span>
+    </div>
+  </div>
+</template>
 .loading-spinner {
   width: 40px;
   height: 40px;
@@ -977,4 +974,54 @@ watch(() => props.wizardStep?.componentData, () => {
     padding: 2px 6px;
   }
 }
-</style>
+  /* --- Dummy/Fallback styles --- */
+  .dummy-fallback-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    background: rgba(30,30,30,0.95);
+    color: #fff;
+    border: 2px dashed #f44336;
+    border-radius: 10px;
+    padding: 40px 20px;
+    box-sizing: border-box;
+    z-index: 20;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .dummy-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+  #dummy-support-btn {
+    margin-top: 24px;
+    padding: 12px 28px;
+    background: #ff1744 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 1.08rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.18) !important;
+    transition: background 0.2s, box-shadow 0.2s, color 0.2s !important;
+    outline: none !important;
+    letter-spacing: 0.5px !important;
+    opacity: 1 !important;
+    filter: none !important;
+    text-shadow: none !important;
+    box-sizing: border-box !important;
+    appearance: none !important;
+    background-image: none !important;
+    z-index: 30 !important;
+  }
+  #dummy-support-btn:hover, #dummy-support-btn:focus {
+    background: #ff4569 !important;
+    color: #fff !important;
+    box-shadow: 0 4px 16px 0 rgba(255,23,68,0.18) !important;
+  }
+// ...existing code...
