@@ -298,11 +298,31 @@ async function loadExternalComponent() {
     console.log('  - config:', JSON.stringify(config, null, 2));
     console.log('  - flow-context:', JSON.stringify(expandedFlowContext, null, 2));
     
-    // Añadir eventos
+    // DEBUG: Log antes de agregar listeners
+    console.log('[DEBUG] Agregando event listeners al custom element', element);
     element.addEventListener('component-ready', handleComponentReady);
     element.addEventListener('output-data', handleOutputData);
+    element.addEventListener('next-step', handleNextStep);
     element.addEventListener('request-navigation', handleNavigation);
     element.addEventListener('node-error', handleComponentError);
+    // DEBUG: Log después de agregar listeners
+    console.log('[DEBUG] Event listeners agregados. Montando el custom element...');
+// Handler para evento next-step (emitido por microfrontends)
+function handleNextStep(event: any) {
+  console.log('➡️ Evento next-step recibido:', event.detail);
+  if (event) {
+    console.log('🟢 [DEBUG] handleNextStep: Event recibido correctamente.');
+    if (event.detail) {
+      console.log('🟢 [DEBUG] handleNextStep: event.detail =', event.detail);
+    } else {
+      console.warn('🟡 [DEBUG] handleNextStep: event.detail está vacío');
+    }
+  } else {
+    console.error('🔴 [DEBUG] handleNextStep: Event es undefined/null');
+  }
+  // Reutilizar la lógica de handleOutputData para estructurar y emitir los datos
+  handleOutputData(event);
+}
     console.log(`🎧 Event listeners configurados para el componente`);
     
     // Obtener punto de montaje actualizado
@@ -313,6 +333,7 @@ async function loadExternalComponent() {
     
     // Montar componente
     finalMountPoint.appendChild(element);
+    console.log(`[DEBUG] Custom element montado en el DOM`, element);
     console.log(`✅ Componente montado exitosamente en #component-mount-point`);
     
     // SOLUCIÓN RADICAL: Crear un wrapper de contención para TODOS los componentes
@@ -523,6 +544,12 @@ function handleComponentReady(event: Event) {
 
 function handleOutputData(event: any) {
   console.log('📤 Datos de salida del componente:', event.detail);
+  console.log('🟢 [DEBUG] handleOutputData: Iniciado con event:', event);
+  if (event && event.detail) {
+    console.log('🟢 [DEBUG] handleOutputData: event.detail =', event.detail);
+  } else {
+    console.warn('🟡 [DEBUG] handleOutputData: event o event.detail está vacío');
+  }
   
   // Almacenar datos de salida
   outputData.value = { ...outputData.value, ...event.detail };
@@ -556,6 +583,7 @@ function handleOutputData(event: any) {
   };
   
   console.log('🔄 Avanzando al siguiente paso con datos estructurados:', structuredData);
+  console.log('🟢 [DEBUG] handleOutputData: Emitiendo "next" con structuredData:', structuredData);
   emit('next', structuredData);
 }
 

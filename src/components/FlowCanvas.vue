@@ -395,6 +395,7 @@
 								<component 
 									:is="wizardComponents[wizardSteps[currentWizardStep].component as keyof typeof wizardComponents]" 
 									v-if="wizardSteps[currentWizardStep].type === 'view' && componentExists(wizardSteps[currentWizardStep].component)"
+									:key="wizardSteps[currentWizardStep].id"
 									:ref="wizardSteps[currentWizardStep].component === 'ExternalComponentView' ? 'currentExternalComponentRef' : undefined"
 									:wizard-step="wizardSteps[currentWizardStep]"
 									:zoom-level="wizardZoomLevel"
@@ -488,14 +489,17 @@
 			
 			<!-- Footer con controles -->
 		   <div class="wizard-footer wizard-footer-flex" :style="{ '--zoom-center': zoomCenter }">
-			   <button 
-				   v-if="!wizardCompleted"
-				   @click="previousWizardStep" 
-				   :disabled="currentWizardStep === 0"
-				   class="btn btn-secondary"
-			   >
-				   Anterior
-			   </button>
+<!-- Botón 'Anterior' oculto temporalmente -->
+<!--
+<button 
+   v-if="!wizardCompleted"
+   @click="previousWizardStep" 
+   :disabled="currentWizardStep === 0"
+   class="btn btn-secondary"
+>
+   Anterior
+</button>
+-->
 			   <div class="zoom-controls zoom-controls-center">
 				   <button @click="zoomOutWizard" :disabled="wizardZoomLevel <= 0.5" class="zoom-btn" title="Alejar">
 					   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -513,21 +517,24 @@
 					   </svg>
 				   </button>
 			   </div>
-			   <div class="wizard-footer-right">
-				   <button v-if="wizardCompleted" @click="restartWizard" class="btn btn-secondary">
-					   Reiniciar
-				   </button>
-				   <button v-if="wizardCompleted" @click="closeWizard" class="btn btn-primary">
-					   Finalizar
-				   </button>
-				   <button 
-					   v-if="!wizardCompleted"
-					   @click="nextWizardStep" 
-					   class="btn btn-primary"
-				   >
-					   {{ currentWizardStep === wizardSteps.length - 1 ? 'Finalizar' : 'Siguiente' }}
-				   </button>
-			   </div>
+<!-- Botones de la derecha ocultos temporalmente -->
+<!--
+<div class="wizard-footer-right">
+   <button v-if="wizardCompleted" @click="restartWizard" class="btn btn-secondary">
+	   Reiniciar
+   </button>
+   <button v-if="wizardCompleted" @click="closeWizard" class="btn btn-primary">
+	   Finalizar
+   </button>
+   <button 
+	   v-if="!wizardCompleted"
+	   @click="nextWizardStep" 
+	   class="btn btn-primary"
+   >
+	   {{ currentWizardStep === wizardSteps.length - 1 ? 'Finalizar' : 'Siguiente' }}
+   </button>
+</div>
+-->
 		   </div>
 		</div>
 	</div>
@@ -3100,10 +3107,17 @@ function createWizardFromFlow() {
 	
 	console.log('Pasos del wizard creados en orden correcto:', steps);
 	
-	// Configurar el estado del wizard
-	wizardSteps.value = steps;
-	currentWizardStep.value = 0;
-	wizardCompleted.value = false;
+   // Filtrar el paso de INICIO si existe (por label o tipo)
+   let startIndex = 0;
+   if (steps.length > 0 && (steps[0].title?.toUpperCase() === 'INICIO' || steps[0].component === 'NodoInicialView')) {
+	   startIndex = 1;
+   }
+   const filteredSteps = steps.slice(startIndex);
+   console.log('Pasos del wizard creados en orden correcto (sin INICIO):', filteredSteps);
+   // Configurar el estado del wizard
+   wizardSteps.value = filteredSteps;
+   currentWizardStep.value = 0;
+   wizardCompleted.value = false;
 }
 
 // Función para cerrar la modal de resultados
@@ -4757,6 +4771,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
    bottom: 0;
    z-index: 100;
    width: 100vw;
+   height: 30px;
    box-shadow: 0 -2px 12px 0 rgba(0,0,0,0.18);
 }
 .wizard-footer-flex {
