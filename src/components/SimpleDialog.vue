@@ -129,11 +129,13 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);
 
 const onConfirm = () => {
+  console.log('✅ SimpleDialog: onConfirm llamado - emitiendo evento confirm');
   emit('confirm');
   emit('update:modelValue', false);
 };
 
 const onCancel = () => {
+  console.log('❌ SimpleDialog: onCancel llamado - emitiendo evento cancel');
   emit('cancel');
   emit('update:modelValue', false);
 };

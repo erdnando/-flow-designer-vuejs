@@ -574,7 +574,7 @@ import ContextMenu from './ContextMenu.vue';
 import NodePropertiesPanel from './NodePropertiesPanel.vue';
 import { reactive, markRaw, ref, watch, onMounted, onBeforeUnmount, nextTick, provide } from 'vue';
 import type { Connection, Node, NodeTypesObject, Edge } from '@vue-flow/core';
-import CustomNode from './CustomNode.vue';
+import CustomNode from './customNode/index.vue';
 import EngineNode from './EngineNode.vue';
 import MinimalNode from './MinimalNode.vue';
 import ConditionNode from './ConditionNode.vue';
@@ -869,6 +869,17 @@ onMounted(() => {
 	
 	// Configurar un event listener global para capturar clicks en edges
 	setupGlobalEdgeClickDetection();
+	
+	// Provide de la función de delete para componentes hijos
+	provide('deleteNodeFunction', onNodeDelete);
+	
+	// Listener para el evento DOM personalizado como fallback
+	document.addEventListener('custom-node-delete', (event: any) => {
+		console.log('🗑️ FlowCanvas: Evento DOM custom-node-delete recibido:', event.detail);
+		if (event.detail?.nodeId) {
+			onNodeDelete(event.detail.nodeId);
+		}
+	});
 	
 	// Debug: agregar algunas funciones de prueba al window para testing
 	(window as any).debugFlow = {
@@ -2080,6 +2091,12 @@ function setupGlobalEdgeClickDetection() {
 		console.log('🔍 Clases del target:', target.classList?.toString());
 		console.log('🔍 Tag name del target:', target.tagName);
 		
+		// NUEVA LÓGICA: Ignorar clicks dentro de diálogos
+		if (target.closest('.simple-dialog') || target.classList.contains('simple-dialog')) {
+			console.log('🚫 Click dentro de diálogo - ignorando detección global');
+			return;
+		}
+		
 		// NUEVA LÓGICA: Verificar usando elementsFromPoint para capturar clicks interceptados
 		const elementsFromPoint = document.elementsFromPoint(event.clientX, event.clientY);
 		console.log('🔍 Verificando elementos en posición del cursor:', {x: event.clientX, y: event.clientY});
@@ -2428,12 +2445,21 @@ function onNodeDelete(nodeId: string) {
 }
 
 function confirmDeleteNode() {
-	if (!nodeToDelete.value || nodeIndexToDelete.value === -1) return;
+	console.log('🗑️ FlowCanvas: confirmDeleteNode llamado');
+	console.log('🗑️ FlowCanvas: nodeToDelete =', nodeToDelete.value);
+	console.log('🗑️ FlowCanvas: nodeIndexToDelete =', nodeIndexToDelete.value);
+	
+	if (!nodeToDelete.value || nodeIndexToDelete.value === -1) {
+		console.warn('🗑️ FlowCanvas: No hay nodo para eliminar o índice inválido');
+		return;
+	}
 	
 	// Obtener datos antes de eliminar
 	const nodeLabel = nodeToDelete.value.label || nodeToDelete.value.type || 'Nodo';
 	const deletedNode = nodeToDelete.value;
 	const nodeIndex = nodeIndexToDelete.value;
+	
+	console.log('🗑️ FlowCanvas: Eliminando nodo:', nodeLabel, 'en índice:', nodeIndex);
 	
 	// Eliminar el nodo
 	nodes.value.splice(nodeIndex, 1);
@@ -2548,6 +2574,7 @@ console.log('- window.debugWizardOutput() - Ver datos de salida del wizard');
 console.log('- window.simulateOutputData() - Simular datos de salida');
 
 function cancelDeleteNode() {
+	console.log('❌ FlowCanvas: cancelDeleteNode llamado');
 	nodeToDelete.value = null;
 	nodeIndexToDelete.value = -1;
 	showDeleteNodeDialog.value = false;
@@ -3846,11 +3873,29 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	z-index: 103 !important;
 }
 
+/* CURSOR ESPECÍFICO - Mayor especificidad para sobrescribir cursor global */
+.flow-canvas-wrapper .vue-flow__edge-path {
+	cursor: pointer !important;
+}
+
+.flow-canvas-wrapper .vue-flow__edge {
+	cursor: pointer !important;
+}
+
+.flow-canvas-wrapper .vue-flow__edge svg {
+	cursor: pointer !important;
+}
+
+.flow-canvas-wrapper .vue-flow__edge g {
+	cursor: pointer !important;
+}
+
 .vue-flow__edge-path:hover {
 	stroke: #6b8aff !important;
 	stroke-width: 4px !important;
 	filter: drop-shadow(0 2px 4px rgba(80, 120, 255, 0.5));
 	z-index: 105 !important;
+	cursor: pointer !important;
 }
 
 .vue-flow__edge.selected .vue-flow__edge-path {
@@ -3859,6 +3904,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	stroke-dasharray: 8 5;
 	animation: dash-selected 1.0s linear infinite;
 	filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6));
+	cursor: pointer !important;
 }
 
 /* Estilo para conexión seleccionada en hover */
