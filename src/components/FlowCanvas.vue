@@ -584,7 +584,7 @@ import CustomEdge from './CustomEdge.vue';
 import VariablesPanel from './VariablesPanel.vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 // ElMessageBox reemplazado por CustomDialog
-import { getValidationErrors, type ValidationResult } from '../utils/nodeValidationRules';
+import { getValidationErrors, type ValidationResult } from '../utils/validation';
 import { useNotifications } from '../composables/useNotifications';
 import SimpleDialog from './SimpleDialog.vue';
 // Importar los componentes para el simulador

@@ -2,7 +2,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import { ExternalComponentLoader } from '../services/ExternalComponentLoader';
+import { getExternalComponentService } from '../services/components';
 import { MockComponentRegistry } from '../services/MockComponentRegistry';
 
 // Props
@@ -19,6 +19,9 @@ const props = defineProps<{
 // Emits
 const emit = defineEmits(['next', 'previous', 'ready', 'error']);
 
+// Instancia del servicio de componentes externos
+const componentService = getExternalComponentService();
+
 // Handler para el botón de soporte en el fallback
 function handleSupportClick() {
   console.log('[DummySupport] Botón de soporte presionado. Aquí se podría abrir un diálogo de soporte.');
@@ -28,9 +31,10 @@ function handleSupportClick() {
 function handleRefreshClick() {
   console.log('[DummyRefresh] Botón de refresh presionado. Reintentando cargar componente...');
   
-  // Limpiar caché del ExternalComponentLoader completamente
-  ExternalComponentLoader.clearCache();
-  console.log('[DummyRefresh] Caché de ExternalComponentLoader limpiado');
+  // Limpiar caché del ExternalComponentService completamente
+  const componentService = getExternalComponentService();
+  componentService.unloadAllComponents();
+  console.log('[DummyRefresh] Caché de ExternalComponentService limpiado');
   
   // Limpiar cualquier custom element anterior del DOM
   const mountPoint = document.getElementById('component-mount-point');
@@ -135,10 +139,10 @@ async function loadExternalComponent() {
     const allMock = MockComponentRegistry.getAllComponents();
     const allMockIds = allMock.map(c => c.id);
     console.log('[LOG] Componentes disponibles en MockComponentRegistry:', allMockIds);
-    const allRegistered = ExternalComponentLoader.getRegisteredComponentIds();
-    console.log('[LOG] Componentes registrados en ExternalComponentLoader:', allRegistered);
-    const isRegistered = ExternalComponentLoader.isRegistered(customTypeId);
-    console.log(`[LOG] ¿Está registrado '${customTypeId}' en ExternalComponentLoader?:`, isRegistered);
+    const allRegistered = componentService.getAllConfigs().map(c => c.id);
+    console.log('[LOG] Componentes registrados en ExternalComponentService:', allRegistered);
+    const isRegistered = componentService.isComponentLoaded(customTypeId);
+    console.log(`[LOG] ¿Está registrado '${customTypeId}' en ExternalComponentService?:`, isRegistered);
 
     // Obtener configuración del componente
     const componentConfig = MockComponentRegistry.getComponent(customTypeId);
@@ -180,37 +184,28 @@ async function loadExternalComponent() {
     
     console.log('[LOG] ✅ Punto de montaje encontrado y limpiado completamente');
 
-    // Cargar el componente web sin depender de refs
-    await ExternalComponentLoader.loadComponent(customTypeId, version)
-      .catch(async (err) => {
-        console.warn(`[LOG] Error al cargar componente con loader, intentando registro manual:`, err);
-        // NUEVO: Limpiar caché antes de reintentar si hay error
-        ExternalComponentLoader.clearCache();
-        // Registrar si no está registrado
-        if (!ExternalComponentLoader.isRegistered(customTypeId)) {
-          ExternalComponentLoader.registerComponent(componentConfig);
-          return ExternalComponentLoader.loadComponent(customTypeId, version);
-        }
-        throw err;
-      })
-      .catch(async (err) => {
-        console.warn(`[LOG] Error después del registro manual, cargando script directamente:`, err);
-        // Intentar cargar el script directamente como último recurso
-        return new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = componentConfig.cdnUrl;
-          script.async = true;
-          script.onload = () => {
-            console.log(`[LOG] ✅ Script cargado manualmente: ${componentConfig.cdnUrl}`);
-            resolve();
-          };
-          script.onerror = (e) => {
-            console.error(`[LOG] ❌ Error al cargar script:`, e);
-            reject(new Error(`Error al cargar script: ${e}`));
-          };
-          document.head.appendChild(script);
-        });
+        // Cargar el componente web usando el nuevo servicio
+    try {
+      await componentService.loadComponent(componentConfig);
+      console.log(`[LOG] ✅ Componente cargado exitosamente: ${customTypeId}`);
+    } catch (loadError: any) {
+      console.warn(`[LOG] Error al cargar componente:`, loadError);
+      // Intentar cargar el script directamente como último recurso
+      await new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = componentConfig.cdnUrl;
+        script.async = true;
+        script.onload = () => {
+          console.log(`[LOG] ✅ Script cargado manualmente: ${componentConfig.cdnUrl}`);
+          resolve();
+        };
+        script.onerror = (e) => {
+          console.error(`[LOG] ❌ Error al cargar script:`, e);
+          reject(new Error(`Error al cargar script: ${e}`));
+        };
+        document.head.appendChild(script);
       });
+    }
 
     // Montar el componente usando el DOM API directamente
     console.log(`[LOG] 🔄 Montando componente: ${componentConfig.metadata.tagName}`);

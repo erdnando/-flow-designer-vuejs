@@ -1,4 +1,4 @@
-import type { ComponentConfig } from './ExternalComponentLoader';
+import type { ComponentConfig } from './components/types';
 
 /**
  * Configuración mock del Component Registry
