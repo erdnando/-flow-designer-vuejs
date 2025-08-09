@@ -571,7 +571,7 @@ import { MiniMap } from '@vue-flow/minimap';
 import { storeToRefs } from 'pinia';
 import { useFlowStore } from '../stores/flow';
 import ContextMenu from './ContextMenu.vue';
-import NodePropertiesPanel from './NodePropertiesPanel.vue';
+import NodePropertiesPanel from './nodePropertiesPanel/index.vue';
 import { reactive, markRaw, ref, watch, onMounted, onBeforeUnmount, nextTick, provide } from 'vue';
 import type { Connection, Node, NodeTypesObject, Edge } from '@vue-flow/core';
 import CustomNode from './customNode/index.vue';

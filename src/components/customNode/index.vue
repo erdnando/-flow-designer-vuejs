@@ -24,6 +24,7 @@
 		<NodeContent
 			:icon="nodeIcon"
 			:label="nodeLabel"
+			:subtitle="nodeSubtitle"
 			:typeDisplay="nodeTypeDisplay"
 			:version="nodeVersion"
 		/>
@@ -52,7 +53,7 @@ const emit = defineEmits<NodeEvents>();
 
 // Composables
 const { showToolbar, isHovered, isNodeSelected, nodeInstance, onMouseEnter, onMouseLeave, cleanup } = useNodeState();
-const { nodeLabel, nodeType, nodeTypeDisplay, nodeVersion, nodeIcon } = useNodeAppearance(props, nodeInstance);
+const { nodeLabel, nodeSubtitle, nodeType, nodeTypeDisplay, nodeVersion, nodeIcon } = useNodeAppearance(props, nodeInstance);
 const { handleCopy, handleDuplicate, handleDelete, handleMenu } = useNodeEvents(
 	props, 
 	emit, 

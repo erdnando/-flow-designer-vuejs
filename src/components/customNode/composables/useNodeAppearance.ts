@@ -45,6 +45,11 @@ export function useNodeAppearance(
 		() => rawData.value.nodeLabel || rawData.value.dataLabel || rawData.value.nodeDataLabel || 'Nodo',
 	);
 
+	// Computed para el subtítulo del nodo
+	const nodeSubtitle = computed(
+		() => rawData.value.dataSubtitle || rawData.value.nodeDataSubtitle || '',
+	);
+
 	// Para el tipo, implementamos una solución robusta que siempre refleja el tipo actual
 	const nodeType = computed(() => {
 		// LOGGING: Información completa para diagnóstico
@@ -127,6 +132,7 @@ export function useNodeAppearance(
 
 	return {
 		nodeLabel,
+		nodeSubtitle,
 		nodeType,
 		nodeTypeDisplay,
 		nodeVersion,

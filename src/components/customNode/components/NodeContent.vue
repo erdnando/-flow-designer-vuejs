@@ -3,6 +3,7 @@
 		<NodeIcon :icon="icon" />
 		<NodeLabels 
 			:label="label"
+			:subtitle="subtitle"
 			:typeDisplay="typeDisplay"
 			:version="version"
 		/>
@@ -16,6 +17,7 @@ import NodeLabels from './NodeLabels.vue';
 interface Props {
 	icon: string;
 	label: string;
+	subtitle: string;
 	typeDisplay: string;
 	version: string;
 }
@@ -24,7 +26,5 @@ defineProps<Props>();
 </script>
 
 <style scoped>
-.node-content {
-	/* Los estilos se heredan del componente padre para mantener compatibilidad */
-}
+/* Los estilos se manejan en los componentes hijos */
 </style>
