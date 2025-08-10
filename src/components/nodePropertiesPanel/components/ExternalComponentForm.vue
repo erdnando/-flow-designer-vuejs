@@ -1,6 +1,6 @@
 <template>
 	<div class="external-component-section">
-		<h4 class="section-title">🔧 Componente Externo</h4>
+		<h4 class="section-title">🔧 Componente</h4>
 		
 		<label>
 			Versión del Componente

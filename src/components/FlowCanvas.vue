@@ -381,10 +381,10 @@
 			<div class="wizard-main-content">
 				<div class="wizard-content" :style="{ '--wizard-zoom': wizardZoomLevel }">
 					<div v-if="!wizardCompleted && wizardSteps[currentWizardStep]" class="wizard-step">
-						<div class="step-header">
+						<!-- <div class="step-header">
 							<h3>{{ wizardSteps[currentWizardStep].title }}</h3>
 							<p class="step-description">{{ wizardSteps[currentWizardStep].description }}</p>
-						</div>
+						</div> -->
 						
 						<!-- Aquí se renderizará el componente de vista específico -->
 						<div class="step-content">
