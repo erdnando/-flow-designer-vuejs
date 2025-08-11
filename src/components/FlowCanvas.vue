@@ -1,4 +1,3 @@
-
 <template>
 	<div class="flow-canvas-wrapper" @drop="onDrop" @dragover.prevent @click="onCanvasClick">
 		<!-- Botones para test y publicación -->
@@ -399,6 +398,7 @@
 									:ref="wizardSteps[currentWizardStep].component === 'ExternalComponentView' ? 'currentExternalComponentRef' : undefined"
 									:wizard-step="wizardSteps[currentWizardStep]"
 									:zoom-level="wizardZoomLevel"
+									:device="selectedDevice"
 									@next="nextWizardStep"
 									@previous="previousWizardStep"
 									@ready="handleComponentReady"
@@ -501,21 +501,15 @@
 </button>
 -->
 			   <div class="zoom-controls zoom-controls-center">
-				   <button @click="zoomOutWizard" :disabled="wizardZoomLevel <= 0.5" class="zoom-btn" title="Alejar">
-					   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-						   <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-						   <path d="M8 11h6" stroke="currentColor" stroke-width="2"/>
-						   <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
-					   </svg>
-				   </button>
-				   <span class="zoom-level">{{ Math.round(wizardZoomLevel * 100) }}%</span>
-				   <button @click="zoomInWizard" :disabled="wizardZoomLevel >= 1.2" class="zoom-btn" title="Acercar">
-					   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-						   <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-						   <path d="M11 8v6M8 11h6" stroke="currentColor" stroke-width="2"/>
-						   <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
-					   </svg>
-				   </button>
+				   <!-- Dropdown de dispositivos en footer (reemplaza controles de zoom) -->
+				   <div class="device-selector-footer">
+					   <label for="device-select" style="margin-right:4px;">Dimensions:</label>
+					   <select id="device-select" v-model="selectedDevice" style="padding:4px;">
+						   <option v-for="device in devicePresets" :key="device.label" :value="device">
+							   {{ device.label }}
+						   </option>
+					   </select>
+				   </div>
 			   </div>
 <!-- Botones de la derecha ocultos temporalmente -->
 <!--
@@ -566,6 +560,22 @@ onMounted(() => {
 const testCancelled = ref(false);
 let testTimeouts: number[] = [];
 import { VueFlow, useVueFlow } from '@vue-flow/core';
+// Device presets para simulación móvil
+const devicePresets = [
+	{ label: 'Responsive', width: window.innerWidth, height: window.innerHeight },
+	{ label: 'iPhone SE', width: 320, height: 568 },
+	{ label: 'iPhone XR', width: 414, height: 896 },
+	{ label: 'iPhone 12 Pro', width: 390, height: 844 },
+	{ label: 'iPhone 14 Pro Max', width: 430, height: 932 },
+	{ label: 'Samsung Galaxy S21', width: 360, height: 800 },
+	{ label: 'Google Pixel 5', width: 393, height: 851 },
+	{ label: 'OnePlus 8T', width: 412, height: 915 },
+	{ label: 'Xiaomi Mi 11', width: 412, height: 915 },
+	{ label: 'Huawei P40 Pro', width: 412, height: 915 },
+	{ label: 'Pixel 7', width: 393, height: 851 },
+	{ label: 'Samsung Galaxy S20 Ultra', width: 412, height: 915 }
+];
+const selectedDevice = ref(devicePresets.find(d => d.label === 'iPhone 14 Pro Max') || devicePresets[0]);
 import { Background } from '@vue-flow/background';
 import { MiniMap } from '@vue-flow/minimap';
 import { storeToRefs } from 'pinia';
@@ -1253,9 +1263,9 @@ function onConnect(params: Connection) {
 		return; // No crear la conexión
 	}
 	
-	// Si no hay errores de validación, crear la conexión
+	// Si no hay errores de validación, crear a conexión
 	// Usar el tipo correcto para evitar errores de TypeScript
-	// Crear objeto básico de Connection y luego hacer cast
+	// Crear objeto básico de Connection e luego hacer cast
 	const edgeBase = {
 		source: newEdge.source,
 		target: newEdge.target,
@@ -1949,16 +1959,10 @@ function onEdgeClick({ edge }: { edge: Edge }) {
 	selectedNodeId.value = null;
 	selectedNode.value = null;
 	
-	// Deseleccionar todos los nodos visualmente
-	nodes.value = nodes.value.map(n => ({
-		...n,
-		selected: false
-	}));
-	
 	// Deseleccionar todas las conexiones primero
 	edges.value = edges.value.map(e => ({
 		...e,
-		selected: e.id === edge.id
+		selected: false
 	}));
 	
 	// Seleccionar la conexión clickeada
@@ -2913,7 +2917,7 @@ function showTestResults() {
 function createWizardFromFlow() {
 	console.log('Creando wizard desde el flujo de nodos...');
 	
-	// DEBUGGING: Imprimir todos los nodos para ver sus labels exactos
+	// DEBUGGING: Imprimir todos los nodos para ver sus labels exactas
 	console.log('=== DEBUGGING: Todos los nodos en el flujo ===');
 	nodes.value.forEach((node, index) => {
 		console.log(`Nodo ${index + 1}:`, {
@@ -3318,26 +3322,7 @@ function getStepTitle(stepId: string) {
 	return step?.title || stepId;
 }
 
-// Funciones para controlar el zoom del wizard
-function zoomInWizard() {
-	console.log('🔍 zoomInWizard called, current level:', wizardZoomLevel.value);
-	if (wizardZoomLevel.value < 1.2) {
-		wizardZoomLevel.value = Math.min(1.2, wizardZoomLevel.value + 0.1);
-		console.log('✅ Wizard zoom in:', wizardZoomLevel.value);
-	} else {
-		console.log('⚠️ Already at max zoom level');
-	}
-}
 
-function zoomOutWizard() {
-	console.log('🔍 zoomOutWizard called, current level:', wizardZoomLevel.value);
-	if (wizardZoomLevel.value > 0.5) {
-		wizardZoomLevel.value = Math.max(0.5, wizardZoomLevel.value - 0.1);
-		console.log('✅ Wizard zoom out:', wizardZoomLevel.value);
-	} else {
-		console.log('⚠️ Already at min zoom level');
-	}
-}
 
 // Definir componentes para el sistema de Wizard
 const wizardComponents = {
@@ -3756,6 +3741,27 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	width: 22px;
 	height: 22px;
 	padding: 0;
+}
+
+/* Ocultar los botones de zoom del wizard */
+.zoom-controls .zoom-btn {
+  display: none;
+}
+.zoom-controls .zoom-level {
+  display: none;
+}
+
+/* Estilos para el selector de dispositivos en el footer */
+.device-selector-footer {
+  display: flex;
+  align-items: center;
+  color: #fff;
+}
+.device-selector-footer select {
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
 }
 
 /* Estilos para el dropdown de estilo de conexiones */
@@ -4509,6 +4515,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .zoom-btn:disabled {
 	opacity: 0.3;
 	cursor: not-allowed;
+	transform: none !important;
 }
 
 .zoom-level {

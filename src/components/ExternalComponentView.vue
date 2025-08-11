@@ -1,7 +1,102 @@
-// ...existing code...
-
+<template>
+  <div class="external-component-container" :style="[deviceStyle, { overflowY: 'auto' }]">
+      <div class="external-component-header">
+      </div>
+  <!-- Wrapper para scroll y control de altura -->
+ <!--  <div style="overflow-y: auto; width: auto;
+      display: flex; flex-direction: column; box-sizing: border-box;
+      border-radius: 8px !important; background-color: transparent !important; padding: 0; margin: 0;
+      border: none; "> -->
+      <!-- Siempre tener el punto de montaje disponible pero oculto según el estado -->
+      <div 
+        id="component-mount-point" 
+        class="component-mount-point" 
+        :style="{ 
+          display: !loading && !error ? 'flex' : 'none',
+          '--component-zoom': props.zoomLevel || 1.0,
+        }"
+      >
+        <!-- El componente web se montará aquí -->
+      </div>
+    <!-- </div> -->
+    <div v-if="loading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Cargando componente externo...</p>
+    </div>
+ 
+  </div>
+  <div v-if="error" 
+       style="position: fixed !important; 
+              top: 250px !important; 
+              left: 43% !important; 
+              transform: translateX(-50%) !important; 
+              width: 85% !important; 
+              max-width: 550px !important; 
+              background: rgba(40,40,40,0.96) !important; 
+              color: #fff !important; 
+              border: 1px solid #444 !important; 
+              border-radius: 8px !important; 
+              padding: 20px 28px !important; 
+              box-sizing: border-box !important; 
+              z-index: 9999 !important; 
+              pointer-events: auto !important; 
+              text-align: left !important; 
+              display: block !important; 
+              box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;">
+    <div style="font-size: 2.5rem !important; margin-bottom: 12px !important; display: block !important; opacity: 0.8 !important;">⚠️</div>
+    <h3 style="color: #fff !important; margin: 0 0 12px 0 !important; font-size: 1.2rem !important; font-weight: 500 !important;">Componente no disponible</h3>
+    <p style="margin-bottom: 16px !important; color: #ccc !important; font-size: 0.9rem !important; line-height: 1.4 !important;">
+  El microfrontend <strong style="color: #ffeb3b !important;">'{{ props.wizardStep?.componentData?.customTypeId || 'desconocido' }}'</strong> requerido para este paso no está disponible temporalmente.<br>
+      <span style="color:#ffa8a8 !important;">Intente más tarde o contacte al soporte técnico.</span>
+    </p>
+    <div style="display: flex !important; gap: 12px !important; align-items: center !important;">
+      <button @click="handleRefreshClick"
+              style="margin-top: 16px !important;
+                     padding: 8px 12px !important;
+                     background: #4caf50 !important;
+                     color: #fff !important;
+                     border: none !important;
+                     border-radius: 6px !important;
+                     font-size: 0.9rem !important;
+                     font-weight: 500 !important;
+                     cursor: pointer !important;
+                     box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2) !important;
+                     transition: background 0.2s, box-shadow 0.2s !important;
+                     outline: none !important;
+                     box-sizing: border-box !important;
+                     z-index: 10000 !important;
+                     display: flex !important;
+                     align-items: center !important;
+                     gap: 6px !important;"
+              @mouseover="($event.target as HTMLElement).style.background='#388e3c'"
+              @mouseout="($event.target as HTMLElement).style.background='#4caf50'">
+        <span style="font-size: 1rem !important;">🔄</span>
+        Reintentar
+      </button>
+      <button @click="handleSupportClick"
+              style="margin-top: 16px !important;
+                     padding: 8px 20px !important;
+                     background: #ff1744 !important;
+                     color: #fff !important;
+                     border: none !important;
+                     border-radius: 6px !important;
+                     font-size: 0.9rem !important;
+                     font-weight: 500 !important;
+                     cursor: pointer !important;
+                     box-shadow: 0 2px 6px rgba(255, 23, 68, 0.2) !important;
+                     transition: background 0.2s, box-shadow 0.2s !important;
+                     outline: none !important;
+                     box-sizing: border-box !important;
+                     z-index: 10000 !important;"
+              @mouseover="($event.target as HTMLElement).style.background='#d50000'"
+              @mouseout="($event.target as HTMLElement).style.background='#ff1744'">
+        Reportar problema
+      </button>
+    </div>
+  </div>
+</template>
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { getExternalComponentService } from '../services/components';
 import { MockComponentRegistry } from '../services/MockComponentRegistry';
 
@@ -13,7 +108,12 @@ const props = defineProps<{
       componentVersion?: string;
     };
   };
-  zoomLevel?: number; // Nivel de zoom para el componente
+  zoomLevel?: number;           // Nivel de zoom para el componente
+  device?: {                    // Preset de dispositivo para simular viewport
+    label: string;
+    width: number;
+    height: number;
+  };
 }>();
 
 // Emits
@@ -63,9 +163,17 @@ const error = ref<string | null>(null);
 const componentInfo = ref<any>(null);
 const componentInstance = ref<any>(null);
 const outputData = ref<any>({}); // Almacenar datos de salida del componente
-const containerHeight = ref<number>(600); // Altura calculada del contenedor
-// const showDummyView = ref(false); // Eliminar dummy/fallback
+// Altura calculada del contenedor (puede ser override por deviceStyle)
+const containerHeight = ref<number>(932);
 
+// Computed para estilo del contenedor según props.device
+const deviceStyle = computed(() => {
+  if (props.device) {
+    return { width: `${props.device.width}px`, height: `${props.device.height}px` };
+  }
+  // Si no hay preset de dispositivo, ocupar todo el contenedor
+  return { width: '100%', height: '100%' };
+});
 // Variables de sesión para simular
 const sessionId = `sim-${Date.now()}`;
 const flowContext = {
@@ -76,6 +184,37 @@ const flowContext = {
 
 // Función para calcular la altura del contenedor
 function calculateContainerHeight() {
+  // Si se está usando un preset de dispositivo, no alterar la altura del contenedor
+  if (props.device) {
+    console.log('🎚️ Usando dispositivo preset, se omite ajuste de altura');
+    return;
+  }
+  const container = document.querySelector('.landing-web-component') as HTMLElement;
+  if (container && container.parentElement) {
+    const parentHeight = container.parentElement.clientHeight;
+    //const parentWidth = container.parentElement.clientWidth;
+    const containerStyles = getComputedStyle(container);
+    const marginTop = parseInt(containerStyles.marginTop) || 0;
+    const marginBottom = parseInt(containerStyles.marginBottom) || 0;
+    const borderTop = parseInt(containerStyles.borderTopWidth) || 0;
+    const borderBottom = parseInt(containerStyles.borderBottomWidth) || 0;
+
+    // Obtener el nivel de zoom actual
+    const zoomLevel = props.zoomLevel || 1.0;
+    // Ajustar el alto del contenedor para que el contenido escalado siempre ocupe el área máxima
+    const scaledHeight = (parentHeight - marginTop - marginBottom - borderTop - borderBottom - 5) / zoomLevel;
+    containerHeight.value = Math.max(scaledHeight, 550);
+
+    
+    console.log('🔍 Altura calculada (ajustada por zoom):', containerHeight.value, 'px (padre:', parentHeight, 'px, zoom:', zoomLevel, ')');
+
+    // Aplicar la altura inmediatamente al contenedor
+    if (container) {
+      // No aplicar estilo inline cuando se usa preset de dispositivo
+      container.style.height = '';
+    }
+  }
+  /* 
   const container = document.querySelector('.external-component-container') as HTMLElement;
   if (container && container.parentElement) {
     const parentHeight = container.parentElement.clientHeight;
@@ -94,9 +233,10 @@ function calculateContainerHeight() {
 
     // Aplicar la altura inmediatamente al contenedor
     if (container) {
-      container.style.height = `${containerHeight.value }px`;
+      // No aplicar estilo inline cuando se usa preset de dispositivo
+      container.style.height = '';
     }
-  }
+  } */
 }
 
 // Watch para cambios en el zoomLevel
@@ -116,7 +256,9 @@ watch(() => props.zoomLevel, (newZoomLevel) => {
   // Recalcular altura del contenedor cuando cambie el zoom
   setTimeout(() => {
     calculateContainerHeight();
-  }, 50); // Pequeño delay para que el transform se aplique completamente
+  }, 50); 
+  // Pequeño delay para que el transform se aplique completamente
+
 }, { immediate: true });
 
 // Función para cargar el componente externo
@@ -293,7 +435,7 @@ async function loadExternalComponent() {
     // Configurar objeto config
     const config = {
       theme: 'dark',
-      showFooter: true,
+      showFooter: false,
       simulationMode: false, // Cambiar a false para que se vea igual que el acceso directo
       zoomLevel: props.zoomLevel || 1.0,
       // Agregar información de dimensiones para que el componente se ajuste
@@ -311,43 +453,13 @@ async function loadExternalComponent() {
         heightContext: {
           useContainerHeight: true,  // NO usar 100vh
           respectParentDimensions: true,
-          availableHeight: `${containerHeight.value}px`,
+          availableHeight: `${containerHeight.value+100}px`,
           viewportUsage: 'container-relative' // No viewport-relative
         }
       }
     };
-    element.setAttribute('config', JSON.stringify(config));
+   // element.setAttribute('config', JSON.stringify(config));
 
-    // HACK ESPECÍFICO para ine-validation-component: forzar altura via CSS inline
-    if (customElementName === 'ine-validation-component') {
-      // SOLUCIÓN RADICAL: Calcular altura exacta del contenedor disponible
-      const availableHeight = containerHeight.value - 20; // 20px de margen de seguridad
-      
-      element.style.height = `${availableHeight}px`; // Altura específica en pixels, no porcentaje
-      element.style.minHeight = `${availableHeight}px`;
-      element.style.maxHeight = `${availableHeight}px`; // Altura exacta, sin flexibilidad
-      element.style.display = 'flex';
-      element.style.flexDirection = 'column';
-      // NUEVO: Contención adicional más agresiva
-      element.style.position = 'relative';
-      element.style.overflow = 'hidden';
-      element.style.maxWidth = '100%';
-      element.style.width = '100%';
-      element.style.contain = 'strict';
-      element.style.clipPath = 'inset(0)'; // Forzar recorte visual
-      
-      // NUEVO: Forzar que NO use viewport height con valores específicos
-      element.style.setProperty('--viewport-height', `${availableHeight}px`);
-      element.style.setProperty('--container-height', `${availableHeight}px`);
-      element.style.setProperty('--max-height', `${availableHeight}px`);
-      
-      // NUEVO: Interceptar todas las variables CSS comunes que podrían usar 100vh
-      element.style.setProperty('--vh', `${availableHeight/100}px`); // 1vh = altura/100
-      element.style.setProperty('--full-height', `${availableHeight}px`);
-      element.style.setProperty('--window-height', `${availableHeight}px`);
-      
-      console.log(`[LOG] 🔧 APLICADO: Estilos específicos para ine-validation-component con altura FIJA: ${availableHeight}px`);
-    }
 
     // Configurar flow-context expandido
     const expandedFlowContext = {
@@ -398,17 +510,8 @@ function handleNextStep(event: any) {
       throw new Error('Punto de montaje no disponible después de la preparación');
     }
     
-    // Montar el componente directamente, sin wrappers
-    // Crear un wrapper con overflow auto y height 100%
-    const wrapper = document.createElement('div');
-    wrapper.style.overflow = 'auto';
-    wrapper.style.height = '100%';
-    wrapper.style.width = '100%';
-    wrapper.style.display = 'flex';
-    wrapper.style.flexDirection = 'column';
-    wrapper.style.boxSizing = 'border-box';
-    wrapper.appendChild(element);
-    finalMountPoint.appendChild(wrapper);
+  // Montar el microfrontend directamente sin contenedor intermedio
+  finalMountPoint.appendChild(element);
     console.log(`[DEBUG] Custom element montado en el DOM dentro de wrapper`, element);
     console.log(`✅ Componente montado exitosamente en #component-mount-point (con wrapper)`);
     
@@ -522,30 +625,28 @@ defineExpose({
 
 // Lifecycle hooks
 onMounted(() => {
-  console.log('🔄 ExternalComponentView montado, inicializando carga del componente');
+  console.log('🔄 ExternalComponentView montado con props:', props, 'zoomLevel:', props.zoomLevel, 'device:', props.device);
   
   // Calcular altura inicial
-  setTimeout(() => {
-    calculateContainerHeight();
-  }, 50);
+  calculateContainerHeight();
   
   // Escuchar cambios de tamaño de ventana
   window.addEventListener('resize', calculateContainerHeight);
   
   // Observador para cambios en el tamaño del elemento padre
-  const resizeObserver = new ResizeObserver(() => {
+/*   const resizeObserver = new ResizeObserver(() => {
     calculateContainerHeight();
-  });
+  }); */
   
   // Observar el elemento padre cuando esté disponible
   const checkParent = () => {
     const container = document.querySelector('.external-component-container') as HTMLElement;
     if (container?.parentElement) {
-      resizeObserver.observe(container.parentElement);
-      console.log('🔍 ResizeObserver configurado en elemento padre');
+      //resizeObserver.observe(container.parentElement);
+      //console.log('🔍 ResizeObserver configurado en elemento padre');
       
       // NUEVO: Observador de mutaciones para detectar si el componente intenta escaparse
-      const mutationObserver = new MutationObserver(() => {
+      /* const mutationObserver = new MutationObserver(() => {
         const mountedComponents = container.querySelectorAll('ine-validation-component, landing-web-component, sms-verification-component');
         mountedComponents.forEach((component) => {
           const htmlComponent = component as HTMLElement;
@@ -554,24 +655,22 @@ onMounted(() => {
             console.log('🚨 CORREGIDO: Componente intentó escapar usando position fixed/absolute');
           }
         });
-      });
+      }); */
       
-      mutationObserver.observe(container, {
+      /* mutationObserver.observe(container, {
         childList: true,
         subtree: true,
         attributes: true,
         attributeFilter: ['style']
-      });
+      }); */
     } else {
       setTimeout(checkParent, 100);
     }
   };
   checkParent();
   
-  setTimeout(() => {
-    // Ejecutar con un pequeño delay para asegurar que el DOM está completamente renderizado
-    loadExternalComponent();
-  }, 100); // Un pequeño delay para asegurar que el DOM está listo
+  // Ejecutar carga del componente inmediatamente
+  loadExternalComponent();
 });
 
 onBeforeUnmount(() => {
@@ -610,107 +709,33 @@ watch(() => props.wizardStep?.componentData, () => {
 }, { deep: true });
 </script>
 
-<template>
-  <!-- <div class="external-component-container" :style="{ height: '100% !important;'}"> -->
-    <div class="external-component-container" :style="{ height: `${containerHeight+0}px`, overflowY: 'auto', width: '50%' }">
-      <div class="external-component-header">
-      </div>
-    <!-- Wrapper para scroll y control de altura -->
-    <div style="overflow-y: auto;width: auto; 
-    display: flex; flex-direction: column; box-sizing: border-box;
-    border-radius: 8px !important;background-color: ghostwhite;padding-top: 8px !important; margin: 8px !important;
-    border-width: thin;border-style: solid;padding-bottom: 20px; ">
-      <!-- Siempre tener el punto de montaje disponible pero oculto según el estado -->
-      <div 
-        id="component-mount-point" 
-        class="component-mount-point" 
-        :style="{ 
-          display: !loading && !error ? 'flex' : 'none',
-          '--component-zoom': props.zoomLevel || 1.0,
-        }"
-      >
-        <!-- El componente web se montará aquí -->
-      </div>
-    </div>
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Cargando componente externo...</p>
-    </div>
- 
-  </div>
-  <div v-if="error" 
-       style="position: fixed !important; 
-              top: 250px !important; 
-              left: 43% !important; 
-              transform: translateX(-50%) !important; 
-              width: 85% !important; 
-              max-width: 550px !important; 
-              background: rgba(40,40,40,0.96) !important; 
-              color: #fff !important; 
-              border: 1px solid #444 !important; 
-              border-radius: 8px !important; 
-              padding: 20px 28px !important; 
-              box-sizing: border-box !important; 
-              z-index: 9999 !important; 
-              pointer-events: auto !important; 
-              text-align: left !important; 
-              display: block !important; 
-              box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;">
-    <div style="font-size: 2.5rem !important; margin-bottom: 12px !important; display: block !important; opacity: 0.8 !important;">⚠️</div>
-    <h3 style="color: #fff !important; margin: 0 0 12px 0 !important; font-size: 1.2rem !important; font-weight: 500 !important;">Componente no disponible</h3>
-    <p style="margin-bottom: 16px !important; color: #ccc !important; font-size: 0.9rem !important; line-height: 1.4 !important;">
-      El microfrontend <strong style="color: #ffeb3b !important;">'{{ props.wizardStep?.componentData?.customTypeId || 'desconocido' }}'</strong> requerido para este paso no está disponible temporalmente.<br>
-      <span style="color:#ffa8a8 !important;">Intente más tarde o contacte al soporte técnico.</span>
-    </p>
-    <div style="display: flex !important; gap: 12px !important; align-items: center !important;">
-      <button @click="handleRefreshClick"
-              style="margin-top: 16px !important;
-                     padding: 8px 12px !important;
-                     background: #4caf50 !important;
-                     color: #fff !important;
-                     border: none !important;
-                     border-radius: 6px !important;
-                     font-size: 0.9rem !important;
-                     font-weight: 500 !important;
-                     cursor: pointer !important;
-                     box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2) !important;
-                     transition: background 0.2s, box-shadow 0.2s !important;
-                     outline: none !important;
-                     box-sizing: border-box !important;
-                     z-index: 10000 !important;
-                     display: flex !important;
-                     align-items: center !important;
-                     gap: 6px !important;"
-              @mouseover="($event.target as HTMLElement).style.background='#388e3c'"
-              @mouseout="($event.target as HTMLElement).style.background='#4caf50'">
-        <span style="font-size: 1rem !important;">🔄</span>
-        Reintentar
-      </button>
-      <button @click="handleSupportClick"
-              style="margin-top: 16px !important;
-                     padding: 8px 20px !important;
-                     background: #ff1744 !important;
-                     color: #fff !important;
-                     border: none !important;
-                     border-radius: 6px !important;
-                     font-size: 0.9rem !important;
-                     font-weight: 500 !important;
-                     cursor: pointer !important;
-                     box-shadow: 0 2px 6px rgba(255, 23, 68, 0.2) !important;
-                     transition: background 0.2s, box-shadow 0.2s !important;
-                     outline: none !important;
-                     box-sizing: border-box !important;
-                     z-index: 10000 !important;"
-              @mouseover="($event.target as HTMLElement).style.background='#d50000'"
-              @mouseout="($event.target as HTMLElement).style.background='#ff1744'">
-        Reportar problema
-      </button>
-    </div>
-  </div>
-</template>
+<style scoped>
+/* Forzar siempre que el mount point sea visible y tenga el display deseado */
+.component-mount-point {
+  display: block !important;
+  background: rgba(253, 253, 253, 0.986) !important;
+}
 
+.landing-web-component{
+  width: 100% !important;
+  height: 100% !important;
+}
+</style>
 
-
+<style>
+.component-mount-point {
+   display: block !important;
+   --component-zoom: 1;
+   
+}
+.external-component-container {
+  container-type: inline-size !important;
+  container-name: viewport !important;
+  /* opcional: overflow, box-sizing, width fija en modo prueba */
+  display: block !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
 .loading-spinner {
   width: 40px;
   height: 40px;
@@ -760,4 +785,5 @@ watch(() => props.wizardStep?.componentData, () => {
   font-size: 11px;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
+</style>
 
