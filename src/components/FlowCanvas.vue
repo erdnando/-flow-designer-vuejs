@@ -395,7 +395,7 @@
 									:is="wizardComponents[wizardSteps[currentWizardStep].component as keyof typeof wizardComponents]" 
 									v-if="wizardSteps[currentWizardStep].type === 'view' && componentExists(wizardSteps[currentWizardStep].component)"
 									:key="wizardSteps[currentWizardStep].id"
-									:ref="wizardSteps[currentWizardStep].component === 'ExternalComponentView' ? 'currentExternalComponentRef' : undefined"
+									:ref="wizardSteps[currentWizardStep].component === 'SimpleExternalComponentView' ? 'currentExternalComponentRef' : undefined"
 									:wizard-step="wizardSteps[currentWizardStep]"
 									:zoom-level="wizardZoomLevel"
 									:device="selectedDevice"
@@ -599,6 +599,7 @@ import { useNotifications } from '../composables/useNotifications';
 import SimpleDialog from './SimpleDialog.vue';
 // Importar los componentes para el simulador
 import ExternalComponentView from './ExternalComponentView.vue';
+import SimpleExternalComponentView from './SimpleExternalComponentView.vue';
 import ProcessView from './ProcessView.vue';
 
 // Interfaces para el sistema de testing
@@ -3085,8 +3086,8 @@ function createWizardFromFlow() {
 				console.log(`Detectado componente externo con customTypeId: ${node.data.customTypeId}`);
 				stepInfo = {
 					title: nodeLabel,
-					component: 'ExternalComponentView',
-					description: 'Componente externo',
+					component: 'SimpleExternalComponentView',
+					description: 'Componente externo (versión simple)',
 					// Pasar información adicional para cargar el componente externo
 					componentData: {
 						customTypeId: node.data.customTypeId,
@@ -3284,7 +3285,7 @@ function handleComponentReady(event: any) {
 	console.log('🎉 Componente del wizard listo:', event);
 	
 	// Si es un componente externo, almacenar la referencia
-	if (wizardSteps.value[currentWizardStep.value]?.component === 'ExternalComponentView') {
+	if (wizardSteps.value[currentWizardStep.value]?.component === 'SimpleExternalComponentView') {
 		console.log('📝 Componente externo del wizard está listo');
 	}
 }
@@ -3327,7 +3328,8 @@ function getStepTitle(stepId: string) {
 // Definir componentes para el sistema de Wizard
 const wizardComponents = {
   ProcessView,
-  ExternalComponentView
+  ExternalComponentView,
+  SimpleExternalComponentView
 };
 
 // Función para verificar si un componente existe
@@ -4635,19 +4637,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .component-container {
 	flex: 1;
 	display: flex;
-	align-items: center;
-	justify-content: center;
+	align-items: flex-start;
+	justify-content: flex-start;
 	min-height: 0;
 	overflow: hidden;
-}
-
-.component-container {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 0;
-	overflow: hidden;
+	padding: 20px;
 }
 
 .step-placeholder {

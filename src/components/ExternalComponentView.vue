@@ -175,11 +175,11 @@ const deviceStyle = computed(() => {
 });
 
 // Computed para exponer availableHeight dinámicamente
-const availableHeight = computed(() => {
+/* const availableHeight = computed(() => {
   // Usar el mismo cálculo que en config.heightContext
   if (props.device?.height) return props.device.height;
   return containerHeight.value ? containerHeight.value + 100 : undefined;
-});
+}); */
 // Variables de sesión para simular
 const sessionId = `sim-${Date.now()}`;
 const flowContext = {
