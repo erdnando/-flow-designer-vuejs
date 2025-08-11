@@ -1,25 +1,23 @@
 <template>
-  <div class="external-component-container" :style="[deviceStyle, { overflowY: 'auto' }]">
-      <div class="external-component-header">
-      </div>
-  <!-- Wrapper para scroll y control de altura -->
- <!--  <div style="overflow-y: auto; width: auto;
-      display: flex; flex-direction: column; box-sizing: border-box;
-      border-radius: 8px !important; background-color: transparent !important; padding: 0; margin: 0;
-      border: none; "> -->
-      <!-- Siempre tener el punto de montaje disponible pero oculto según el estado -->
+  <div class="external-component-container" :style="[deviceStyle, { overflow: 'hidden' }]">
+      <!-- Punto de montaje sin wrappers adicionales -->
       <div 
         id="component-mount-point" 
         class="component-mount-point" 
         :style="{ 
-          display: !loading && !error ? 'flex' : 'none',
+          display: !loading && !error ? 'block' : 'none',
           '--component-zoom': props.zoomLevel || 1.0,
+          height: '100%',
+          width: '100%',
+          overflow: 'hidden',
+          margin: 0,
+          padding: 0,
         }"
       >
         <!-- El componente web se montará aquí -->
       </div>
     <!-- </div> -->
-    <div v-if="loading" class="loading-container">
+    <div v-if="loading" class="loading-container" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
       <div class="loading-spinner"></div>
       <p>Cargando componente externo...</p>
     </div>
@@ -172,7 +170,15 @@ const deviceStyle = computed(() => {
     return { width: `${props.device.width}px`, height: `${props.device.height}px` };
   }
   // Si no hay preset de dispositivo, ocupar todo el contenedor
+  console.log('setting default dimensions 100%...')
   return { width: '100%', height: '100%' };
+});
+
+// Computed para exponer availableHeight dinámicamente
+const availableHeight = computed(() => {
+  // Usar el mismo cálculo que en config.heightContext
+  if (props.device?.height) return props.device.height;
+  return containerHeight.value ? containerHeight.value + 100 : undefined;
 });
 // Variables de sesión para simular
 const sessionId = `sim-${Date.now()}`;
@@ -432,33 +438,68 @@ async function loadExternalComponent() {
     element.setAttribute('session-id', sessionId);
     element.setAttribute('user-id', `user-${sessionId.split('-')[1]}`); // Generar user-id basado en session
 
-    // Configurar objeto config
+    // Configurar objeto config con dimensiones del dispositivo seleccionado
     const config = {
       theme: 'dark',
       showFooter: false,
-      simulationMode: false, // Cambiar a false para que se vea igual que el acceso directo
+      simulationMode: false,
       zoomLevel: props.zoomLevel || 1.0,
-      // Agregar información de dimensiones para que el componente se ajuste
+      // Pasar las dimensiones exactas del dispositivo seleccionado
       containerDimensions: {
-        width: '100%',
-        height: '100%',
-        minHeight: '600px', // Aumentar altura mínima
-        maxWidth: '100%',   // NUEVO: Limitar ancho máximo
-        maxHeight: '100%',  // NUEVO: Limitar altura máxima
-        forceFullHeight: true,
-        containment: true,  // NUEVO: Indicar al componente que debe contenerse
-        isModal: true,      // NUEVO: Indicar que está dentro de un modal
-        parentContainer: 'wizard-modal', // NUEVO: Identificar el contenedor padre
-        // NUEVO: Información específica sobre el contexto de altura
-        heightContext: {
-          useContainerHeight: true,  // NO usar 100vh
-          respectParentDimensions: true,
-          availableHeight: `${containerHeight.value+100}px`,
-          viewportUsage: 'container-relative' // No viewport-relative
+        width: props.device?.width ? `${props.device.width}px` : '100%',
+        height: props.device?.height ? `${props.device.height}px` : '100%',
+        deviceWidth: props.device?.width || window.innerWidth,
+        deviceHeight: props.device?.height || window.innerHeight,
+        deviceLabel: props.device?.label || 'Default',
+        containment: true,
+        isModal: true,
+        parentContainer: 'wizard-modal',
+        // Información específica del viewport simulado
+        viewport: {
+          width: props.device?.width || window.innerWidth,
+          height: props.device?.height || window.innerHeight,
+          type: 'simulated',
+          responsive: true
         }
       }
     };
-   // element.setAttribute('config', JSON.stringify(config));
+    element.setAttribute('config', JSON.stringify(config));
+
+    // FORZAR dimensiones directamente en el elemento custom
+    if (props.device) {
+      element.style.width = `${props.device.width}px`;
+      element.style.height = `${props.device.height}px`;
+      element.style.maxWidth = `${props.device.width}px`;
+      element.style.maxHeight = `${props.device.height}px`;
+      element.style.minWidth = `${props.device.width}px`;
+      element.style.minHeight = `${props.device.height}px`;
+      element.style.display = 'block';
+      element.style.overflow = 'hidden';
+      element.style.boxSizing = 'border-box';
+      
+      // AGREGAR CSS custom properties que el microfrontend puede leer
+      element.style.setProperty('--simulator-width', `${props.device.width}px`);
+      element.style.setProperty('--simulator-height', `${props.device.height}px`);
+      element.style.setProperty('--container-width', `${props.device.width}px`);
+      element.style.setProperty('--container-height', `${props.device.height}px`);
+      
+      console.log(`🎯 Dimensiones forzadas en elemento inicial: ${props.device.width}x${props.device.height}px`);
+      
+      // INTERCEPTAR y sobrescribir cualquier intento del microfrontend de cambiar su tamaño
+      const originalSetProperty = element.style.setProperty;
+      element.style.setProperty = function(property: string, value: string, priority?: string) {
+        // Interceptar intentos de cambiar width/height
+        if (property === 'width' && props.device) {
+          console.log(`🚫 Interceptado intento de cambiar width a ${value}, manteniendo ${props.device.width}px`);
+          return originalSetProperty.call(this, property, `${props.device.width}px`, priority);
+        }
+        if (property === 'height' && props.device) {
+          console.log(`🚫 Interceptado intento de cambiar height a ${value}, manteniendo ${props.device.height}px`);
+          return originalSetProperty.call(this, property, `${props.device.height}px`, priority);
+        }
+        return originalSetProperty.call(this, property, value, priority);
+      };
+    }
 
 
     // Configurar flow-context expandido
@@ -512,8 +553,139 @@ function handleNextStep(event: any) {
     
   // Montar el microfrontend directamente sin contenedor intermedio
   finalMountPoint.appendChild(element);
-    console.log(`[DEBUG] Custom element montado en el DOM dentro de wrapper`, element);
+    
+    // FORZAR que el microfrontend detecte el resize y se redibuje
+    setTimeout(() => {
+      // Disparar evento resize para que el microfrontend recalcule su layout
+      const resizeEvent = new Event('resize');
+      window.dispatchEvent(resizeEvent);
+      
+      // Si el microfrontend tiene un método para forzar redraw
+      if ('forceResize' in element && typeof (element as any).forceResize === 'function') {
+        (element as any).forceResize();
+      }
+      
+      // Disparar eventos de resize específicos al elemento
+      element.dispatchEvent(new Event('resize'));
+      
+      console.log(`✅ Eventos de resize disparados para forzar recálculo del layout`);
+    }, 100);
+    
+    console.log(`[DEBUG] Custom element montado en el DOM`, element);
     console.log(`✅ Componente montado exitosamente en #component-mount-point (con wrapper)`);
+    
+    // Verificar dimensiones aplicadas y contenido interno
+    const computedStyle = window.getComputedStyle(element);
+    console.log('🔍 Dimensiones del microfrontend después de montar:', {
+      width: computedStyle.width,
+      height: computedStyle.height,
+      maxWidth: computedStyle.maxWidth,
+      maxHeight: computedStyle.maxHeight,
+      containmentWidth: computedStyle.getPropertyValue('--container-width'),
+      containmentHeight: computedStyle.getPropertyValue('--container-height'),
+      simulatorWidth: element.style.getPropertyValue('--simulator-width'),
+      simulatorHeight: element.style.getPropertyValue('--simulator-height')
+    });
+
+    // Inspeccionar Shadow DOM si existe
+    if (element.shadowRoot) {
+      console.log('🔍 Shadow DOM encontrado, inspeccionando contenido interno...');
+      const shadowChildren = element.shadowRoot.children;
+      for (let i = 0; i < shadowChildren.length; i++) {
+        const child = shadowChildren[i] as HTMLElement;
+        const childStyle = window.getComputedStyle(child);
+        console.log(`📦 Elemento interno ${i + 1}:`, {
+          tagName: child.tagName,
+          width: childStyle.width,
+          height: childStyle.height,
+          maxWidth: childStyle.maxWidth,
+          maxHeight: childStyle.maxHeight,
+          overflow: childStyle.overflow,
+          position: childStyle.position
+        });
+      }
+      
+      // APLICAR ESCALADO EN SHADOW DOM: Preparar div principal para transform scale
+      const mainDiv = element.shadowRoot.querySelector('div');
+      if (mainDiv && props.device) {
+        console.log('🎯 Preparando div principal del Shadow DOM para escalado...');
+        
+        // Solo aplicar estilos base para el escalado, el tamaño se maneja con CSS transform
+        mainDiv.style.setProperty('transform-origin', 'top left', 'important');
+        mainDiv.style.setProperty('overflow', 'hidden', 'important');
+        mainDiv.style.setProperty('box-sizing', 'border-box', 'important');
+        
+        // Verificar estado después de preparación
+        const updatedStyle = window.getComputedStyle(mainDiv);
+        console.log('✅ Div principal preparado para escalado:', {
+          width: updatedStyle.width,
+          height: updatedStyle.height,
+          transformOrigin: updatedStyle.transformOrigin,
+          transform: updatedStyle.transform
+        });
+        
+        // Calcular factor de escala - usar el dispositivo actual como límite máximo
+        const actualDeviceWidth = props.device.width;
+        const actualDeviceHeight = props.device.height;
+        
+        // Obtener dimensiones reales del contenido del microfrontend
+        const realContentWidth = mainDiv ? parseFloat(window.getComputedStyle(mainDiv).width) : actualDeviceWidth;
+        const realContentHeight = mainDiv ? parseFloat(window.getComputedStyle(mainDiv).height) : actualDeviceHeight;
+        
+        const scaleX = actualDeviceWidth / realContentWidth;
+        const scaleY = actualDeviceHeight / realContentHeight;
+        const scale = Math.min(scaleX, scaleY, 1.0); // Nunca escalar más grande que original
+        
+        console.log(`📏 Calculando escala ADAPTIVA: contenido ${realContentWidth}x${realContentHeight} → dispositivo ${actualDeviceWidth}x${actualDeviceHeight}`, {
+          realContentWidth,
+          realContentHeight,
+          scaleX,
+          scaleY, 
+          finalScale: scale
+        });
+
+        // Agregar hoja de estilos RESPONSIVE dentro del Shadow DOM
+        const forceStyle = document.createElement('style');
+        forceStyle.setAttribute('data-force', 'true');
+        forceStyle.textContent = `
+          /* Contenedor principal: mantener tamaño original pero escalado */
+          div:first-of-type {
+            width: ${realContentWidth}px !important;
+            height: ${realContentHeight}px !important;
+            transform: scale(${scale}) !important;
+            transform-origin: top left !important;
+            overflow: visible !important;
+            box-sizing: border-box !important;
+          }
+          
+          /* El host debe limitar el contenido escalado */
+          :host {
+            width: ${actualDeviceWidth}px !important;
+            height: ${actualDeviceHeight}px !important;
+            overflow: hidden !important;
+            display: block !important;
+            position: relative !important;
+          }
+          
+          /* Permitir que el contenido interno fluya naturalmente */
+          * {
+            box-sizing: border-box !important;
+          }
+          
+          /* Elementos que podrían tener altura fija problemática */
+          body, html, main, section, article, .container, .app {
+            max-height: none !important;
+            height: auto !important;
+          }
+        `;
+        element.shadowRoot.insertBefore(forceStyle, element.shadowRoot.firstChild);
+        console.log(`💪 Estilos de ESCALADO ADAPTIVO aplicados (escala: ${scale})`);
+      } else {
+        console.warn('⚠️ No se encontró div principal en Shadow DOM');
+      }
+    } else {
+      console.log('❓ No se encontró shadow DOM en el microfrontend');
+    }
     
     // INTERCEPTOR GLOBAL: Sobrescribir cualquier CSS que use 100vh
     //const originalStyle = window.getComputedStyle;
@@ -697,28 +869,266 @@ onBeforeUnmount(() => {
   }
 });
 
-// Observar cambios en el paso del wizard
-watch(() => props.wizardStep?.componentData, () => {
+// Observar cambios en el paso del wizard Y cambios de dispositivo
+watch([() => props.wizardStep?.componentData, () => props.device], ([wizardData, device], [oldWizardData, oldDevice]) => {
   if (componentInstance.value) {
-    // Si cambia el paso y ya tenemos un componente instanciado, actualizarlo
-    componentInstance.value.setAttribute('flow-context', JSON.stringify({
-      ...flowContext,
-      currentStep: props.wizardStep?.componentData?.customTypeId
-    }));
+    // Si cambia el paso, actualizar flow-context
+    if (wizardData !== oldWizardData) {
+      componentInstance.value.setAttribute('flow-context', JSON.stringify({
+        ...flowContext,
+        currentStep: props.wizardStep?.componentData?.customTypeId
+      }));
+    }
+    
+    // Si cambia el dispositivo, actualizar config con nuevas dimensiones
+    if (device !== oldDevice && device) {
+      const updatedConfig = {
+        theme: 'dark',
+        showFooter: false,
+        simulationMode: false,
+        zoomLevel: props.zoomLevel || 1.0,
+        containerDimensions: {
+          width: `${device.width}px`,
+          height: `${device.height}px`,
+          deviceWidth: device.width,
+          deviceHeight: device.height,
+          deviceLabel: device.label,
+          containment: true,
+          isModal: true,
+          parentContainer: 'wizard-modal',
+          viewport: {
+            width: device.width,
+            height: device.height,
+            type: 'simulated',
+            responsive: true
+          }
+        }
+      };
+      componentInstance.value.setAttribute('config', JSON.stringify(updatedConfig));
+      
+      // FORZAR redimensionado directo del elemento con interceptor
+      componentInstance.value.style.width = `${device.width}px`;
+      componentInstance.value.style.height = `${device.height}px`;
+      componentInstance.value.style.maxWidth = `${device.width}px`;
+      componentInstance.value.style.maxHeight = `${device.height}px`;
+      componentInstance.value.style.minWidth = `${device.width}px`;
+      componentInstance.value.style.minHeight = `${device.height}px`;
+      
+      // ACTUALIZAR CSS custom properties
+      componentInstance.value.style.setProperty('--simulator-width', `${device.width}px`);
+      componentInstance.value.style.setProperty('--simulator-height', `${device.height}px`);
+      componentInstance.value.style.setProperty('--container-width', `${device.width}px`);
+      componentInstance.value.style.setProperty('--container-height', `${device.height}px`);
+      
+      // VIGILAR y corregir cualquier cambio no autorizado
+      const checkDimensions = () => {
+        if (componentInstance.value) {
+          const currentWidth = componentInstance.value.style.width;
+          const currentHeight = componentInstance.value.style.height;
+          const expectedWidth = `${device.width}px`;
+          const expectedHeight = `${device.height}px`;
+          
+          if (currentWidth !== expectedWidth) {
+            console.log(`🔧 Corrigiendo width de ${currentWidth} a ${expectedWidth}`);
+            componentInstance.value.style.width = expectedWidth;
+          }
+          if (currentHeight !== expectedHeight) {
+            console.log(`🔧 Corrigiendo height de ${currentHeight} a ${expectedHeight}`);
+            componentInstance.value.style.height = expectedHeight;
+          }
+        }
+      };
+      
+      // Vigilar cada 100ms por cambios no autorizados
+      const vigilance = setInterval(checkDimensions, 100);
+      
+      // Limpiar vigilancia después de 5 segundos
+      setTimeout(() => clearInterval(vigilance), 5000);
+      
+      // REMOVER y RECARGAR el microfrontend para forzar recalculo completo
+      const mountPoint = document.getElementById('component-mount-point');
+      if (mountPoint && componentInstance.value) {
+        // Guardar referencia y remover del DOM
+        const element = componentInstance.value;
+        mountPoint.removeChild(element);
+        
+        // Esperar un frame y volver a montarlo
+        requestAnimationFrame(() => {
+          // Aplicar nuevas dimensiones antes de remontar
+          element.style.width = `${device.width}px`;
+          element.style.height = `${device.height}px`;
+          element.style.maxWidth = `${device.width}px`;
+          element.style.maxHeight = `${device.height}px`;
+          
+          // Remontar el elemento
+          mountPoint.appendChild(element);
+          
+          // FORZAR DIMENSIONES EN SHADOW DOM después del remontaje
+          if (element.shadowRoot) {
+            const mainDiv = element.shadowRoot.querySelector('div');
+            if (mainDiv) {
+              console.log('🎯 Preparando Shadow DOM para escalado después de remontaje...');
+              
+              // Solo preparar estilos base para el escalado
+              mainDiv.style.setProperty('transform-origin', 'top left', 'important');
+              mainDiv.style.setProperty('overflow', 'hidden', 'important');
+              mainDiv.style.setProperty('box-sizing', 'border-box', 'important');
+              
+              // Calcular escala ADAPTIVA basada en contenido real vs dispositivo nuevo
+              const actualDeviceWidth = device.width;
+              const actualDeviceHeight = device.height;
+              
+              // Obtener dimensiones reales del contenido
+              const realContentWidth = mainDiv ? parseFloat(window.getComputedStyle(mainDiv).width) : actualDeviceWidth;
+              const realContentHeight = mainDiv ? parseFloat(window.getComputedStyle(mainDiv).height) : actualDeviceHeight;
+              
+              const scaleX = actualDeviceWidth / realContentWidth;
+              const scaleY = actualDeviceHeight / realContentHeight;
+              const scale = Math.min(scaleX, scaleY, 1.0);
+              
+              console.log(`📏 Recalculando escala ADAPTIVA para remontaje: contenido ${realContentWidth}x${realContentHeight} → dispositivo ${actualDeviceWidth}x${actualDeviceHeight}`, {
+                realContentWidth,
+                realContentHeight,
+                scaleX,
+                scaleY, 
+                finalScale: scale
+              });
+              
+              // Re-inyectar estilos de escalado adaptivo para el nuevo dispositivo
+              const existingForceStyle = element.shadowRoot.querySelector('style[data-force="true"]');
+              if (existingForceStyle) {
+                existingForceStyle.remove();
+              }
+              
+              const forceStyle = document.createElement('style');
+              forceStyle.setAttribute('data-force', 'true');
+              forceStyle.textContent = `
+                /* Contenedor principal: mantener tamaño real pero escalado */
+                div:first-of-type {
+                  width: ${realContentWidth}px !important;
+                  height: ${realContentHeight}px !important;
+                  transform: scale(${scale}) !important;
+                  transform-origin: top left !important;
+                  overflow: visible !important;
+                  box-sizing: border-box !important;
+                }
+                
+                /* Host limita el área visible */
+                :host {
+                  width: ${actualDeviceWidth}px !important;
+                  height: ${actualDeviceHeight}px !important;
+                  overflow: hidden !important;
+                  display: block !important;
+                  position: relative !important;
+                }
+                
+                /* Permitir flujo natural del contenido */
+                * {
+                  box-sizing: border-box !important;
+                }
+                
+                /* Elementos que podrían causar problemas de altura */
+                body, html, main, section, article, .container, .app {
+                  max-height: none !important;
+                  height: auto !important;
+                }
+              `;
+              element.shadowRoot.insertBefore(forceStyle, element.shadowRoot.firstChild);
+              console.log(`💪 Estilos de escalado ADAPTIVO re-aplicados para remontaje (escala: ${scale})`);
+            }
+          }
+          
+          // Disparar eventos después del remontaje
+          setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+            element.dispatchEvent(new Event('resize'));
+            
+            // Intentar métodos específicos del microfrontend
+            if ('forceResize' in element && typeof (element as any).forceResize === 'function') {
+              (element as any).forceResize();
+            }
+            
+            if ('requestUpdate' in element && typeof (element as any).requestUpdate === 'function') {
+              (element as any).requestUpdate();
+            }
+            
+            console.log('🔄 Microfrontend remontado con nuevas dimensiones');
+          }, 50);
+        });
+      }
+      
+      console.log('🔄 Configuración Y dimensiones actualizadas para dispositivo:', device.label, updatedConfig);
+      console.log('🎯 Elemento será remontado con dimensiones:', `${device.width}x${device.height}px`);
+    }
   }
 }, { deep: true });
 </script>
 
 <style scoped>
-/* Forzar siempre que el mount point sea visible y tenga el display deseado */
-.component-mount-point {
+/* Contenedor principal sin espacios ni scroll */
+.external-component-container {
+  container-type: inline-size !important;
+  container-name: viewport !important;
   display: block !important;
-  background: rgba(253, 253, 253, 0.986) !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
 }
 
-.landing-web-component{
+/* Mount point que ocupa todo el espacio disponible */
+.component-mount-point {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* Asegurar que el microfrontend ocupe todo el contenedor */
+.component-mount-point > * {
   width: 100% !important;
   height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  overflow: hidden !important;
+}
+
+/* Estilos específicos para el custom element landing-web-component */
+landing-web-component {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Forzar que los elementos internos del microfrontend se adapten */
+landing-web-component * {
+  box-sizing: border-box !important;
+}
+
+/* Forzar media queries a usar el ancho del contenedor */
+@container viewport (max-width: 430px) {
+  landing-web-component {
+    font-size: 14px !important;
+  }
+}
+
+@container viewport (min-width: 431px) {
+  landing-web-component {
+    font-size: 16px !important;
+  }
 }
 </style>
 
