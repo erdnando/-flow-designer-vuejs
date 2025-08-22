@@ -487,70 +487,15 @@
 				/>
 			</div>
 			
-			<!-- Footer con controles -->
-		   <div class="wizard-footer wizard-footer-flex" :style="{ '--zoom-center': zoomCenter }">
-<!-- Botón 'Anterior' oculto temporalmente -->
-<!--
-<button 
-   v-if="!wizardCompleted"
-   @click="previousWizardStep" 
-   :disabled="currentWizardStep === 0"
-   class="btn btn-secondary"
->
-   Anterior
-</button>
--->
-			   <div class="zoom-controls zoom-controls-center">
-				   <!-- Configuración extrema para contenido completo -->
-				   <div class="device-info-footer">
-					   <span style="color: #666; font-size: 12px;">Responsive Design (430x1600)</span>
-				   </div>
-			   </div>
-<!-- Botones de la derecha ocultos temporalmente -->
-<!--
-<div class="wizard-footer-right">
-   <button v-if="wizardCompleted" @click="restartWizard" class="btn btn-secondary">
-	   Reiniciar
-   </button>
-   <button v-if="wizardCompleted" @click="closeWizard" class="btn btn-primary">
-	   Finalizar
-   </button>
-   <button 
-	   v-if="!wizardCompleted"
-	   @click="nextWizardStep" 
-	   class="btn btn-primary"
-   >
-	   {{ currentWizardStep === wizardSteps.length - 1 ? 'Finalizar' : 'Siguiente' }}
-   </button>
-</div>
--->
-		   </div>
+			<!-- Footer con controles - Simplificado -->
+		<div class="wizard-footer wizard-footer-minimal">
+			<!-- Footer minimalista sin dropdown -->
+		</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-// --- Zoom controls alignment with component view center ---
-const zoomCenter = ref('50%');
-function updateZoomCenter() {
-  nextTick(() => {
-	const container = document.querySelector('.component-container');
-	const footer = document.querySelector('.wizard-footer');
-	if (container && footer) {
-	  const containerRect = container.getBoundingClientRect();
-	  const footerRect = footer.getBoundingClientRect();
-	  // Calcula el centro relativo al footer
-	  const center = containerRect.left + containerRect.width / 2 - footerRect.left;
-	  zoomCenter.value = `${center}px`;
-	} else {
-	  zoomCenter.value = '50%';
-	}
-  });
-}
-onMounted(() => {
-  updateZoomCenter();
-  window.addEventListener('resize', updateZoomCenter);
-});
 // --- Variables globales para test flow ---
 const testCancelled = ref(false);
 let testTimeouts: number[] = [];
@@ -4396,11 +4341,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	border-radius: 12px;
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
-	width: 90vw; /* Aumentar el ancho para mejor uso del espacio */
-	max-width: 1400px; /* Aumentar el ancho máximo */
-	height: 98vh; /* Usar casi toda la altura de la pantalla */
-	max-height: 98vh;
-	min-height: 800px; /* Asegurar altura mínima adecuada */
+	width: 85vw; /* Reducir ancho de 90vw a 85vw */
+	max-width: 1200px; /* Reducir ancho máximo de 1400px a 1200px */
+	height: 85vh; /* Reducir altura de 98vh a 85vh */
+	max-height: 85vh;
+	min-height: 600px; /* Reducir altura mínima de 800px a 600px */
 	overflow: hidden;
 	animation: wizardSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 	display: flex;
@@ -4542,27 +4487,30 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	flex: 1;
 	min-height: 0;
 	position: relative;
+	background: transparent; /* Asegurar que no tenga fondo propio */
+	padding: 10px 0; /* Padding igual arriba y abajo para simetría */
+	
 }
 
 .wizard-content {
-	   flex: 1;
-	   padding: 8px 0 8px 20px; /* Quitar padding derecho para alinear con VariablesPanel */
-	   overflow: hidden; /* Cambiar de auto a hidden */
-	   min-height: 0; /* Permitir que se comprima */
-	   display: flex;
-	   flex-direction: column;
-	   transition: all 0.3s ease;
-	   /* NO aplicar zoom aquí - se aplica solo al componente */
+	flex: 1;
+	padding: 0; /* Sin padding para maximizar espacio */
+	overflow: hidden;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	transition: all 0.3s ease;
 }
 
 /* El panel de variables ya no necesita margin porque está en el flex layout */
 
 .wizard-step {
 	height: 100%;
+	width: 100%;
 	display: flex;
 	flex-direction: column;
-	min-height: 0; /* Permitir que se comprima */
-	flex: 1; /* Asegurar que use todo el espacio disponible */
+	min-height: 0;
+	flex: 1;
 }
 
 .step-header {
@@ -4591,8 +4539,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
-	min-height: 0; /* Permitir que se comprima */
-	overflow: hidden; /* Evitar scrollbars */
+	min-height: 0;
+	overflow: hidden;
+	margin: 0; /* Sin margen para ocupar todo el espacio */
+	width: 100%;
+	height: 100%;
 }
 
 .step-notes {
@@ -4624,11 +4575,15 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .component-container {
 	flex: 1;
 	display: flex;
-	align-items: flex-start;
-	justify-content: flex-start;
+	align-items: stretch;
+	justify-content: stretch;
 	min-height: 0;
 	overflow: hidden;
-	padding: 20px;
+	padding: 0;
+	margin: 0;
+	background: transparent; /* Fondo transparente para que se vea la aplicación */
+	width: 100%;
+	height: 100%;
 }
 
 .step-placeholder {
@@ -4850,5 +4805,18 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 .wizard-footer .btn:disabled:hover {
 	transform: none !important;
 	box-shadow: none !important;
+}
+
+/* Estilos para footer minimalista */
+.wizard-footer-minimal {
+	padding: 0; /* Eliminar padding completamente */
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	background: #333;
+	flex-shrink: 0;
+	min-height: 0; /* Permitir que se contraiga al mínimo */
+	height: 1px; /* Altura mínima para que exista pero no moleste */
+	display: flex; /* Mostrar el footer de nuevo */
+	align-items: center;
+	justify-content: center;
 }
 </style>

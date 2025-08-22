@@ -420,15 +420,16 @@ onUnmounted(() => {
 .iframe-microfrontend-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;  /* Alineación superior para mejor uso del espacio */
+  align-items: stretch;
+  justify-content: stretch;
   width: 100%;
-  height: auto;  /* Altura automática */
-  min-height: 600px;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
   position: relative;
-  overflow: visible;  /* Permitir que el contenido sea visible */
-  background: #f5f5f5;
-  padding: 20px;
+  overflow: hidden;
+  background: transparent;
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -520,21 +521,24 @@ onUnmounted(() => {
 
 .iframe-container {
   position: relative;
-  border-radius: 12px;
-  overflow: visible;  /* Permitir que todo el contenido sea visible */
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  background: white;
-  /* Las dimensiones se establecen via :style="containerStyle" */
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: none;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  border-radius: 8px;
 }
 
 .microfrontend-iframe {
   width: 100%;
-  height: 100%;
+  height: 100% !important;
   border: none;
-  border-radius: inherit;
+  border-radius: 8px;
   background: white;
   display: block;
-  /* Permitir que el contenido se ajuste sin scroll forzado */
   overflow: hidden;
 }
 

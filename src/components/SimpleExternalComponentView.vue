@@ -281,12 +281,13 @@ onUnmounted(() => {
 .simple-external-component-container {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
+  align-items: stretch; /* Volver a stretch para que ocupe todo el ancho */
+  justify-content: stretch; /* Volver a stretch para que ocupe toda la altura */
   width: 100%;
   height: 100%;
-  min-height: 400px;
+  min-height: 100%;
   position: relative;
+  overflow: hidden;
 }
 
 .loading-state {
@@ -350,8 +351,13 @@ onUnmounted(() => {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  align-items: stretch; /* Ocupar todo el ancho disponible */
+  justify-content: stretch; /* Ocupar toda la altura disponible */
   width: 100%;
   height: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .component-mount-area.is-hidden {
