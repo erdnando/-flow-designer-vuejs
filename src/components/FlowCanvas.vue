@@ -395,7 +395,7 @@
 									:is="wizardComponents[wizardSteps[currentWizardStep].component as keyof typeof wizardComponents]" 
 									v-if="wizardSteps[currentWizardStep].type === 'view' && componentExists(wizardSteps[currentWizardStep].component)"
 									:key="wizardSteps[currentWizardStep].id"
-									:ref="wizardSteps[currentWizardStep].component === 'SimpleExternalComponentView' ? 'currentExternalComponentRef' : undefined"
+									:ref="wizardSteps[currentWizardStep].component === 'IframeMicrofrontendView' ? 'currentExternalComponentRef' : undefined"
 									:wizard-step="wizardSteps[currentWizardStep]"
 									:zoom-level="wizardZoomLevel"
 									:device="selectedDevice"
@@ -501,14 +501,9 @@
 </button>
 -->
 			   <div class="zoom-controls zoom-controls-center">
-				   <!-- Dropdown de dispositivos en footer (reemplaza controles de zoom) -->
-				   <div class="device-selector-footer">
-					   <label for="device-select" style="margin-right:4px;">Dimensions:</label>
-					   <select id="device-select" v-model="selectedDevice" style="padding:4px;">
-						   <option v-for="device in devicePresets" :key="device.label" :value="device">
-							   {{ device.label }}
-						   </option>
-					   </select>
+				   <!-- Configuración extrema para contenido completo -->
+				   <div class="device-info-footer">
+					   <span style="color: #666; font-size: 12px;">Responsive Design (430x1600)</span>
 				   </div>
 			   </div>
 <!-- Botones de la derecha ocultos temporalmente -->
@@ -561,21 +556,14 @@ const testCancelled = ref(false);
 let testTimeouts: number[] = [];
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 // Device presets para simulación móvil
-const devicePresets = [
-	{ label: 'Responsive', width: window.innerWidth, height: window.innerHeight },
-	{ label: 'iPhone SE', width: 320, height: 568 },
-	{ label: 'iPhone XR', width: 414, height: 896 },
-	{ label: 'iPhone 12 Pro', width: 390, height: 844 },
-	{ label: 'iPhone 14 Pro Max', width: 430, height: 932 },
-	{ label: 'Samsung Galaxy S21', width: 360, height: 800 },
-	{ label: 'Google Pixel 5', width: 393, height: 851 },
-	{ label: 'OnePlus 8T', width: 412, height: 915 },
-	{ label: 'Xiaomi Mi 11', width: 412, height: 915 },
-	{ label: 'Huawei P40 Pro', width: 412, height: 915 },
-	{ label: 'Pixel 7', width: 393, height: 851 },
-	{ label: 'Samsung Galaxy S20 Ultra', width: 412, height: 915 }
-];
-const selectedDevice = ref(devicePresets.find(d => d.label === 'iPhone 14 Pro Max') || devicePresets[0]);
+// Configuración extrema para eliminar scroll completamente
+const defaultDevice = {
+	label: 'Responsive',
+	width: 430,
+	height: 1600  // Altura extrema para garantizar contenido completo
+};
+
+const selectedDevice = ref(defaultDevice);
 import { Background } from '@vue-flow/background';
 import { MiniMap } from '@vue-flow/minimap';
 import { storeToRefs } from 'pinia';
@@ -600,6 +588,7 @@ import SimpleDialog from './SimpleDialog.vue';
 // Importar los componentes para el simulador
 import ExternalComponentView from './ExternalComponentView.vue';
 import SimpleExternalComponentView from './SimpleExternalComponentView.vue';
+import IframeMicrofrontendView from './IframeMicrofrontendView.vue';
 import ProcessView from './ProcessView.vue';
 
 // Interfaces para el sistema de testing
@@ -3086,8 +3075,8 @@ function createWizardFromFlow() {
 				console.log(`Detectado componente externo con customTypeId: ${node.data.customTypeId}`);
 				stepInfo = {
 					title: nodeLabel,
-					component: 'SimpleExternalComponentView',
-					description: 'Componente externo (versión simple)',
+					component: 'IframeMicrofrontendView', // Cambiar a usar iframe
+					description: 'Microfrontend cargado via iframe',
 					// Pasar información adicional para cargar el componente externo
 					componentData: {
 						customTypeId: node.data.customTypeId,
@@ -3285,8 +3274,8 @@ function handleComponentReady(event: any) {
 	console.log('🎉 Componente del wizard listo:', event);
 	
 	// Si es un componente externo, almacenar la referencia
-	if (wizardSteps.value[currentWizardStep.value]?.component === 'SimpleExternalComponentView') {
-		console.log('📝 Componente externo del wizard está listo');
+	if (wizardSteps.value[currentWizardStep.value]?.component === 'IframeMicrofrontendView') {
+		console.log('📝 Microfrontend iframe del wizard está listo');
 	}
 }
 
@@ -3329,7 +3318,8 @@ function getStepTitle(stepId: string) {
 const wizardComponents = {
   ProcessView,
   ExternalComponentView,
-  SimpleExternalComponentView
+  SimpleExternalComponentView,
+  IframeMicrofrontendView
 };
 
 // Función para verificar si un componente existe
@@ -3753,17 +3743,14 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
   display: none;
 }
 
-/* Estilos para el selector de dispositivos en el footer */
-.device-selector-footer {
+/* Estilos para la información de dispositivo en el footer */
+.device-info-footer {
   display: flex;
   align-items: center;
   color: #fff;
-}
-.device-selector-footer select {
-  background: #333;
-  color: #fff;
-  border: none;
+  padding: 4px 8px;
   border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Estilos para el dropdown de estilo de conexiones */
