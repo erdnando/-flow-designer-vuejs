@@ -1,7 +1,7 @@
 <template>
 	<BaseEdge 
 		:id="id"
-		:style="style"
+		:style="edgeStyle"
 		:path="path"
 		:marker-end="markerEnd"
 		:marker-start="markerStart"
@@ -67,6 +67,26 @@ const props = withDefaults(defineProps<CustomEdgeProps>(), {
 const emit = defineEmits<{
 	delete: [edgeId: string];
 }>();
+
+// Calcular el estilo del edge con color de selección
+const edgeStyle = computed(() => {
+	const baseStyle = props.style || {};
+	
+	if (props.selected) {
+		// Cuando está seleccionado, usar un color muy vibrante y visible
+		return {
+			...baseStyle,
+			stroke: '#00ff88', // Verde neón muy vibrante
+			strokeWidth: 5, // Línea muy gruesa
+			filter: 'drop-shadow(0 0 15px rgba(0, 255, 136, 1)) drop-shadow(0 0 25px rgba(0, 255, 136, 0.7))', // Doble sombra muy brillante
+			strokeDasharray: '10,5', // Línea punteada para mayor visibilidad
+			opacity: 1 // Asegurar opacidad máxima
+		};
+	}
+	
+	// Estilo base sin modificaciones
+	return baseStyle;
+});
 
 // Calcular el path del edge según el tipo
 const path = computed(() => {

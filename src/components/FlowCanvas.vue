@@ -87,7 +87,7 @@
 			
 			<!-- Template slot para edge personalizado -->
 			<template #edge-deletable="edgeProps">
-				<CustomEdge v-bind="edgeProps" @delete="onEdgeDelete" />
+				<CustomEdge v-bind="edgeProps" :selected="selectedEdgeId === edgeProps.id" @delete="onEdgeDelete" />
 			</template>
 		</VueFlow>
 		
@@ -474,17 +474,6 @@
 						</div>
 					</div>
 				</div>
-
-				<!-- Panel de Variables -->
-				<VariablesPanel
-					:output-data="wizardOutputData"
-					:time-parameters="extractTimeParameters()"
-					:session-data="getSessionData()"
-					:current-step="currentWizardStep"
-					:total-steps="wizardSteps.length"
-					:current-step-title="wizardSteps[currentWizardStep]?.title || ''"
-					:current-step-data="getCurrentStepData()"
-				/>
 			</div>
 			
 			<!-- Footer con controles - Simplificado -->
@@ -524,7 +513,6 @@ import ConditionNode from './ConditionNode.vue';
 import StartNode from './StartNode.vue';
 import EndNode from './EndNode.vue';
 import CustomEdge from './CustomEdge.vue';
-import VariablesPanel from './VariablesPanel.vue';
 import { nodeTypeMeta } from '../utils/nodeTypeMeta';
 // ElMessageBox reemplazado por CustomDialog
 import { getValidationErrors, type ValidationResult } from '../utils/validation';
@@ -534,6 +522,7 @@ import SimpleDialog from './SimpleDialog.vue';
 import ExternalComponentView from './ExternalComponentView.vue';
 import SimpleExternalComponentView from './SimpleExternalComponentView.vue';
 import IframeMicrofrontendView from './IframeMicrofrontendView.vue';
+import ComponentAgentViewer from '../integration/bridge/ComponentAgentViewer.vue';
 import ProcessView from './ProcessView.vue';
 
 // Interfaces para el sistema de testing
@@ -2019,9 +2008,200 @@ function handleEdgePathClick(event: Event) {
 	}
 }
 
+// SISTEMA AVANZADO DE DETECCIÓN DE EDGES CON MÚLTIPLES ALGORITMOS MATEMÁTICOS
+function isMouseNearAnyEdge(mouseX: number, mouseY: number): boolean {
+	const vueFlowElement = document.querySelector('.vue-flow');
+	if (!vueFlowElement) return false;
+	
+	const rect = vueFlowElement.getBoundingClientRect();
+	const relativeMouseX = mouseX - rect.left;
+	const relativeMouseY = mouseY - rect.top;
+	
+	// MÉTODO 1: DETECCIÓN DIRECTA CON GRILLA ULTRA-DENSA
+	const ULTRA_DETECTION_RADIUS = 100; // Radio muy amplio
+	for (let offsetX = -ULTRA_DETECTION_RADIUS; offsetX <= ULTRA_DETECTION_RADIUS; offsetX += 3) {
+		for (let offsetY = -ULTRA_DETECTION_RADIUS; offsetY <= ULTRA_DETECTION_RADIUS; offsetY += 3) {
+			const checkX = mouseX + offsetX;
+			const checkY = mouseY + offsetY;
+			
+			if (checkX < 0 || checkY < 0 || checkX > window.innerWidth || checkY > window.innerHeight) continue;
+			
+			const elementsAtPoint = document.elementsFromPoint(checkX, checkY);
+			const edgeElement = elementsAtPoint.find(el => 
+				el.classList.contains('vue-flow__edge-path') ||
+				el.classList.contains('vue-flow__edge') ||
+				el.classList.contains('vue-flow__edge-interaction') ||
+				(el.tagName === 'path' && el.closest('.vue-flow__edge'))
+			);
+			
+			if (edgeElement) {
+				console.log('🎯 Edge detectado por grilla ultra-densa');
+				return true;
+			}
+		}
+	}
+	
+	// MÉTODO 2: DETECCIÓN MATEMÁTICA AVANZADA CON CURVAS BÉZIER
+	const viewport = getViewport();
+	if (!viewport) return false;
+	
+	// Convertir coordenadas de pantalla a coordenadas del canvas
+	const canvasX = (relativeMouseX - viewport.x) / viewport.zoom;
+	const canvasY = (relativeMouseY - viewport.y) / viewport.zoom;
+	
+	for (const edge of edges.value) {
+		const sourceNode = nodes.value.find(n => n.id === edge.source);
+		const targetNode = nodes.value.find(n => n.id === edge.target);
+		
+		if (!sourceNode || !targetNode) continue;
+		
+		// Calcular puntos de conexión precisos usando dimensiones estándar de nodos
+		const sourceX = sourceNode.position.x + 150; // Ancho estándar del nodo
+		const sourceY = sourceNode.position.y + 30; // Altura estándar del nodo / 2
+		const targetX = targetNode.position.x;
+		const targetY = targetNode.position.y + 30;
+		
+		// ALGORITMO 1: Distancia a línea recta (rápido)
+		const straightLineDistance = distanceToLineSegment(canvasX, canvasY, sourceX, sourceY, targetX, targetY);
+		if (straightLineDistance <= 80) {
+			console.log('🎯 Mouse cerca de línea recta', edge.id, 'distancia:', Math.round(straightLineDistance));
+			return true;
+		}
+		
+		// ALGORITMO 2: Curva Bézier cúbica (para conexiones smooth/step)
+		if (isPointNearBezierCurve(canvasX, canvasY, sourceX, sourceY, targetX, targetY, 80)) {
+			console.log('🎯 Mouse cerca de curva Bézier', edge.id);
+			return true;
+		}
+		
+		// ALGORITMO 3: Detección por área expandida (tolerancia máxima)
+		const boundingBox = {
+			minX: Math.min(sourceX, targetX) - 100,
+			maxX: Math.max(sourceX, targetX) + 100,
+			minY: Math.min(sourceY, targetY) - 100,
+			maxY: Math.max(sourceY, targetY) + 100
+		};
+		
+		if (canvasX >= boundingBox.minX && canvasX <= boundingBox.maxX && 
+		    canvasY >= boundingBox.minY && canvasY <= boundingBox.maxY) {
+			
+			// Dentro del bounding box, aplicar detección por proximidad
+			const centerX = (sourceX + targetX) / 2;
+			const centerY = (sourceY + targetY) / 2;
+			const distanceToCenter = Math.sqrt((canvasX - centerX) ** 2 + (canvasY - centerY) ** 2);
+			
+			if (distanceToCenter <= 120) {
+				console.log('🎯 Mouse en área expandida de conexión', edge.id);
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
+// Función auxiliar avanzada para detectar proximidad a curva Bézier
+function isPointNearBezierCurve(px: number, py: number, x1: number, y1: number, x2: number, y2: number, tolerance: number): boolean {
+	// Calcular puntos de control para curva Bézier smooth
+	const dx = x2 - x1;
+	const dy = y2 - y1;
+	const distance = Math.sqrt(dx * dx + dy * dy);
+	
+	// Puntos de control automáticos para curvas smooth
+	const controlOffset = Math.min(distance * 0.5, 200);
+	const cp1x = x1 + controlOffset;
+	const cp1y = y1;
+	const cp2x = x2 - controlOffset;
+	const cp2y = y2;
+	
+	// Muestrear puntos a lo largo de la curva Bézier
+	let minDistance = Infinity;
+	
+	for (let t = 0; t <= 1; t += 0.02) { // Muestrear cada 2%
+		// Fórmula de curva Bézier cúbica
+		const bezierX = Math.pow(1-t, 3) * x1 + 
+		                3 * Math.pow(1-t, 2) * t * cp1x + 
+		                3 * (1-t) * Math.pow(t, 2) * cp2x + 
+		                Math.pow(t, 3) * x2;
+		                
+		const bezierY = Math.pow(1-t, 3) * y1 + 
+		                3 * Math.pow(1-t, 2) * t * cp1y + 
+		                3 * (1-t) * Math.pow(t, 2) * cp2y + 
+		                Math.pow(t, 3) * y2;
+		
+		const dist = Math.sqrt((px - bezierX) ** 2 + (py - bezierY) ** 2);
+		minDistance = Math.min(minDistance, dist);
+		
+		if (minDistance <= tolerance) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+// Función auxiliar para calcular distancia a un segmento de línea
+function distanceToLineSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
+	const dx = x2 - x1;
+	const dy = y2 - y1;
+	const length = Math.sqrt(dx * dx + dy * dy);
+	
+	if (length === 0) return Math.sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
+	
+	const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (length * length)));
+	const projection_x = x1 + t * dx;
+	const projection_y = y1 + t * dy;
+	
+	return Math.sqrt((px - projection_x) * (px - projection_x) + (py - projection_y) * (py - projection_y));
+}
+
 // Configurar detección global de clicks en edges y botones de eliminar
 function setupGlobalEdgeClickDetection() {
 	console.log('🌐 Configurando detección global de clicks en edges y botones...');
+	
+	// Añadir event listener para debugging cursor hover Y FORZAR CAMBIO DE CURSOR
+	document.addEventListener('mouseover', (event) => {
+		const elementsFromPoint = document.elementsFromPoint(event.clientX, event.clientY);
+		
+		// Buscar si hay un edge en el cursor
+		const edgePath = elementsFromPoint.find(el => 
+			el.classList.contains('vue-flow__edge-path') || 
+			el.classList.contains('vue-flow__edge-interaction') ||
+			el.classList.contains('vue-flow__edge')
+		);
+		
+		// Buscar si hay un nodo en el cursor
+		const nodeElement = elementsFromPoint.find(el => 
+			el.classList.contains('vue-flow__node')
+		);
+		
+		// SI NO SE DETECTÓ EDGE DIRECTAMENTE, BUSCAR CONEXIONES CERCANAS CON MATEMÁTICAS
+		let isNearEdge = false;
+		if (!edgePath) {
+			isNearEdge = isMouseNearAnyEdge(event.clientX, event.clientY);
+		}
+		
+		// FORZAR CURSOR VIA JAVASCRIPT - SEGÚN DOCUMENTACIÓN
+		if (edgePath || isNearEdge) {
+			console.log('🖱️ Mouse SOBRE edge:', edgePath?.id || 'calculado matemáticamente', 'Aplicando cursor: pointer');
+			document.body.style.cursor = 'pointer';
+		} else if (nodeElement) {
+			console.log('🖱️ Mouse SOBRE nodo:', nodeElement.id || 'sin ID', 'Aplicando cursor: pointer');
+			document.body.style.cursor = 'pointer';
+		} else {
+			// Reset cursor cuando no está sobre elementos interactivos
+			document.body.style.cursor = 'default';
+		}
+	});
+	
+	// Añadir listener para reset del cursor al salir del área del vue-flow
+	const vueFlowContainer = document.querySelector('.vue-flow');
+	if (vueFlowContainer) {
+		vueFlowContainer.addEventListener('mouseleave', () => {
+			console.log('🖱️ Mouse SALIÓ del vue-flow - reseteando cursor');
+			document.body.style.cursor = 'default';
+		});
+	}
 	
 	// Añadir event listener al documento completo
 	document.addEventListener('click', (event) => {
@@ -3020,8 +3200,8 @@ function createWizardFromFlow() {
 				console.log(`Detectado componente externo con customTypeId: ${node.data.customTypeId}`);
 				stepInfo = {
 					title: nodeLabel,
-					component: 'IframeMicrofrontendView', // Cambiar a usar iframe
-					description: 'Microfrontend cargado via iframe',
+					component: 'ComponentAgentViewer', // Usar ComponentAgent en lugar de iframe
+					description: 'ComponentAgent especializado para este paso',
 					// Pasar información adicional para cargar el componente externo
 					componentData: {
 						customTypeId: node.data.customTypeId,
@@ -3189,31 +3369,6 @@ function getAllOutputParameters() {
 }
 
 // Función para generar IDs únicos
-function generateId() {
-	return 'sess-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-}
-
-// Funciones para el panel de variables
-function getSessionData() {
-	return {
-		sessionId: generateId(), // Podríamos usar un ID de sesión real si está disponible
-		userId: 'user-demo', // Podríamos usar un ID de usuario real
-		startTime: new Date().toISOString() // Tiempo de inicio de la sesión del wizard
-	};
-}
-
-function getCurrentStepData() {
-	const currentStep = wizardSteps.value[currentWizardStep.value];
-	if (!currentStep) return {};
-	
-	return {
-		component: currentStep.component,
-		stepId: currentStep.id,
-		startTime: new Date().toISOString(), // Podríamos rastrear cuándo se inició este paso
-		lastInteraction: new Date().toISOString() // Última interacción del usuario
-	};
-}
-
 // Manejadores de eventos del wizard
 function handleComponentReady(event: any) {
 	console.log('🎉 Componente del wizard listo:', event);
@@ -3264,7 +3419,8 @@ const wizardComponents = {
   ProcessView,
   ExternalComponentView,
   SimpleExternalComponentView,
-  IframeMicrofrontendView
+  IframeMicrofrontendView,
+  ComponentAgentViewer
 };
 
 // Función para verificar si un componente existe
@@ -3465,7 +3621,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	max-height: 100vh;
 	overflow: hidden;
 	display: flex;
-	cursor: url('https://cdn.jsdelivr.net/gh/rdnando/cursors@main/material-hand.cur'), grab;
+	cursor: default;
 }
 
 .custom-vue-flow {
@@ -3477,11 +3633,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	background-size: 20px 20px;
 	background-position: 0 0;
 	overflow: visible;
-	cursor: url('https://cdn.jsdelivr.net/gh/rdnando/cursors@main/material-hand.cur'), grab;
+	cursor: default;
 }
 .vue-flow__node {
 	pointer-events: auto !important;
-	cursor: url('https://cdn.jsdelivr.net/gh/rdnando/cursors@main/material-pointer.cur'), pointer;
+	cursor: pointer;
 	transition:
 		box-shadow 0.18s,
 		transform 0.35s cubic-bezier(0.4, 0.8, 0.4, 1),
@@ -3515,7 +3671,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	cursor: pointer;
 }
 .vue-flow__node:active {
-	cursor: url('https://cdn.jsdelivr.net/gh/rdnando/cursors@main/material-grabbing.cur'), grabbing;
+	cursor: grabbing;
 }
 .minimap-absolute {
 	position: absolute !important;
@@ -3766,7 +3922,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 		stroke-dashoffset: 0;
 	}
 	to {
-		stroke-dashoffset: -13;
+		stroke-dashoffset: -40; /* Incrementado de -20 a -40 para animación más rápida */
 	}
 }
 
@@ -3775,7 +3931,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 		stroke-dashoffset: 0;
 	}
 	to {
-		stroke-dashoffset: -13;
+		stroke-dashoffset: -40; /* Incrementado de -20 a -40 para animación más rápida */
 	}
 }
 
@@ -3788,16 +3944,16 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 
 .vue-flow__edge-path {
 	stroke: #5078ff !important;
-	stroke-width: 3px !important;
+	stroke-width: 8px !important; /* Incrementado de 3px a 8px */
 	fill: none !important;
 	cursor: pointer !important;
-	animation: dash 2s linear infinite;
-	stroke-dasharray: 8 5;
+	animation: dash 1.5s linear infinite !important; /* Más rápido: de 2s a 1.5s */
+	stroke-dasharray: 20 15 !important; /* Puntos más largos y espacios más grandes: era 12 8 */
 	transition: stroke-width 0.3s ease, stroke 0.3s ease;
 	filter: drop-shadow(0 1px 2px rgba(80, 120, 255, 0.3));
 	pointer-events: all !important;
-	stroke-linecap: round;
-	stroke-linejoin: round;
+	stroke-linecap: round !important;
+	stroke-linejoin: round !important;
 	z-index: 104 !important;
 }
 
@@ -3816,6 +3972,8 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 /* CURSOR ESPECÍFICO - Mayor especificidad para sobrescribir cursor global */
 .flow-canvas-wrapper .vue-flow__edge-path {
 	cursor: pointer !important;
+	stroke-dasharray: 20 15 !important; /* Actualizado para mayor visibilidad */
+	animation: dash 1.5s linear infinite !important; /* Más rápido */
 }
 
 .flow-canvas-wrapper .vue-flow__edge {
@@ -3832,7 +3990,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 
 .vue-flow__edge-path:hover {
 	stroke: #6b8aff !important;
-	stroke-width: 4px !important;
+	stroke-width: 12px !important; /* Incrementado de 4px a 12px */
 	filter: drop-shadow(0 2px 4px rgba(80, 120, 255, 0.5));
 	z-index: 105 !important;
 	cursor: pointer !important;
@@ -3840,9 +3998,9 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 
 .vue-flow__edge.selected .vue-flow__edge-path {
 	stroke: #ffd700 !important;
-	stroke-width: 5px !important;
-	stroke-dasharray: 8 5;
-	animation: dash-selected 1.0s linear infinite;
+	stroke-width: 10px !important; /* Incrementado de 5px a 10px */
+	stroke-dasharray: 25 20 !important; /* Puntos aún más largos para selección: era 15 10 */
+	animation: dash-selected 0.8s linear infinite !important; /* Más rápido para seleccionados: de 1.0s a 0.8s */
 	filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6));
 	cursor: pointer !important;
 }
@@ -3850,7 +4008,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 /* Estilo para conexión seleccionada en hover */
 .vue-flow__edge.selected .vue-flow__edge-path:hover {
 	stroke: #ffed4e !important;
-	stroke-width: 6px !important;
+	stroke-width: 14px !important; /* Incrementado de 6px a 14px */
 	filter: drop-shadow(0 3px 6px rgba(255, 215, 0, 0.8));
 }
 
@@ -3877,19 +4035,19 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 /* Estilos para conexiones en proceso de creación */
 .vue-flow__connection-path {
 	stroke: #5078ff !important;
-	stroke-width: 3px !important;
-	stroke-dasharray: 10 5;
-	animation: connection-pulse 1.5s ease-in-out infinite;
+	stroke-width: 8px !important; /* Ajustado de 3px a 8px para consistencia */
+	stroke-dasharray: 20 15 !important; /* Actualizado para mayor visibilidad */
+	animation: connection-pulse 1.2s ease-in-out infinite; /* Más rápido */
 }
 
 @keyframes connection-pulse {
 	0%, 100% {
 		opacity: 0.7;
-		stroke-width: 3px;
+		stroke-width: 8px; /* Ajustado de 3px a 8px */
 	}
 	50% {
 		opacity: 1;
-		stroke-width: 4px;
+		stroke-width: 12px; /* Ajustado de 4px a 12px */
 	}
 }
 
@@ -4341,11 +4499,11 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	border-radius: 12px;
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
-	width: 85vw; /* Reducir ancho de 90vw a 85vw */
-	max-width: 1200px; /* Reducir ancho máximo de 1400px a 1200px */
-	height: 85vh; /* Reducir altura de 98vh a 85vh */
-	max-height: 85vh;
-	min-height: 600px; /* Reducir altura mínima de 800px a 600px */
+	width: 95vw; /* Aumentar ancho de 85vw a 95vw */
+	max-width: 1600px; /* Aumentar ancho máximo de 1200px a 1600px */
+	height: 95vh; /* Aumentar altura de 85vh a 95vh */
+	max-height: 95vh;
+	min-height: 700px; /* Aumentar altura mínima de 600px a 700px */
 	overflow: hidden;
 	animation: wizardSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 	display: flex;
@@ -4818,5 +4976,80 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	display: flex; /* Mostrar el footer de nuevo */
 	align-items: center;
 	justify-content: center;
+}
+
+/* REGLAS DE CURSOR ESPECÍFICAS - MÁXIMA PRIORIDAD */
+.flow-canvas-wrapper {
+	cursor: default !important;
+}
+
+.flow-canvas-wrapper .custom-vue-flow {
+	cursor: default !important;
+}
+
+/* Solo las conexiones deben tener cursor pointer - SEGÚN DOCUMENTACIÓN */
+.flow-canvas-wrapper .vue-flow__edge,
+.flow-canvas-wrapper .vue-flow__edge-path {
+	cursor: pointer !important; /* Cursor pointer para conexiones según docs */
+}
+
+/* Los nodos deben tener cursor pointer */
+.flow-canvas-wrapper .vue-flow__node {
+	cursor: pointer !important;
+}
+
+/* El fondo del vue-flow debe tener cursor default */
+.flow-canvas-wrapper .vue-flow__pane {
+	cursor: default !important;
+}
+
+.flow-canvas-wrapper .vue-flow__container {
+	cursor: default !important;
+}
+
+/* Reglas específicas para interaction layers */
+.flow-canvas-wrapper .vue-flow__edge-interaction {
+	cursor: pointer !important;
+	pointer-events: all !important;
+}
+
+/* Máxima especificidad para paths */
+.vue-flow__edge-path {
+	cursor: pointer !important;
+	pointer-events: all !important;
+	stroke-width: 8px !important; /* Mantener grosor consistente */
+	stroke-dasharray: 20 15 !important; /* Actualizado para mayor visibilidad */
+	animation: dash 1.5s linear infinite !important; /* Más rápido */
+}
+
+.vue-flow__edge-path:hover {
+	cursor: pointer !important;
+	stroke-width: 12px !important; /* Mantener grosor hover consistente */
+	stroke-dasharray: 20 15 !important; /* MANTENER líneas punteadas en hover */
+}
+
+.vue-flow__edge {
+	cursor: grab !important;
+	pointer-events: all !important;
+}
+
+.vue-flow__edge:hover {
+	cursor: pointer !important;
+}
+
+/* REGLA SUPER ESPECÍFICA PARA FORZAR LÍNEAS PUNTEADAS */
+.flow-canvas-wrapper .custom-vue-flow .vue-flow__edge-path {
+	stroke-dasharray: 20 15 !important; /* Actualizado para mayor visibilidad */
+	animation: dash 1.5s linear infinite !important; /* Más rápido */
+	stroke-width: 8px !important;
+	stroke: #5078ff !important;
+}
+
+/* REGLA PARA CONEXIONES SELECCIONADAS */
+.flow-canvas-wrapper .custom-vue-flow .vue-flow__edge.selected .vue-flow__edge-path {
+	stroke-dasharray: 25 20 !important; /* Actualizado para mayor visibilidad */
+	animation: dash-selected 0.8s linear infinite !important; /* Más rápido */
+	stroke-width: 10px !important;
+	stroke: #ffd700 !important;
 }
 </style>
