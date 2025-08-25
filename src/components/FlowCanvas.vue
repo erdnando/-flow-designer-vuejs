@@ -351,7 +351,7 @@
 						<path d="M2 17l10 5 10-5" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 						<path d="M2 12l10 5 10-5" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 					</svg>
-					Simulador de Flujo
+					Gestion del Flujo
 				</h2>
 				<button @click="closeWizard" class="wizard-close-btn">
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -502,6 +502,7 @@ import { Background } from '@vue-flow/background';
 import { MiniMap } from '@vue-flow/minimap';
 import { storeToRefs } from 'pinia';
 import { useFlowStore } from '../stores/flow';
+import { useAgentStore } from '../stores/agentStore';
 import ContextMenu from './ContextMenu.vue';
 import NodePropertiesPanel from './nodePropertiesPanel/index.vue';
 import { reactive, markRaw, ref, watch, onMounted, onBeforeUnmount, nextTick, provide } from 'vue';
@@ -567,6 +568,9 @@ interface ExtendedNode extends Node {
 
 const flowStore = useFlowStore();
 const { nodes, edges, flowTitle } = storeToRefs(flowStore);
+
+// Initialize agent store for dynamic crew management
+const agentStore = useAgentStore();
 
 // Auto-guardar en localStorage
 const AUTOSAVE_KEY = 'n8n_standalone_flow_data';
@@ -800,6 +804,9 @@ onMounted(() => {
 	
 	loadFromLocalStorage();
 	setupAutoSave();
+	
+	// Initialize agent store with current nodes
+	agentStore.initialize(nodes.value);
 	
 	// Configurar un event listener global para capturar clicks en edges
 	setupGlobalEdgeClickDetection();
@@ -1528,6 +1535,15 @@ watch(
 		}
 	},
 	{ deep: false },
+);
+
+// Sincronizar cambios de nodos con el agent store para CrewAI
+watch(
+	nodes,
+	(newNodes) => {
+		agentStore.syncAgentsWithNodes(newNodes);
+	},
+	{ deep: true }
 );
 
 const panelCollapsed = ref(true);
@@ -4646,8 +4662,10 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	min-height: 0;
 	position: relative;
 	background: transparent; /* Asegurar que no tenga fondo propio */
-	padding: 10px 0; /* Padding igual arriba y abajo para simetría */
-	
+	padding: 0; /* ELIMINAR padding para maximizar espacio */
+	margin: 0; /* ELIMINAR margin */
+	width: 100%;
+	height: 100%;
 }
 
 .wizard-content {
@@ -4658,6 +4676,7 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	display: flex;
 	flex-direction: column;
 	transition: all 0.3s ease;
+	height: 100%; /* Asegurar altura completa */
 }
 
 /* El panel de variables ya no necesita margin porque está en el flex layout */
@@ -4672,25 +4691,15 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 }
 
 .step-header {
-	   margin-bottom: 0px; /* Reducir aún más el margen */
-	   flex-shrink: 0;
-	   padding-top: 0px;
-	   padding-bottom: 0px;
+	display: none; /* OCULTAR COMPLETAMENTE para maximizar espacio */
 }
 
 .step-header h3 {
-	   color: #fff;
-	   font-size: 15px; /* Más pequeño */
-	   font-weight: 600;
-	   margin-bottom: 2px; /* Menor margen */
-	   line-height: 1.1;
+	display: none; /* OCULTAR título */
 }
 
 .step-description {
-	   color: #bbb;
-	   font-size: 12px; /* Más pequeño */
-	   line-height: 1.2;
-	   margin: 0;
+	display: none; /* OCULTAR descripción */
 }
 
 .step-content {
@@ -4700,17 +4709,14 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	min-height: 0;
 	overflow: hidden;
 	margin: 0; /* Sin margen para ocupar todo el espacio */
+	padding: 0; /* Sin padding para maximizar espacio */
 	width: 100%;
 	height: 100%;
+	position: relative; /* RELATIVO para que el hijo absoluto funcione */
 }
 
 .step-notes {
-	background: rgba(76, 175, 80, 0.1);
-	border: 1px solid rgba(76, 175, 80, 0.3);
-	border-radius: 8px;
-	padding: 8px 12px; /* Reducir padding */
-	margin-bottom: 12px;
-	flex-shrink: 0;
+	display: none; /* OCULTAR notas para maximizar espacio del contenido */
 }
 
 .note-item {
@@ -4737,11 +4743,16 @@ function sanitizeNodesOnLoad(nodes: ExtendedNode[]) {
 	justify-content: stretch;
 	min-height: 0;
 	overflow: hidden;
-	padding: 0;
-	margin: 0;
+	padding: 0; /* Sin padding */
+	margin: 0; /* Sin margin */
 	background: transparent; /* Fondo transparente para que se vea la aplicación */
 	width: 100%;
 	height: 100%;
+	position: absolute; /* POSICIÓN ABSOLUTA para ocupar TODO el espacio */
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
 }
 
 .step-placeholder {

@@ -21,7 +21,11 @@ npm run dev  # http://localhost:3001/demo.html
 npm run build  # dist/landing-v1.0.0.js
 ```
 
-## � Documentación Estratégica
+## 🌟 Documentación Estratégica
+
+### 🤖 Sistema Agéntico (NUEVO - Agosto 2025)
+- **[🤖 Sistema Agéntico Dinámico Node.js](SISTEMA-AGENTICO-NODEJS.md)** - ⭐ **IMPLEMENTACIÓN COMPLETA**: Sistema CrewAI nativo que convierte automáticamente nodos del designer en agentes configurables
+- **[🔧 Contexto Técnico para GitHub Copilot](CONTEXTO-GITHUB-COPILOT.md)** - ⭐ **CONTINUIDAD**: Decisiones técnicas y estado actual para futuras sesiones
 
 ### 🏗️ Arquitectura y Estrategia
 - **[📋 Arquitectura de Componentes Externos](ARQUITECTURA-COMPONENTES-EXTERNOS.md)** - ⭐ **ESTRATEGIA PRINCIPAL**: Evolución hacia arquitectura modular con componentes React externos
